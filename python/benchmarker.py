@@ -39,7 +39,8 @@ class Benchmarker(object):
     header_format = '%10s %10s %10s %10s'
     times_format  = '%10.4f %10.4f %10.4f %10.4f'
 
-    def __init__(self, width=30, out=sys.stderr, header=True):
+    def __init__(self, width=30, out=None, header=True):
+        if out is None:  out = sys.stderr
         self.width = width
         self.out   = out
         self.title_format = '%-' + str(width) + 's'
