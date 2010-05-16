@@ -6,18 +6,6 @@
 ### $License: MIT License $
 ###
 
-"""
-benchmark utility
-
-Example:
->>> from benchmarker import Benchmarker
->>> def fib(n):  return 1 if n <= 2 else fib(n-1) + fib(n-2)
->>> b = Benchmarker()   # or Benchmarker(width=30, out=sys.stderr, header=True)
->>> with b('fib(n) with n=34'):  fib(34)        # Python 2.5 or later
->>> b('fib(n) with n=34').run(lambda: fib(34))  # Python 2.4
-                                   utime      stime      total       real
-fib(n) with n=34                  3.7600     0.0100     3.7700     3.8425
-"""
 
 import sys, os, time
 
@@ -25,6 +13,32 @@ __all__ = ('Benchmarker', )
 
 
 class Benchmarker(object):
+    """benchmark utility class
+
+       Example (ex.py)::
+
+           def fib(n):
+               if n <= 2:
+                   return 1
+               else:
+                   return fib(n-1) + fib(n-2)
+
+           from benchmarker import Benchmarker
+           bm = Benchmarker()  # or Benchmarker(width=30, out=sys.stderr, header=True)
+           ## Python 2.5 or later
+           with bm('fib(n) (n==34)'):  fib(34)
+           with bm('fib(n) (n==35)'):  fib(35)
+           ## Python 2.4
+           bm('fib(n) (n==34)').run(lambda: fib(34))
+           bm('fib(n) (n==35)').run(lambda: fib(35))
+
+       Output::
+
+           $ python ex.py
+                                        utime      stime      total       real
+           fib(n) (n==34)              4.3700     0.0200     4.3900     4.9449
+           fib(n) (n==35)              7.1500     0.0500     7.2000     8.0643
+    """
 
     header_format = '%10s %10s %10s %10s'
     times_format  = '%10.4f %10.4f %10.4f %10.4f'
@@ -81,11 +95,16 @@ class Benchmarker(object):
 if __name__ == '__main__':
 
     def fib(n):
-        return 1 if n <= 2 else fib(n-1) + fib(n-2)
+        if n <= 2:
+            return 1
+        else:
+            return fib(n-1) + fib(n-2)
 
-    b = Benchmarker(width=30, out=sys.stderr, header=True)
-    #for n in range(30, 35+1):
-    #    with b('fib(%s)' % n):
-    #        fib(n)
-    for n in range(30, 35+1):
-        b('fib(%s)' % n).run(lambda: fib(n))
+    from benchmarker import Benchmarker
+    bm = Benchmarker()  # or Benchmarker(width=30, out=sys.stderr, header=True)
+    ## Python 2.5 or later
+    #with bm('fib(n) (n==34)'):  fib(34)
+    #with bm('fib(n) (n==35)'):  fib(35)
+    ## Python 2.4
+    bm('fib(n) (n==34)').run(lambda: fib(34))
+    bm('fib(n) (n==35)').run(lambda: fib(35))
