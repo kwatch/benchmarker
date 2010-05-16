@@ -1,0 +1,4 @@
+include README.txt MANIFEST CHANGES.txt setup.py
+include benchmarker.py
+include test/*.py
+include Kookbook.py
