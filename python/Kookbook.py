@@ -81,7 +81,7 @@ def task_package(c):
         system(c%"tar xzf $(pkg)")
         dir = re.sub(r'\.tar\.gz$', '', pkg)
         #echo("*** debug: pkg=%s, dir=%s" % (pkg, dir))
-        edit(c%"$(dir)/**/*", by=repl)
+        edit(c%"$(dir)/**/*", by=repl, exclude='*/oktest.py')
         #with chdir(dir):
         #    system("python setup.py egg_info --egg-base .")
         #    rm("*.pyc")
