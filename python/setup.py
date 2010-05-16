@@ -54,7 +54,7 @@ download = 'http://pypi.python.org/packages/source/B/Benchmarker/Benchmarker-%s.
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
-    'Intended Audience :: Developer',
+    'Intended Audience :: Developers',
     'License :: Public Domain',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
