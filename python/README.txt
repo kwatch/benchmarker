@@ -45,7 +45,7 @@ Installation::
     ## if you have installed easy_install:
     $ sudo easy_install Benchmarker
     ## or download Benchmarker-X.X.X.tar.gz and install it
-    $ wget http://pypi.python.org/packages/source/O/Benchmarker/Benchmarker-X.X.X.tar.gz
+    $ wget http://pypi.python.org/packages/source/B/Benchmarker/Benchmarker-X.X.X.tar.gz
     $ tar xzf Benchmarker-X.X.X.tar.gz
     $ cd Benchmarker-X.X.X/
     $ sudo python setup.py install
