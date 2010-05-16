@@ -17,11 +17,7 @@ Example
 ex.py::
 
     def fib(n):
-        if n <= 2:
-            return 1
-        else:
-            return fib(n-1) + fib(n-2)
-    
+        return n <= 2 and 1 or fib(n-1) + fib(n-2)
     from benchmarker import Benchmarker
     bm = Benchmarker()  # or Benchmarker(width=30, out=sys.stderr, header=True)
     ## Python 2.5 or later

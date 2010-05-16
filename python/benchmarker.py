@@ -18,11 +18,7 @@ class Benchmarker(object):
        Example (ex.py)::
 
            def fib(n):
-               if n <= 2:
-                   return 1
-               else:
-                   return fib(n-1) + fib(n-2)
-
+               return n <= 2 and 1 or fib(n-1) + fib(n-2)
            from benchmarker import Benchmarker
            bm = Benchmarker()  # or Benchmarker(width=30, out=sys.stderr, header=True)
            ## Python 2.5 or later
@@ -95,12 +91,7 @@ class Benchmarker(object):
 if __name__ == '__main__':
 
     def fib(n):
-        if n <= 2:
-            return 1
-        else:
-            return fib(n-1) + fib(n-2)
-
-    from benchmarker import Benchmarker
+        return n <= 2 and 1 or fib(n-1) + fib(n-2)
     bm = Benchmarker()  # or Benchmarker(width=30, out=sys.stderr, header=True)
     ## Python 2.5 or later
     #with bm('fib(n) (n==34)'):  fib(34)
