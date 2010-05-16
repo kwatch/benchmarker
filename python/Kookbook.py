@@ -52,7 +52,8 @@ def task_edit(c):
 
 
 @recipe
-def task_package(c):
+@spices('-a: create all egg packages for 2.4, 2.5, and 2.6')
+def task_package(c, *args, **kwargs):
     """create package"""
     ## remove files
     pattern = c%"dist/$(package)-$(release)*"
@@ -70,8 +71,8 @@ def task_package(c):
         (r'X\.X\.X',  release)
     )
     ## setup
-    system('python setup.py sdist')
-    #system('python setup.py sdist --keep-temp')
+    system(c%'$(python) setup.py sdist')
+    #system(c%'$(python) setup.py sdist --keep-temp')
     with chdir('dist') as d:
         #pkgs = kook.util.glob2(c%"$(package)-$(release).tar.gz");
         #pkg = pkgs[0]
@@ -83,14 +84,25 @@ def task_package(c):
         #echo("*** debug: pkg=%s, dir=%s" % (pkg, dir))
         edit(c%"$(dir)/**/*", by=repl, exclude='*/oktest.py')
         #with chdir(dir):
-        #    system("python setup.py egg_info --egg-base .")
+        #    system(c%"$(python) setup.py egg_info --egg-base .")
         #    rm("*.pyc")
         mv(pkg, c%"$(pkg).bkup")
         #tar_czf(c%"$(dir).tar.gz", dir)
         system(c%"tar -cf $(dir).tar $(dir)")
         system(c%"gzip -f9 $(dir).tar")
         ## create *.egg file
+        opt_a = kwargs.get('a')
         with chdir(dir):
-            system("python setup.py bdist_egg")
-            mv("dist/*.egg", "..")
-            rm_rf("build", "dist")
+            if opt_a:
+                pythons = [
+                    '/opt/local/bin/python2.7',
+                    '/opt/local/bin/python2.6',
+                    '/opt/local/bin/python2.5',
+                    '/opt/local/bin/python2.4',
+                ]
+            else:
+                pythons = [ python ]
+            for py in pythons:
+                system(c%'$(py) setup.py bdist_egg')
+                mv("dist/*.egg", "..")
+                rm_rf("build", "dist")
