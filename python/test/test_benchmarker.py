@@ -52,6 +52,21 @@ class BenchmarkerTest(object):
         actual = self.out.getvalue()
         ok (actual).matches(self.pattern)
 
+    def test_run_2(self):
+        if "called without setting title then use func name as title":
+            bm = self.bm
+            def fib10(): fib(10)
+            def fib15(): fib(15)
+            bm.run(fib10)
+            bm.run(fib15)
+            actual = self.out.getvalue()
+            pattern = ''.join(('^',
+                ' ' * 30 + '     utime      stime      total       real' "\n",
+                r'fib10 ( *\d+\.\d\d\d\d){4}' + "\n",
+                r'fib15 ( *\d+\.\d\d\d\d){4}' + "\n",
+            '$'))
+            ok (actual).matches(pattern)
+
     def test_results(self):
         ## results
         bm = self.bm

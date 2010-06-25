@@ -95,6 +95,8 @@ class Benchmarker(object):
         del self.start_t, self.t1, self.title
 
     def run(self, func, *args):
+        if not getattr(self, 'title', None):
+            self(func.__name__)       # use func name as title
         try:
             self.__enter__()
             return func(*args)
