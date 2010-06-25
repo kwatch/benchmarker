@@ -60,6 +60,9 @@ class Benchmarker(object):
             self.print_header()
             self._header_printed = True
 
+    def print_title(self):
+        self.out.write(self.title_format % (self.title or " "))
+
     def print_result(self, utime, stime, total, real):
         self.out.write(self.times_format % (utime, stime, total, real))
         self.out.write("\n")
@@ -72,7 +75,7 @@ class Benchmarker(object):
     def __enter__(self):
         if not getattr(self, 'title', None):
             raise Exception("call __call__() before __enter__().")
-        self.out.write(self.title_format % (self.title or " "))
+        self.print_title()
         self.start_t = time.time()
         self.t1 = os.times()
         return self
