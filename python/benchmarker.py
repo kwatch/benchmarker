@@ -48,6 +48,7 @@ class Benchmarker(object):
             format = self.title_format + self.header_format
             header = format % (' ', 'utime', 'stime', 'total', ' real')
         self.header = header
+        self.results = []
 
     def print_header(self):
         if self.header:
@@ -88,6 +89,7 @@ class Benchmarker(object):
         total = utime + stime         # total time
         real  = end_t - self.start_t  # real time
         self.print_result(utime, stime, total, real)
+        self.results.append((self.title, utime, stime, total, real))
         del self.start_t, self.t1, self.title
 
     def run(self, func, *args):
