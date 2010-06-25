@@ -46,8 +46,8 @@ class BenchmarkerTest(object):
 
     def test_run(self):
         bm = self.bm
-        bm('fib(n) (n==25)').run(lambda: fib(25))
-        bm('fib(n) (n==30)').run(lambda: fib(30))
+        bm('fib(n) (n==25)').run(fib, 25)
+        bm('fib(n) (n==30)').run(fib, 30)
         bm('fib(n) (n==35)').run(lambda: fib(35))
         actual = self.out.getvalue()
         ok (actual).matches(self.pattern)
@@ -64,7 +64,7 @@ class BenchmarkerTest(object):
         for i in range(0, 2):
             T = bm.results[i]
             ok (type(T)) == tuple
-            ok (len (T)) == 5
+            ok (len(T)) == 5
             ok (type(T[0])) == str
             ok (type(T[1])) == float
             ok (type(T[2])) == float
