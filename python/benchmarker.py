@@ -113,5 +113,8 @@ if __name__ == '__main__':
     #with bm('fib(n) (n==34)'):  fib(34)
     #with bm('fib(n) (n==35)'):  fib(35)
     ## Python 2.4
-    bm('fib(n) (n==34)').run(lambda: fib(34))
-    bm('fib(n) (n==35)').run(lambda: fib(35))
+    bm('fib(n) (n==34)').run(fib, 34)  #  or .run(lambda: fib(34))
+    bm('fib(n) (n==35)').run(fib, 35)  #  or .run(lambda: fib(35))
+    ## benchmark results are stored into bm.results
+    for result in bm.results:
+        print result
