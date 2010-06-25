@@ -25,8 +25,10 @@ class Benchmarker(object):
            with bm('fib(n) (n==34)'):  fib(34)
            with bm('fib(n) (n==35)'):  fib(35)
            ## Python 2.4
-           bm('fib(n) (n==34)').run(lambda: fib(34))
-           bm('fib(n) (n==35)').run(lambda: fib(35))
+           bm('fib(n) (n==34)').run(fib, 34)   # or .run(lambda: fib(34))
+           bm('fib(n) (n==35)').run(fib, 35)   # or .run(lambda: fib(35))
+           ## You can get benchmark results
+           #for items in bm.results: print items
 
        Output::
 
