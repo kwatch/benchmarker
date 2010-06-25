@@ -37,6 +37,15 @@ Output::
     fib(n) (n==35)                    7.1500     0.0500     7.2000     8.0643
 
 
+If you don't set title, function name is used instead.
+
+::
+    def fib34(): fib(34)
+    def fib35(): fib(34)
+    bm.run(fib34)     # same as bm('fib34').run(fib34)
+    bm.run(fib35)     # same as bm('fib35').run(fib35)
+
+
 Download
 --------
 
