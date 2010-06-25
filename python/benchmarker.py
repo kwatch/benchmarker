@@ -48,18 +48,21 @@ class Benchmarker(object):
             format = self.title_format + self.header_format
             header = format % (' ', 'utime', 'stime', 'total', ' real')
         self.header = header
-        self._header_printed = False
 
     def print_header(self):
         if self.header:
             self.out.write(self.header)
             self.out.write("\n")
 
-    def __call__(self, title):
-        self.title = title
+    _header_printed = False
+    def print_header_only_once(self):
         if not self._header_printed:
             self.print_header()
             self._header_printed = True
+
+    def __call__(self, title):
+        self.title = title
+        self.print_header_only_once()
         return self
 
     def __enter__(self):
