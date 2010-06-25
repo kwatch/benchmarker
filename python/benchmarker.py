@@ -60,6 +60,10 @@ class Benchmarker(object):
             self.print_header()
             self._header_printed = True
 
+    def print_result(self, utime, stime, total, real):
+        self.out.write(self.times_format % (utime, stime, total, real))
+        self.out.write("\n")
+
     def __call__(self, title):
         self.title = title
         self.print_header_only_once()
@@ -80,8 +84,7 @@ class Benchmarker(object):
         stime = t2[1] - self.t1[1]    # system time
         total = utime + stime         # total time
         real  = end_t - self.start_t  # real time
-        self.out.write(self.times_format % (utime, stime, total, real))
-        self.out.write("\n")
+        self.print_result(utime, stime, total, real)
         del self.start_t, self.t1, self.title
 
     def run(self, func, *args):
