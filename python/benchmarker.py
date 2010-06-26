@@ -7,7 +7,7 @@
 ###
 
 
-import sys, os, time
+import sys, os, time, gc
 
 __all__ = ('Benchmarker', )
 
@@ -86,6 +86,7 @@ class Benchmarker(object):
     def __enter__(self):
         if not getattr(self, 'title', None):
             raise Exception("call __call__() before __enter__().")
+        gc.collect()    # start full-GC
         self.print_title()
         self.start_t = time.time()
         self.t1 = os.times()
