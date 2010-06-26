@@ -20,7 +20,7 @@ from glob import glob
 from kook.utils import read_file, write_file
 kook_default_product = 'test'
 
-release   = prop('release', '1.0.0')
+release   = prop('release', '1.1.0')
 package   = prop('package', 'Benchmarker')
 copyright = prop('copyright', "copyright(c) 2010 kuwata-lab.com all rights reserved")
 license   = "Public Domain"
@@ -43,13 +43,18 @@ def task_clean(c):
 @recipe
 def task_edit(c):
     def replacer(s):
-        s = re.sub(r'\$Release:[^%]*?\$',    '$Release: %s $'   % release,   s)
+        #s = re.sub(r'\$Release:[^%]*?\$',    '$Release: %s $'   % release,   s)
         s = re.sub(r'\$Copyright:[^%]*?\$',  '$Copyright: %s $' % copyright, s)
         s = re.sub(r'\$License:[^%]*?\$',    '$License: %s $'   % license,   s)
         return s
     filenames = read_file('MANIFEST').splitlines()
     filenames.remove('Kookbook.py')
+    filenames.remove('test/oktest.py')
     edit(filenames, by=replacer)
+    def replacer(s):
+        s = re.sub(r'\$Release:[^%]*?\$',    '$Release: %s $'   % release,   s)
+        return s
+    edit('README.txt', by=replacer)
 
 
 @recipe
