@@ -21,12 +21,12 @@ author   = 'makoto kuwata'
 email    = 'kwa@kuwata-lab.com'
 maintainer = author
 maintainer_email = email
-url      = 'http://pypi.python.org/pypi'
+url      = 'http://pypi.python.org/pypi/Benchmarker/'
 desc     = 'a small utility for benchmarking'
 detail   = """
 Benchmarker is a small utility to benchmark your code.
 
-See `CHANGES.txt <http://bitbucket.org/kwatch/benchmarker/annotate/tip/python/CHANGES.txt>`
+See `CHANGES.txt <http://bitbucket.org/kwatch/benchmarker/annotate/tip/python/CHANGES.txt>`_
 for details of changes and enhancements.
 
 Example (ex.py)::
