@@ -103,6 +103,78 @@ class Benchmarker(object):
         finally:
             self.__exit__(*sys.exc_info())
 
+    def compared_matrix(self, transpose=False, index=4, formula=None, sort=False):
+        if not (1 <= index <= 4):
+            raise ArgumentError.new("%r: index should be between 1 and 4." % index)
+        if sort:
+            results = self.results[:]
+            results.sort(key=lambda result: result[index])
+        else:
+            results = self.results
+        values = [ t[index] for t in results ]
+        titles = [ t[0] for t in results ]
+        return ComparedMatrix(values, titles, transpose, formula)
+
+    separator = "-" * 79
+
+    def print_compared_matrix(self, *args, **kwargs):
+        matrix = self.compared_matrix(*args, **kwargs)
+        self.out.write(self.separator)
+        self.out.write("\n")
+        self.out.write(str(matrix))
+
+
+class ComparedMatrix(object):
+    """helper class to build compared matrix from benchmark results"""
+
+    def __init__(self, values, titles, transpose=False, formula=None):
+        self.values = values
+        self.titles = titles
+        self.transpose = transpose
+        if not formula:
+            formula = self.default_formula(transpose)
+        self.formula = formula
+        self.matrix = self.build_matrix(values, formula)
+
+    def __getitem__(self, index):
+        return self.matrix[index]
+
+    def default_formula(self, transpose=False):
+        if transpose:
+            return lambda x, y: 100.0 * x / y - 100.0
+        else:
+            return lambda x, y: 100.0 * y / x - 100.0
+
+    def build_matrix(self, values, formula):
+        matrix = []
+        for i, x in enumerate(values):
+            row = [ formula(x, y) for y in values ]
+            row[i] = None
+            matrix.append(row)
+        return matrix
+
+    def __str__(self):
+        buf = []
+        write = buf.append
+        ## print header
+        width = max([ len(s) for s in self.titles ])
+        format = "%" + str(4+1+width+10+2) + "s "
+        write(format % 'real')
+        for i in range(1, len(self.titles)+1):
+            s = '[%02d]' % i
+            write("%9s" % s)
+        write("\n")
+        ## print matrix
+        for i, row in enumerate(self.matrix):
+            format = "[%02d] %"+str(width)+"s %10.4fs "
+            write(format % (i+1, self.titles[i], self.values[i]))
+            for v in row:
+                s = v is None and "       - " or "%8.1f%%" % v
+                write(s)
+            write("\n")
+        ##
+        return ''.join(buf)
+
 
 if __name__ == '__main__':
 
@@ -113,8 +185,12 @@ if __name__ == '__main__':
     #with bm('fib(n) (n==34)'):  fib(34)
     #with bm('fib(n) (n==35)'):  fib(35)
     ## Python 2.4
-    bm('fib(n) (n==34)').run(fib, 34)  #  or .run(lambda: fib(34))
-    bm('fib(n) (n==35)').run(fib, 35)  #  or .run(lambda: fib(35))
+    bm('fib(n) (n==30)').run(fib, 30)  #  or .run(lambda: fib(30))
+    bm('fib(n) (n==31)').run(fib, 31)  #  or .run(lambda: fib(31))
+    bm('fib(n) (n==32)').run(fib, 32)  #  or .run(lambda: fib(32))
     ## benchmark results are stored into bm.results
     for result in bm.results:
         print result
+    ## print compared matrix
+    bm.print_compared_matrix()
+    bm.print_compared_matrix(transpose=True)
