@@ -29,10 +29,10 @@ Release 1.1.0
     bm('fib(32)').run(fib, 32)
     bm.print_compared_matrix(sort=False, transpose=False)
     ## output example
-    #              utime      stime      total       real
-    #fib(30)       0.440      0.000      0.440      0.449
-    #fib(31)       0.720      0.000      0.720      0.722
-    #fib(32)       1.180      0.000      1.180      1.197
+    #                 utime     stime     total      real
+    #fib(30)          0.440     0.000     0.440     0.449
+    #fib(31)          0.720     0.000     0.720     0.722
+    #fib(32)          1.180     0.000     1.180     1.197
     #--------------------------------------------------------------------------
     #                    real      [01]     [02]     [03]
     #[01] fib(30)     0.4487s        -     60.9%   166.7%
@@ -51,7 +51,7 @@ Release 1.1.0
     #('fib(34)', 4.37, 0.02, 4.39, 4.9449)
     #('fib(35)', 7.15, 0.05, 7.20, 8.0643)
 
-* Time format is changed from '%10.4f' to '%10.3f'
+* Time format is changed from '%10.4f' to '%9.3f'
 
 * Changed to run full-GC for each benchmarks
 
