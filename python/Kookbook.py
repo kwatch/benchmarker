@@ -18,6 +18,7 @@ from __future__ import with_statement
 import os, re
 from glob import glob
 from kook.utils import read_file, write_file
+kook_default_product = 'test'
 
 release   = prop('release', '1.0.0')
 package   = prop('package', 'Benchmarker')
