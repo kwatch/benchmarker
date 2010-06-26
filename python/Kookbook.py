@@ -51,11 +51,11 @@ def task_edit(c):
     filenames.remove('Kookbook.py')
     filenames.remove('test/oktest.py')
     edit(filenames, by=replacer)
-    def replacer(s):
-        s = re.sub(r'\$Release:[^%]*?\$',    '$Release: %s $'   % release,   s)
-        return s
+    replacer = lambda s: re.sub(r'\$Release:[^%]*?\$', '$Release: %s $' % release, s)
     edit('README.txt', by=replacer)
-
+    pat = re.compile(r'^(version *= *).*?$', re.M)
+    replacer = lambda s: pat.sub(r"\1'%s'" % release, s)
+    edit('setup.py', by=replacer)
 
 @recipe
 @spices('-a: create all egg packages for 2.4~2.7')
