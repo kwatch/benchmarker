@@ -47,6 +47,9 @@ Release 1.1.0
     #('fib(34)', 4.37, 0.02, 4.39, 4.9449)
     #('fib(35)', 7.15, 0.05, 7.20, 8.0643)
 
+* Time format is changed from '%10.4f' to '%10.3f'
+
+* Changed to run full-GC for each benchmarks
 
 
 Release 1.0.0
