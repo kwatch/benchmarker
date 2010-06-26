@@ -30,25 +30,25 @@ class BenchmarkerTest(object):
 
     pattern = ''.join((
         ' ' * 30 + '     utime      stime      total       real' "\n",
+        r'fib\(n\) \(n==20\)( *\d+\.\d\d\d\d){4}' + "\n",
         r'fib\(n\) \(n==25\)( *\d+\.\d\d\d\d){4}' + "\n",
         r'fib\(n\) \(n==30\)( *\d+\.\d\d\d\d){4}' + "\n",
-        r'fib\(n\) \(n==35\)( *\d+\.\d\d\d\d){4}' + "\n",
     ))
     pattern = '^' + pattern + '$'
 
     def test_with_statement(self):
         bm = self.bm
+        with bm('fib(n) (n==20)'):  fib(20)
         with bm('fib(n) (n==25)'):  fib(25)
         with bm('fib(n) (n==30)'):  fib(30)
-        with bm('fib(n) (n==35)'):  fib(35)
         actual = self.out.getvalue()
         ok (actual).matches(self.pattern)
 
     def test_run(self):
         bm = self.bm
+        bm('fib(n) (n==20)').run(fib, 20)
         bm('fib(n) (n==25)').run(fib, 25)
-        bm('fib(n) (n==30)').run(fib, 30)
-        bm('fib(n) (n==35)').run(lambda: fib(35))
+        bm('fib(n) (n==30)').run(lambda: fib(30))
         actual = self.out.getvalue()
         ok (actual).matches(self.pattern)
 
