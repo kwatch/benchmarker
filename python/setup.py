@@ -1,5 +1,5 @@
 ###
-### $Release: 1.0.0 $
+### $Release: $
 ### $Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###
@@ -16,7 +16,7 @@ else:
 
 
 name     = 'Benchmarker'
-version  = '1.0.0'
+version  = '1.1.0'
 author   = 'makoto kuwata'
 email    = 'kwa@kuwata-lab.com'
 maintainer = author
