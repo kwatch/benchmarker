@@ -15,6 +15,7 @@ Example
 -------
 
 ex.py::
+
     def fib(n):
         return n <= 2 and 1 or fib(n-1) + fib(n-2)
     from benchmarker import Benchmarker
@@ -63,13 +64,15 @@ Installation::
 Tips
 ----
 
-* (experimental) If you don't set title, function name is used instead.::
+* (experimental) If you don't set title, function name is used instead.
+  ::
 
     def fib34(): fib(34)
     bm = Benchmarker()
     bm.run(fib34)     # same as bm('fib34').run(fib34)
 
-* You can get benchmark results by bm.results.::
+* You can get benchmark results by bm.results.
+  ::
 
     bm = Benchmarker()
     bm('fib(34)').run(fib, 34)

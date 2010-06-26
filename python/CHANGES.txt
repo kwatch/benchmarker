@@ -6,19 +6,22 @@ CHANGES
 Release 1.1.0
 -------------
 
-* Enhance Benchmarker.run() to take function args.::
+* Enhance Benchmarker.run() to take function args.
+  ::
 
     bm = Benchmarker()
     bm('fib(34)').run(fib, 34)   # same as .run(lambda: fib(34))
 
 * (experimental) Enhance Benchmarker.run() to use function name as title
-  if title is not specified.::
+  if title is not specified.
+  ::
 
     def fib34(): fib(34)
     bm = Benchmarker()
     bm.run(fib34)     # same as bm('fib34').run(fib34)
 
-* Enhanced to support compared matrix of benchmark results.::
+* Enhanced to support compared matrix of benchmark results.
+  ::
 
     bm = Benchmarker(9)
     bm('fib(30)').run(fib, 30)
@@ -36,7 +39,8 @@ Release 1.1.0
     #[02] fib(31)     0.7222s    -37.9%       -     65.7%
     #[03] fib(32)     1.1967s    -62.5%   -39.6%       - 
 
-* Benchmark results are stored into Benchmarker.results as a list of tuples.::
+* Benchmark results are stored into Benchmarker.results as a list of tuples.
+  ::
 
     bm = Benchmarker()
     bm('fib(34)').run(fib, 34)
