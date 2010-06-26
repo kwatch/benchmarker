@@ -30,9 +30,9 @@ class BenchmarkerTest(object):
 
     pattern = ''.join((
         ' ' * 30 + '     utime      stime      total       real' "\n",
-        r'fib\(n\) \(n==20\)( *\d+\.\d\d\d\d){4}' + "\n",
-        r'fib\(n\) \(n==25\)( *\d+\.\d\d\d\d){4}' + "\n",
-        r'fib\(n\) \(n==30\)( *\d+\.\d\d\d\d){4}' + "\n",
+        r'fib\(n\) \(n==20\)( *\d+\.\d\d\d){4}' + "\n",
+        r'fib\(n\) \(n==25\)( *\d+\.\d\d\d){4}' + "\n",
+        r'fib\(n\) \(n==30\)( *\d+\.\d\d\d){4}' + "\n",
     ))
     pattern = '^' + pattern + '$'
 
@@ -62,8 +62,8 @@ class BenchmarkerTest(object):
             actual = self.out.getvalue()
             pattern = ''.join(('^',
                 ' ' * 30 + '     utime      stime      total       real' "\n",
-                r'fib10 ( *\d+\.\d\d\d\d){4}' + "\n",
-                r'fib15 ( *\d+\.\d\d\d\d){4}' + "\n",
+                r'fib10 ( *\d+\.\d\d\d){4}' + "\n",
+                r'fib15 ( *\d+\.\d\d\d){4}' + "\n",
             '$'))
             ok (actual).matches(pattern)
 
@@ -110,9 +110,9 @@ class BenchmarkerTest(object):
             ok (matrix.values) == [7.50, 2.50, 5.00]
             ok (str(matrix)) == """
                    real      [01]     [02]     [03]
-[01] benchX     7.5000s        -    -66.7%   -33.3%
-[02] benchY     2.5000s    200.0%       -    100.0%
-[03] benchZ     5.0000s     50.0%   -50.0%       - 
+[01] benchX      7.500s        -    -66.7%   -33.3%
+[02] benchY      2.500s    200.0%       -    100.0%
+[03] benchZ      5.000s     50.0%   -50.0%       - 
 """[1:]
         if "called with sort=True then sort by values":
             matrix = bm.compared_matrix(sort=True)
@@ -121,18 +121,18 @@ class BenchmarkerTest(object):
             ok (matrix.values) == [2.50, 5.00, 7.50]
             ok (str(matrix)) == """
                    real      [01]     [02]     [03]
-[01] benchY     2.5000s        -    100.0%   200.0%
-[02] benchZ     5.0000s    -50.0%       -     50.0%
-[03] benchX     7.5000s    -66.7%   -33.3%       - 
+[01] benchY      2.500s        -    100.0%   200.0%
+[02] benchZ      5.000s    -50.0%       -     50.0%
+[03] benchX      7.500s    -66.7%   -33.3%       - 
 """[1:]
         if "called with transpose=True then transport matrix":
             matrix = bm.compared_matrix(transpose=True, sort=True)
             ok (type(matrix)) == ComparedMatrix
             ok (str(matrix)) == """
                    real      [01]     [02]     [03]
-[01] benchY     2.5000s        -    -50.0%   -66.7%
-[02] benchZ     5.0000s    100.0%       -    -33.3%
-[03] benchX     7.5000s    200.0%    50.0%       - 
+[01] benchY      2.500s        -    -50.0%   -66.7%
+[02] benchZ      5.000s    100.0%       -    -33.3%
+[03] benchX      7.500s    200.0%    50.0%       - 
 """[1:]
 
     def test_print_compared_matrix(self):
@@ -150,9 +150,9 @@ class BenchmarkerTest(object):
         ok (actual) == """
 -------------------------------------------------------------------------------
                    real      [01]     [02]     [03]
-[01] benchX     7.5000s        -    -66.7%   -33.3%
-[02] benchY     2.5000s    200.0%       -    100.0%
-[03] benchZ     5.0000s     50.0%   -50.0%       - 
+[01] benchX      7.500s        -    -66.7%   -33.3%
+[02] benchY      2.500s    200.0%       -    100.0%
+[03] benchZ      5.000s     50.0%   -50.0%       - 
 """[1:]
 
 

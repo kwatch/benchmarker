@@ -39,7 +39,7 @@ class Benchmarker(object):
     """
 
     header_format = '%10s %10s %10s %10s'
-    times_format  = '%10.4f %10.4f %10.4f %10.4f'
+    times_format  = '%10.3f %10.3f %10.3f %10.3f'
 
     def __init__(self, width=30, out=None, header=True):
         if out is None:  out = sys.stderr
@@ -166,7 +166,7 @@ class ComparedMatrix(object):
         write("\n")
         ## print matrix
         for i, row in enumerate(self.matrix):
-            format = "[%02d] %"+str(width)+"s %10.4fs "
+            format = "[%02d] %"+str(width)+"s %10.3fs "
             write(format % (i+1, self.titles[i], self.values[i]))
             for v in row:
                 s = v is None and "       - " or "%8.1f%%" % v
