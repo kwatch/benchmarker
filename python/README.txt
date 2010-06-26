@@ -21,13 +21,13 @@ ex.py::
     from benchmarker import Benchmarker
     bm = Benchmarker(30)  # or Benchmarker(width=30, out=sys.stderr, header=True)
     ## Python 2.5 or later
-    with bm('fib(n) (n==33)'):  fib(33)
-    with bm('fib(n) (n==34)'):  fib(34)
-    with bm('fib(n) (n==35)'):  fib(35)
+    with bm('fib(n) (n=33)'):  fib(33)
+    with bm('fib(n) (n=34)'):  fib(34)
+    with bm('fib(n) (n=35)'):  fib(35)
     ## Python 2.4
-    bm('fib(n) (n==33)').run(fib, 33)   # or .run(lambda: fib(33))
-    bm('fib(n) (n==34)').run(fib, 34)   # or .run(lambda: fib(34))
-    bm('fib(n) (n==35)').run(fib, 35)   # or .run(lambda: fib(35))
+    bm('fib(n) (n=33)').run(fib, 33)   # or .run(lambda: fib(33))
+    bm('fib(n) (n=34)').run(fib, 34)   # or .run(lambda: fib(34))
+    bm('fib(n) (n=35)').run(fib, 35)   # or .run(lambda: fib(35))
     ## print compared matrix
     bm.print_compared_matrix(sort=False, transpose=False)
 
@@ -35,14 +35,14 @@ Output::
 
     $ python ex.py
                              utime      stime      total       real
-    fib(n) (n==33)           1.890      0.000      1.890      1.900
-    fib(n) (n==34)           3.030      0.010      3.040      3.058
-    fib(n) (n==35)           4.930      0.010      4.940      4.963
+    fib(n) (n=33)            1.890      0.000      1.890      1.900
+    fib(n) (n=34)            3.030      0.010      3.040      3.058
+    fib(n) (n=35)            4.930      0.010      4.940      4.963
     ---------------------------------------------------------------
                                real      [01]     [02]     [03]
-    [01] fib(n) (n==33)      1.900s        -     60.9%   161.2%
-    [02] fib(n) (n==34)      3.058s    -37.9%       -     62.3%
-    [03] fib(n) (n==35)      4.963s    -61.7%   -38.4%       - 
+    [01] fib(n) (n=33)       1.900s        -     60.9%   161.2%
+    [02] fib(n) (n=34)       3.058s    -37.9%       -     62.3%
+    [03] fib(n) (n=35)       4.963s    -61.7%   -38.4%       - 
 
 
 Download
