@@ -53,7 +53,7 @@ def task_edit(c):
 
 
 @recipe
-@spices('-a: create all egg packages for 2.4, 2.5, and 2.6')
+@spices('-a: create all egg packages for 2.4~2.7')
 def task_package(c, *args, **kwargs):
     """create package"""
     ## remove files
