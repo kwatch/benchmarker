@@ -12,7 +12,10 @@ sys.path.append(_(_(__file__)))
 
 from oktest import ok, not_ok, run
 from benchmarker import Benchmarker, ComparedMatrix
-from StringIO import StringIO
+try:
+    from StringIO import StringIO    # Python 2.x
+except ImportError:
+    from io import StringIO          # Python 3.x
 
 def fib(n):
     if n <= 2:

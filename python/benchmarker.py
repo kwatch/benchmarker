@@ -199,7 +199,7 @@ if __name__ == '__main__':
     bm('fib(n) (n==32)').run(fib, 32)  #  or .run(lambda: fib(32))
     ## benchmark results are stored into bm.results
     for result in bm.results:
-        print result
+        print(result)
     ## print compared matrix
     bm.print_compared_matrix()
     bm.print_compared_matrix(transpose=True)
