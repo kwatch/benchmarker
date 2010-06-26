@@ -46,8 +46,8 @@ class Benchmarker(object):
            [03] fib(n) (n=35)       4.963s    -61.7%   -38.4%       - 
     """
 
-    header_format = '%10s %10s %10s %10s'
-    times_format  = '%10.3f %10.3f %10.3f %10.3f'
+    header_format = '%9s %9s %9s %9s'
+    times_format  = '%9.3f %9.3f %9.3f %9.3f'
 
     def __init__(self, width=30, out=None, header=True):
         if out is None:  out = sys.stderr

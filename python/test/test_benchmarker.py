@@ -32,7 +32,7 @@ class BenchmarkerTest(object):
         self.out = out
 
     pattern = ''.join((
-        ' ' * 30 + '     utime      stime      total       real' "\n",
+        ' ' * 30 + '    utime     stime     total      real' "\n",
         r'fib\(n\) \(n==20\)( *\d+\.\d\d\d){4}' + "\n",
         r'fib\(n\) \(n==25\)( *\d+\.\d\d\d){4}' + "\n",
         r'fib\(n\) \(n==30\)( *\d+\.\d\d\d){4}' + "\n",
@@ -64,7 +64,7 @@ class BenchmarkerTest(object):
             bm.run(fib15)
             actual = self.out.getvalue()
             pattern = ''.join(('^',
-                ' ' * 30 + '     utime      stime      total       real' "\n",
+                ' ' * 30 + '    utime     stime     total      real' "\n",
                 r'fib10 ( *\d+\.\d\d\d){4}' + "\n",
                 r'fib15 ( *\d+\.\d\d\d){4}' + "\n",
             '$'))
