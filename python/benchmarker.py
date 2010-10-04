@@ -97,7 +97,7 @@ class Benchmarker(object):
         t2    = os.times()
         utime = t2[0] - self.t1[0]    # user time
         stime = t2[1] - self.t1[1]    # system time
-        total = utime + stime         # total time
+        total = sum(t2[:4]) - sum(self.t1[:4])  # total time (include child processes' time)
         real  = end_t - self.start_t  # real time
         self.print_result(utime, stime, total, real)
         self.results.append((self.title, utime, stime, total, real))
