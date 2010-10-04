@@ -13,9 +13,9 @@
 ###
 ###    require 'benchmarker'
 ###
-###    $n ||= 10000
+###    n = ($n || 10000).to_i
 ###
-###    bm = Benchmarker.new(:width=>30, :loop=>$n, :verbose=>false)
+###    bm = Benchmarker.new(:width=>30, :loop=>n, :verbose=>false)
 ###    print bm.platform, "\n"
 ###
 ###    bm.repeat(5, :extra=>1) do
@@ -44,7 +44,7 @@
 ###
 ###    end
 ###
-###    puts bm.stats
+###    puts bm.stats()   # or bm.stats(:compensate=>-100.0)
 ###    ### or
 ###    # puts bm.ranking
 ###    # puts bm.matrix
@@ -59,19 +59,19 @@
 ###    # RUBY_RELEASE_DATE:  2010-08-18
 ###
 ###    # Average (7-2*1)                   user       sys     total      real
-###    Enumerable#each & '+='            0.1480    0.0020    0.1500    0.1529
-###    Enumerable#inject                 0.1840    0.0020    0.1860    0.1910
-###    while-stmt                        0.0760    0.0000    0.0760    0.0766
+###    Enumerable#each & '+='            0.1420    0.0000    0.1420    0.1469
+###    Enumerable#inject                 0.1760    0.0000    0.1760    0.1797
+###    while-stmt                        0.0740    0.0000    0.0740    0.0811
 ###
 ###    # Ranking                           real  ratio
-###    while-stmt                        0.0766 (100.0) ********************
-###    Enumerable#each & '+='            0.1529 ( 50.1) **********
-###    Enumerable#inject                 0.1910 ( 40.1) ********
+###    while-stmt                        0.0811 (100.0) ********************
+###    Enumerable#each & '+='            0.1469 ( 55.2) ***********
+###    Enumerable#inject                 0.1797 ( 45.1) *********
 ###
 ###    # Matrix                            real   [01]   [02]   [03]
-###    [01] while-stmt                   0.0766    --    99.8  149.5
-###    [02] Enumerable#each & '+='       0.1529  -49.9    --    24.9
-###    [03] Enumerable#inject            0.1910  -59.9  -19.9    --
+###    [01] while-stmt                   0.0811  100.0  181.2  221.6
+###    [02] Enumerable#each & '+='       0.1469   55.2  100.0  122.3
+###    [03] Enumerable#inject            0.1797   45.1   81.8  100.0
 ###
 module Benchmarker
 
@@ -202,12 +202,8 @@ module Benchmarker
       :width => Reporter::DEFAULTS[:width],
       :fmt   => Reporter::DEFAULTS[:fmt],
       :sort  => true,
+      :compensate => 0.0,
     }
-
-
-    def initialize(opts={})
-      #key, width, fmt, sort = DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort)
-    end
 
 
     def ranking(results, opts={})
@@ -228,7 +224,8 @@ module Benchmarker
 
 
     def matrix(results, opts={})
-      key, width, fmt, sort = DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort)
+      key, width, fmt, sort, compensate = \
+        DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort, :compensate)
       results = results.sort_by {|r| r.__send__(key) } if sort
       width -= "[00] ".length
       sb = ""
@@ -239,20 +236,13 @@ module Benchmarker
       results.each_with_index do |r, i|
         val = r.__send__(key)
         sb << ("[%02d] %-#{width}s#{fmt}" % [i+1, r.label[0, width], val])
-        values.each_with_index do |v, j|
-          sb << ( i == j ? "    -- " : (" %6.1f" % _percent(val, v)) )
+        values.each_with_index do |other, j|
+          ratio = block_given? ? yield(val, other) : 100.0 * other / val
+          sb << (" %6.1f" % (ratio + compensate))
         end
         sb << "\n"
       end
       return sb
-    end
-
-
-    private
-
-
-    def _percent(val, other)
-      100.0 * other / val - 100.0
     end
 
 
