@@ -411,12 +411,13 @@ module Benchmarker
   RUNNER     = Runner
 
   #--
-  #code = %w[RESULT REPORTER STATISTICS RUNNER].collect {|klass|
-  #  "def self.#{klass}=(klass)
-  #     remove_const :#{klass}; const_set :#{klass}, klass
-  #   end"
-  #}.join(';')
-  #eval code
+  #s =''
+  #constants().grep(/^[A-Z0-9_]+$/).each do |cname|
+  #  s << "def self.#{cname}=(klass)
+  #          remove_const :#{cname}; const_set :#{cname}, klass
+  #        end;"
+  #end
+  #eval s
   #++
 
 
