@@ -410,12 +410,34 @@ module Benchmarker
   STATISTICS = Statistics
   RUNNER     = Runner
 
-  code = %w[RESULT REPORTER STATISTICS RUNNER].collect {|klass|
-    "def self.#{klass}=(klass)
-       self.module_eval { remove_const :#{klass}; const_set :#{klass}, klass }
-     end"
-  }.join(';')
-  eval code
+  #--
+  #code = %w[RESULT REPORTER STATISTICS RUNNER].collect {|klass|
+  #  "def self.#{klass}=(klass)
+  #     remove_const :#{klass}; const_set :#{klass}, klass
+  #   end"
+  #}.join(';')
+  #eval code
+  #++
+
+
+  def self.RESULT=(klass)
+    remove_const :RESULT; const_set :RESULT, klass
+  end
+
+
+  def self.REPORTER=(klass)
+    remove_const :REPORTER; const_set :REPORTER, klass
+  end
+
+
+  def self.STATISTICS=(klass)
+    remove_const :STATISTICS; const_set :STATISTICS, klass
+  end
+
+
+  def self.RUNNER=(klass)
+    remove_const :RUNNER; const_set :RUNNER, klass
+  end
 
 
 
