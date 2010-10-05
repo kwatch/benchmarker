@@ -206,8 +206,13 @@ module Benchmarker
     }
 
 
+    def initialize(opts={})
+      @opts = DEFAULTS.merge(opts)
+    end
+
+
     def ranking(results, opts={})
-      key, width, fmt = DEFAULTS.merge(opts).values_at(:key, :width, :fmt)
+      key, width, fmt = @opts.merge(opts).values_at(:key, :width, :fmt)
       sb = ""
       sb << "\# %-#{width-2}s %9s  %5s\n" % ['Ranking', key, 'ratio']
       base = nil
