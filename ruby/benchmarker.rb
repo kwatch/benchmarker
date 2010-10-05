@@ -441,6 +441,15 @@ module Benchmarker
 
 
 
+  ##
+  ## create Runner object.
+  ##
+  ## options:
+  ##   :width=>30     : width of benchmark label
+  ##   :out=>$stdout  : stream to write result (I/O or String)
+  ##   :verbose=>true : verbose mode
+  ##   :fmt=>' %9.4f' : format of benchmark time
+  ##
   def self.new(opts={})
     runner = RUNNER.new(opts)
     runner.reporter = REPORTER.new(opts)
