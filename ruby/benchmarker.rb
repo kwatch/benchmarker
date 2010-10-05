@@ -329,27 +329,28 @@ module Benchmarker
         end
         @reporter << "\n"
       end
-      label_fmt = "%-#{@reporter.width}s"
       if extra > 0
+        fmt, label_fmt = " #{@reporter.fmt}", "%-#{@reporter.width}s"
         @reporter << (label_fmt % "## Remove min & max") \
                   << (" %9s %9s" % ['min', 'max']) << "\n"
-      end
-      @results = @results_matrix.collect do |results|
-        results = results.dup
-        if extra > 0
-          label = results.first.label
-          fmt = " #{@reporter.fmt}"
+        @results = @results_matrix.collect {|results|
+          results = results.dup
+          label   = results.first.label
           extra.times do
             #min_r, max_r = results.minmax_by {|r| r.__send__(key) }
             arr = results.sort_by {|r| r.__send__(key) }
-            min_r = arr.first; results.delete(min_r); min = min_r.__send__(key)
-            max_r = arr.last;  results.delete(max_r); max = max_r.__send__(key)
+            min_r = arr.first; min = min_r.__send__(key); results.delete(min_r)
+            max_r = arr.last;  max = max_r.__send__(key); results.delete(max_r)
             @reporter << (label_fmt % label) << (fmt % min) << (fmt % max) << "\n"
           end
-        end
-        RESULT.average(results)
+          RESULT.average(results)
+        }
+        @reporter << "\n"
+      else
+        @results = @results_matrix.collect {|results|
+          RESULT.average(results)
+        }
       end
-      @reporter << "\n" if extra > 0
       @reporter.stop_verbose_region
       @reporter.print_header("Average (#{n + 2*extra}-2*#{extra})")
       @results.each do |r|
