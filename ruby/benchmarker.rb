@@ -307,12 +307,58 @@ module Benchmarker
     end
 
 
+    private
+
+
     def _reset(header_title)
       @header_title = header_title
       @_dummy_result = nil
       @results = []
     end
-    private :_reset
+
+
+    def _delete_minmax_from(results, key, extra, fmt, label_fmt)
+      sorted = results.sort_by {|r| r.__send__(key) }
+      min_arr, max_arr = sorted[0...extra], sorted[-extra..-1].reverse
+      label = results.first.label
+      min_arr.zip(max_arr) do |min_r, max_r|
+        min = min_r.__send__(key); results.delete(min_r)
+        max = max_r.__send__(key); results.delete(max_r)
+        @reporter << (label_fmt % label) << (fmt % min) << (fmt % max) << "\n"
+      end
+    end
+
+
+    def _average_results(results_matrix, key, extra)
+      if extra > 0
+        fmt, label_fmt = " #{@reporter.fmt}", "%-#{@reporter.width}s"
+        @reporter << (label_fmt % "## Remove min & max") \
+                  << (" %9s %9s" % ['min', 'max']) << "\n"
+        avg_results = results_matrix.collect {|results|
+          results = results.dup
+          _delete_minmax_from(results, key, extra, fmt, label_fmt)
+          RESULT.average(results)
+        }
+        @reporter << "\n"
+      else
+        avg_results = results_matrix.collect {|results|
+          RESULT.average(results)
+        }
+      end
+      return avg_results
+    end
+
+
+    def _print_results(results, title)
+      @reporter.print_header(title)
+      results.each do |r|
+        @reporter.print_label(r.label)
+        @reporter.print_times(r.user, r.sys, r.real)
+      end
+    end
+
+
+    public
 
 
     def repeat(n, opts={})
@@ -328,34 +374,9 @@ module Benchmarker
         end
         @reporter << "\n"
       end
-      if extra > 0
-        fmt, label_fmt = " #{@reporter.fmt}", "%-#{@reporter.width}s"
-        @reporter << (label_fmt % "## Remove min & max") \
-                  << (" %9s %9s" % ['min', 'max']) << "\n"
-        @results = @results_matrix.collect {|results|
-          results = results.dup
-          label   = results.first.label
-          extra.times do
-            #min_r, max_r = results.minmax_by {|r| r.__send__(key) }
-            arr = results.sort_by {|r| r.__send__(key) }
-            min_r = arr.first; min = min_r.__send__(key); results.delete(min_r)
-            max_r = arr.last;  max = max_r.__send__(key); results.delete(max_r)
-            @reporter << (label_fmt % label) << (fmt % min) << (fmt % max) << "\n"
-          end
-          RESULT.average(results)
-        }
-        @reporter << "\n"
-      else
-        @results = @results_matrix.collect {|results|
-          RESULT.average(results)
-        }
-      end
+      @results = _average_results(@results_matrix, key, extra)
       @reporter.stop_verbose_region
-      @reporter.print_header("Average (#{n + 2*extra}-2*#{extra})")
-      @results.each do |r|
-        @reporter.print_label(r.label)
-        @reporter.print_times(r.user, r.sys, r.real)
-      end
+      _print_results(@results, "Average (#{n + 2*extra}-2*#{extra})")
     end
 
 
