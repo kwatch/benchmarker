@@ -123,14 +123,15 @@ module Benchmarker
       :fmt     => " %9.4f",
       :header  => " %9s %9s %9s %9s" % ['user', 'sys', 'total', 'real'],
       :verbose => true,
+      :verbose_out => $stderr,
     }
 
 
     def initialize(opts={})
       opts = DEFAULTS.merge(opts)
-      @out, @width, @fmt, @header, @verbose = \
-        opts.values_at(:out, :width, :fmt, :header, :verbose)
-      @in_verbose_region = false
+      @out, @width, @fmt, @header, @verbose, @verbose_out = \
+        opts.values_at(:out, :width, :fmt, :header, :verbose, :verbose_out)
+      @verbose_out = '' unless @verbose
     end
 
 
@@ -138,17 +139,20 @@ module Benchmarker
 
 
     def start_verbose_region
-      @in_verbose_region = true
+      @__out = @out
+      @out = @verbose_out
     end
 
 
     def stop_verbose_region
-      @in_verbose_region = false
+      @out = @__out
+      @__out = nil
     end
 
 
     def should_skip?
-      @verbose == false && @in_verbose_region
+      #@verbose == false && @in_verbose_region
+      false
     end
     private :should_skip?
 
