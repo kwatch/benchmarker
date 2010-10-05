@@ -14,13 +14,12 @@
 ###    require 'benchmarker'
 ###
 ###    n = ($n || 10000).to_i
+###    nums = (1..100).to_a
 ###
 ###    bm = Benchmarker.new(:width=>30, :loop=>n, :verbose=>false)
 ###    print bm.platform, "\n"
 ###
 ###    bm.repeat(5, :extra=>1) do    # you can omit repeat() if no need to repeat
-###
-###      nums = (1..100).to_a.shuffle
 ###
 ###      bm.bench("Enumerable#each & '+='") do
 ###        total = 0
