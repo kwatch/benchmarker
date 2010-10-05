@@ -52,7 +52,7 @@
 ###
 ### output example:
 ###
-###    $ ruby examle.rb
+###    $ ruby example.rb
 ###    # RUBY_PLATFORM:      x86_64-darwin10.4.0
 ###    # RUBY_VERSION:       1.9.2
 ###    # RUBY_PATCHLEVEL:    0
