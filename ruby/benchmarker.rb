@@ -135,7 +135,7 @@ module Benchmarker
     end
 
 
-    attr_accessor :out, :width, :fmt, :header, :verbose
+    attr_accessor :out, :width, :fmt, :header, :verbose, :verbose_out
 
 
     def start_verbose_region
