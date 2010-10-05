@@ -380,7 +380,9 @@ module Benchmarker
       end
       @results = _average_results(@results_matrix, key, extra)
       @reporter.stop_verbose_region
-      _print_results(@results, "Average (#{n + 2*extra}-2*#{extra})")
+      title = "Average of #{n}"
+      title << " (=#{n+2*extra}-2*#{extra})" if extra > 0
+      _print_results(@results, title)
     end
 
 
