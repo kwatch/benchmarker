@@ -176,7 +176,7 @@ module Benchmarker
 
     def print_times(user, sys, real)
       total = user + sys
-      [user, sys, total, real].each {|t| @out << (" #{@fmt}" % t) }
+      [user, sys, total, real].each {|t| @out << " #{@fmt}" % t }
       @out << "\n"
       nil
     end
@@ -225,17 +225,17 @@ module Benchmarker
         DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort, :compensate)
       results = results.sort_by {|r| r.__send__(key) } if sort
       sb = ""
-      sb << ("%-#{width}s %9s" % ['## Matrix', key.to_s])
+      sb << "%-#{width}s %9s" % ['## Matrix', key.to_s]
       width -= "[00] ".length
       (1..results.length).each {|n| sb << "   [%02d]" % n }
       sb << "\n"
       values = results.collect {|r| r.__send__(key) }
       results.each_with_index do |r, i|
         val = r.__send__(key)
-        sb << ("[%02d] %-#{width}s #{fmt}" % [i+1, r.label[0, width], val])
+        sb << "[%02d] %-#{width}s #{fmt}" % [i+1, r.label[0, width], val]
         values.each_with_index do |other, j|
           ratio = block_given? ? yield(val, other) : 100.0 * other / val
-          sb << (" %6.1f" % (ratio + compensate))
+          sb << " %6.1f" % (ratio + compensate)
         end
         sb << "\n"
       end
