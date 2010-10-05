@@ -322,9 +322,13 @@ module Benchmarker
       min_arr, max_arr = sorted[0...extra], sorted[-extra..-1].reverse
       label = results.first.label
       min_arr.zip(max_arr) do |min_r, max_r|
-        min = min_r.__send__(key); results.delete(min_r)
-        max = max_r.__send__(key); results.delete(max_r)
-        @reporter << (label_fmt % label) << (fmt % min) << (fmt % max) << "\n"
+        min = min_r.__send__(key);  min_idx = results.index(min_r)
+        max = max_r.__send__(key);  max_idx = results.index(max_r)
+        @reporter << (label_fmt % label) \
+                  << (fmt % min) << (" %9s" % "(#{min_idx+1})") \
+                  << (fmt % max) << (" %9s" % "(#{max_idx+1})") << "\n"
+        results.delete_at(min_idx)
+        results.delete_at(max_idx)
       end
     end
 
@@ -333,7 +337,7 @@ module Benchmarker
       if extra > 0
         fmt, label_fmt = " #{@reporter.fmt}", "%-#{@reporter.width}s"
         @reporter << (label_fmt % "## Remove min & max") \
-                  << (" %9s %9s" % ['min', 'max']) << "\n"
+                  << (" %9s %9s %9s %9s" % ['min', 'repeat', 'max', 'repeat']) << "\n"
         avg_results = results_matrix.collect {|results|
           results = results.dup
           _delete_minmax_from(results, key, extra, fmt, label_fmt)
