@@ -161,7 +161,7 @@ module Benchmarker
 
 
     def print_header(title)
-      @out << ("# %-#{@width-2}s" % title) << @header << "\n"
+      @out << ("%-#{@width}s" % "## #{title}") << @header << "\n"
       nil
     end
 
@@ -205,14 +205,14 @@ module Benchmarker
     def ranking(results, opts={})
       key, width, fmt = @opts.merge(opts).values_at(:key, :width, :fmt)
       sb = ""
-      sb << "\# %-#{width-2}s %9s  %5s\n" % ['Ranking', key, 'ratio']
+      sb << "%-#{width}s %9s  %5s\n" % ['## Ranking', key, 'ratio']
       base = nil
       results.sort_by {|r| r.__send__(key) }.each do |r|
         val = r.__send__(key)
         base ||= 100.0 * val
         percent = base / val
         sb << "%-#{width}s #{fmt} (%5.1f) " % [r.label[0, width], val, percent]
-        sb << ('*' * (percent / 5.0).to_i )
+        sb << ( '*' * (percent / 5.0).to_i )
         sb << "\n"
       end
       return sb
@@ -223,9 +223,9 @@ module Benchmarker
       key, width, fmt, sort, compensate = \
         DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort, :compensate)
       results = results.sort_by {|r| r.__send__(key) } if sort
-      width -= "[00] ".length
       sb = ""
-      sb << ("# %-#{width}s    %9s" % ['Matrix', key.to_s])
+      sb << ("%-#{width}s %9s" % ['## Matrix', key.to_s])
+      width -= "[00] ".length
       (1..results.length).each {|n| sb << "   [%02d]" % n }
       sb << "\n"
       values = results.collect {|r| r.__send__(key) }
@@ -330,7 +330,7 @@ module Benchmarker
       end
       label_fmt = "%-#{@reporter.width}s"
       if extra > 0
-        @reporter << (label_fmt % "# Remove min & max") \
+        @reporter << (label_fmt % "## Remove min & max") \
                   << (" %9s %9s" % ['min', 'max']) << "\n"
       end
       @results = @results_matrix.collect do |results|
@@ -385,11 +385,11 @@ module Benchmarker
 
     def platform
       sb = ""
-      sb << "# RUBY_PLATFORM:      #{RUBY_PLATFORM}\n"
-      sb << "# RUBY_ENGINE:        #{(RUBY_ENGINE rescue nil)}\n"
-      sb << "# RUBY_VERSION:       #{RUBY_VERSION}\n"
-      sb << "# RUBY_PATCHLEVEL:    #{RUBY_PATCHLEVEL}\n"
-      sb << "# RUBY_RELEASE_DATE:  #{RUBY_RELEASE_DATE}\n"
+      sb << "## RUBY_PLATFORM:      #{RUBY_PLATFORM}\n"
+      sb << "## RUBY_ENGINE:        #{(RUBY_ENGINE rescue nil)}\n"
+      sb << "## RUBY_VERSION:       #{RUBY_VERSION}\n"
+      sb << "## RUBY_PATCHLEVEL:    #{RUBY_PATCHLEVEL}\n"
+      sb << "## RUBY_RELEASE_DATE:  #{RUBY_RELEASE_DATE}\n"
       return sb
     end
 
