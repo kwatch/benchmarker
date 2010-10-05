@@ -16,7 +16,7 @@
 ###    n = ($n || 10000).to_i
 ###    nums = (1..100).to_a
 ###
-###    bm = Benchmarker.new(:width=>30, :loop=>n, :verbose=>false)
+###    bm = Benchmarker.new(:width=>30, :loop=>n, :verbose=>true)
 ###    print bm.platform, "\n"
 ###
 ###    bm.repeat(5, :extra=>1) do    # you can omit repeat() if no need to repeat
@@ -51,7 +51,7 @@
 ###
 ### output example:
 ###
-###    $ ruby example.rb
+###    $ ruby example.rb 2>/dev/null   # or 'ruby example.rb' to view details
 ###    # RUBY_PLATFORM:      x86_64-darwin10.4.0
 ###    # RUBY_VERSION:       1.9.2
 ###    # RUBY_PATCHLEVEL:    0
