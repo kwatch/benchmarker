@@ -13,7 +13,7 @@
 ###
 ###    require 'benchmarker'
 ###
-###    n = ($n || 10000).to_i
+###    n = (ARGV[0] || 10000).to_i
 ###    nums = (1..100).to_a
 ###
 ###    bm = Benchmarker.new(:width=>30, :loop=>n, :verbose=>true)
