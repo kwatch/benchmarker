@@ -150,35 +150,24 @@ module Benchmarker
     end
 
 
-    def should_skip?
-      #@verbose == false && @in_verbose_region
-      false
-    end
-    private :should_skip?
-
-
     def <<(str)
-      return self if should_skip?
       @out << str
     end
 
 
     def flush
-      return if should_skip?
       @out.flush if @out.respond_to?(:flush)
       nil
     end
 
 
     def print_header(title)
-      return if should_skip?
       @out << ("# %-#{@width-2}s" % title) << @header << "\n"
       nil
     end
 
 
     def print_label(label)
-      return if should_skip?
       @out << "%-#{@width}s" % label[0, @width]
       flush()
       nil
@@ -186,7 +175,6 @@ module Benchmarker
 
 
     def print_times(user, sys, real)
-      return if should_skip?
       total = user + sys
       [user, sys, total, real].each {|t| @out << (@fmt % t) }
       @out << "\n"
