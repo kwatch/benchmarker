@@ -387,6 +387,7 @@ module Benchmarker
     def platform
       sb = ""
       sb << "# RUBY_PLATFORM:      #{RUBY_PLATFORM}\n"
+      sb << "# RUBY_ENGINE:        #{(RUBY_ENGINE rescue nil)}\n"
       sb << "# RUBY_VERSION:       #{RUBY_VERSION}\n"
       sb << "# RUBY_PATCHLEVEL:    #{RUBY_PATCHLEVEL}\n"
       sb << "# RUBY_RELEASE_DATE:  #{RUBY_RELEASE_DATE}\n"
