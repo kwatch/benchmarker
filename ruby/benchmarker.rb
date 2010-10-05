@@ -119,7 +119,7 @@ module Benchmarker
     DEFAULTS = {
       :out     => $stdout,
       :width   => 30,
-      :fmt     => " %9.4f",
+      :fmt     => "%9.4f",
       :header  => " %9s %9s %9s %9s" % ['user', 'sys', 'total', 'real'],
       :verbose => true,
       :verbose_out => $stderr,
@@ -175,7 +175,7 @@ module Benchmarker
 
     def print_times(user, sys, real)
       total = user + sys
-      [user, sys, total, real].each {|t| @out << (@fmt % t) }
+      [user, sys, total, real].each {|t| @out << (" #{@fmt}" % t) }
       @out << "\n"
       nil
     end
@@ -211,7 +211,7 @@ module Benchmarker
         val = r.__send__(key)
         base ||= 100.0 * val
         percent = base / val
-        sb << "%-#{width}s#{fmt} (%5.1f) " % [r.label[0, width], val, percent]
+        sb << "%-#{width}s #{fmt} (%5.1f) " % [r.label[0, width], val, percent]
         sb << ('*' * (percent / 5.0).to_i )
         sb << "\n"
       end
@@ -231,7 +231,7 @@ module Benchmarker
       values = results.collect {|r| r.__send__(key) }
       results.each_with_index do |r, i|
         val = r.__send__(key)
-        sb << ("[%02d] %-#{width}s#{fmt}" % [i+1, r.label[0, width], val])
+        sb << ("[%02d] %-#{width}s #{fmt}" % [i+1, r.label[0, width], val])
         values.each_with_index do |other, j|
           ratio = block_given? ? yield(val, other) : 100.0 * other / val
           sb << (" %6.1f" % (ratio + compensate))
@@ -337,7 +337,7 @@ module Benchmarker
         results = results.dup
         if extra > 0
           label = results.first.label
-          fmt = @reporter.fmt
+          fmt = " #{@reporter.fmt}"
           extra.times do
             #min_r, max_r = results.minmax_by {|r| r.__send__(key) }
             arr = results.sort_by {|r| r.__send__(key) }
@@ -443,7 +443,7 @@ module Benchmarker
   ##   :width=>30     : width of benchmark label
   ##   :out=>$stdout  : stream to write result (I/O or String)
   ##   :verbose=>true : verbose mode
-  ##   :fmt=>' %9.4f' : format of benchmark time
+  ##   :fmt=>'%9.4f'  : format of benchmark time
   ##
   def self.new(opts={})
     runner = RUNNER.new(opts)
