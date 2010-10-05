@@ -341,9 +341,8 @@ module Benchmarker
           extra.times do
             #min_r, max_r = results.minmax_by {|r| r.__send__(key) }
             arr = results.sort_by {|r| r.__send__(key) }
-            min_r, max_r = arr.first, arr.last
-            results.delete(min_r); min = min_r.__send__(key)
-            results.delete(max_r); max = max_r.__send__(key)
+            min_r = arr.first; results.delete(min_r); min = min_r.__send__(key)
+            max_r = arr.last;  results.delete(max_r); max = max_r.__send__(key)
             @reporter << (label_fmt % label) << (fmt % min) << (fmt % max) << "\n"
           end
         end
@@ -406,9 +405,10 @@ module Benchmarker
 
   #--
   #s =''
-  #constants().grep(/^[A-Z0-9_]+$/).each do |cname|
-  #  s << "def self.#{cname}=(klass)
-  #          remove_const :#{cname}; const_set :#{cname}, klass
+  #constants().grep(/^[A-Z0-9_]+$/).each do |const_name|
+  #  next unless const_get(const_name).is_a?(Class)
+  #  s << "def self.#{const_name}=(klass)
+  #          remove_const :#{const_name}; const_set :#{const_name}, klass
   #        end;"
   #end
   #eval s
