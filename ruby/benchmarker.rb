@@ -339,7 +339,9 @@ module Benchmarker
           label = results.first.label
           fmt = @reporter.fmt
           extra.times do
-            min_r, max_r = results.minmax_by {|r| r.__send__(key) }
+            #min_r, max_r = results.minmax_by {|r| r.__send__(key) }
+            arr = results.sort_by {|r| r.__send__(key) }
+            min_r, max_r = arr.first, arr.last
             results.delete(min_r); min = min_r.__send__(key)
             results.delete(max_r); max = max_r.__send__(key)
             @reporter << (label_fmt % label) << (fmt % min) << (fmt % max) << "\n"
