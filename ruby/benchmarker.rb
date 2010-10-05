@@ -255,9 +255,8 @@ module Benchmarker
     }
 
 
-    def initialize(options={})
-      opts = DEFAULTS.merge(options)
-      @loop = opts[:loop]
+    def initialize(opts={})
+      @loop, = DEFAULTS.merge(opts).values_at(:loop)
       @results = []
     end
 
@@ -365,14 +364,6 @@ module Benchmarker
     end
 
 
-    def stats(opts={})
-      sb = ""
-      sb << "\n" << ranking(opts)
-      sb << "\n" << matrix(opts)
-      return sb
-    end
-
-
     def ranking(opts={})
       opts[:width] ||= @reporter.width
       return @statistics.ranking(@results, opts)
@@ -382,6 +373,14 @@ module Benchmarker
     def matrix(opts={})
       opts[:width] ||= @reporter.width
       return @statistics.matrix(@results, opts)
+    end
+
+
+    def stats(opts={})
+      sb = ""
+      sb << "\n" << ranking(opts)
+      sb << "\n" << matrix(opts)
+      return sb
     end
 
 
