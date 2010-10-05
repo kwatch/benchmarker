@@ -52,22 +52,23 @@
 ### output example:
 ###
 ###    $ ruby example.rb 2>/dev/null   # or 'ruby example.rb' to view details
-###    # RUBY_PLATFORM:      x86_64-darwin10.4.0
-###    # RUBY_VERSION:       1.9.2
-###    # RUBY_PATCHLEVEL:    0
-###    # RUBY_RELEASE_DATE:  2010-08-18
+###    ## RUBY_PLATFORM:      x86_64-darwin10.4.0
+###    ## RUBY_ENGINE:        ruby
+###    ## RUBY_VERSION:       1.9.2
+###    ## RUBY_PATCHLEVEL:    0
+###    ## RUBY_RELEASE_DATE:  2010-08-18
 ###
-###    # Average (7-2*1)                   user       sys     total      real
+###    ## Average (7-2*1)                  user       sys     total      real
 ###    Enumerable#each & '+='            0.1420    0.0000    0.1420    0.1469
 ###    Enumerable#inject                 0.1760    0.0000    0.1760    0.1797
 ###    while-stmt                        0.0740    0.0000    0.0740    0.0811
 ###
-###    # Ranking                           real  ratio
+###    ## Ranking                          real  ratio
 ###    while-stmt                        0.0811 (100.0) ********************
 ###    Enumerable#each & '+='            0.1469 ( 55.2) ***********
 ###    Enumerable#inject                 0.1797 ( 45.1) *********
 ###
-###    # Matrix                            real   [01]   [02]   [03]
+###    ## Matrix                           real   [01]   [02]   [03]
 ###    [01] while-stmt                   0.0811  100.0  181.2  221.6
 ###    [02] Enumerable#each & '+='       0.1469   55.2  100.0  122.3
 ###    [03] Enumerable#inject            0.1797   45.1   81.8  100.0
