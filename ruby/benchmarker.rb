@@ -319,6 +319,7 @@ module Benchmarker
 
     def _delete_minmax_from(results, key, extra, fmt, label_fmt)
       sorted = results.sort_by {|r| r.__send__(key) }
+      arr = sorted.collect {|x| x.__send__(key) }
       min_arr, max_arr = sorted[0...extra], sorted[-extra..-1].reverse
       label = results.first.label
       min_arr.zip(max_arr) do |min_r, max_r|
@@ -327,8 +328,8 @@ module Benchmarker
         @reporter << (label_fmt % label) \
                   << (fmt % min) << (" %9s" % "(#{min_idx+1})") \
                   << (fmt % max) << (" %9s" % "(#{max_idx+1})") << "\n"
-        results.delete_at(min_idx)
-        results.delete_at(max_idx)
+        [max_idx, min_idx].sort.reverse.each {|idx| results.delete_at(idx) }
+        label = nil
       end
     end
 
