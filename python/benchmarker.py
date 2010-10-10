@@ -10,6 +10,7 @@
 import sys, os, time, gc
 
 __all__ = ('Benchmarker', )
+__version__ = "$Release: 0.0.0 $".split(' ')[1]
 
 
 class Benchmarker(object):
