@@ -120,7 +120,8 @@ class Result(object):
         user = sys = total = real = 0.0
         for r in results:
             if label is None: label = r.label
-            assert label == r.label
+            if label != r.label:
+                raise ValueError("%r: label is different from previous one (=%r)" % (r.label, label))
             user  += r.user
             sys   += r.sys
             total += r.total
