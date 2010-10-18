@@ -157,20 +157,17 @@ module Benchmarker
 
     def flush
       @out.flush if @out.respond_to?(:flush)
-      nil
     end
 
 
     def print_header(title)
       @out << ("%-#{@width}s" % "## #{title}") << @header << "\n"
-      nil
     end
 
 
     def print_label(label)
       @out << "%-#{@width}s" % label[0, @width]
       flush()
-      nil
     end
 
 
@@ -178,7 +175,6 @@ module Benchmarker
       total = user + sys
       [user, sys, total, real].each {|t| @out << " #{@fmt}" % t }
       @out << "\n"
-      nil
     end
 
 
@@ -257,6 +253,7 @@ module Benchmarker
 
     def initialize(opts={})
       @loop, = DEFAULTS.merge(opts).values_at(:loop)
+      @header_title = 'Benchmark'
       @results = []
     end
 
@@ -284,6 +281,9 @@ module Benchmarker
     protected :after
 
 
+    ##
+    ## execute block as benchmark
+    ##
     def bench(label)
       before() unless @_skip
       @reporter.print_label(label)
@@ -328,9 +328,10 @@ module Benchmarker
         @reporter << (label_fmt % label) \
                   << (fmt % min) << (" %9s" % "(#{min_idx+1})") \
                   << (fmt % max) << (" %9s" % "(#{max_idx+1})") << "\n"
-        [max_idx, min_idx].sort.reverse.each {|idx| results.delete_at(idx) }
         label = nil
+        results[min_idx] = results[max_idx] = nil
       end
+      results.compact!
     end
 
 
@@ -366,6 +367,13 @@ module Benchmarker
     public
 
 
+    ##
+    ## repeat benchmarks n times.
+    ##
+    ## options:
+    ##   :extra=>0    : increate number of repeat by 2*extra, and remove min/max results
+    ##   :key=>:real  : :real, :user, :sys, or :total
+    ##
     def repeat(n, opts={})
       opts = {:key=>:real, :extra=>0}.merge(opts)
       key, extra = opts.values_at(:key, :extra)
@@ -373,7 +381,7 @@ module Benchmarker
       @results_matrix = []
       (n + 2 * extra).times do |i|
         _reset("Repeat (#{i+1})")
-        yield
+        yield i
         @results.each_with_index do |r, j|
           (@results_matrix[j] ||= []) << r
         end
@@ -392,18 +400,36 @@ module Benchmarker
     end
 
 
+    ##
+    ## return ranking, sorted by key
+    ##
+    ## options:
+    ##   :key=>:real       : :real, :user, :sys, or :total
+    ##
     def ranking(opts={})
       opts[:width] ||= @reporter.width
       return @statistics.ranking(@results, opts)
     end
 
 
+    ##
+    ## return compared ratio matrix
+    ##
+    ## options:
+    ##   :sort=>true       : sort benchmark results
+    ##   :key=>:real       : :real, :user, :sys, or :total
+    ##   :compensate=>0.0  : compensation of time (try '-100.0' if you want)
+    ##   :width=>30        : width of titles
+    ##
     def matrix(opts={})
       opts[:width] ||= @reporter.width
       return @statistics.matrix(@results, opts)
     end
 
 
+    ##
+    ## return ranking() and matrix()
+    ##
     def stats(opts={})
       sb = ""
       sb << "\n" << ranking(opts)
@@ -412,6 +438,9 @@ module Benchmarker
     end
 
 
+    ##
+    ## return platform information
+    ##
     def platform
       sb = ""
       sb << "## RUBY_PLATFORM:      #{RUBY_PLATFORM}\n"
