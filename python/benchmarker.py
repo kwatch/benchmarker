@@ -289,7 +289,7 @@ class Runner(object):
             self.reporter.write(label_fmt % label) \
                          .write(fmt % min_val).write(" %9s" % min_pos) \
                          .write(fmt % max_val).write(" %9s" % max_pos).write("\n")
-            label = None
+            label = ''
             results[min_idx] = results[max_idx] = None
         return [ r for r in results if r ]
 
