@@ -305,7 +305,7 @@ class Runner(object):
                 results = self._delete_minmax_from(results, key, extra, fmt, label_fmt)
                 avg_results.append(RESULT.average(results))
         else:
-            for results in results_matrix:
+            for results in all_results:
                 avg_results.append(RESULT.average(results))
         return avg_results
 
