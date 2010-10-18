@@ -191,11 +191,15 @@ class ResultTest(object):
 class TaskTest(object):
 
 
+    def before(self):
+        self.benchmark = DummyObject(_started=None, _stopped=None)
+        self.task = Task(self.benchmark, "hello")
+
+
     def test___enter__(self):
-        benchmark = Benchmark(None, None)
+        task = self.task
         intr = Interceptor()
-        intr.intercept(benchmark, _started=lambda self, x: x)
-        task = Task(benchmark, "label1")
+        intr.intercept(self.benchmark, _started=lambda self, x: x)
         ret = task.__enter__()
         with spec("call benchmark._started()."):
             ok (intr[0].name) == '_started'
@@ -208,11 +212,10 @@ class TaskTest(object):
 
 
     def test___exit__(self):
-        benchmark = DummyObject(_started=None, _stopped=None)
-        task = Task(benchmark, "label1")
+        task = self.task
         task.__enter__()
         ret = task.__exit__(*sys.exc_info())
-        _results = benchmark._results
+        _results = self.benchmark._results
         with spec("call benchmark._stopped() with Result object."):
             ok (len(_results)) == 2
             ok (_results[0].name) == '_started'
@@ -221,7 +224,7 @@ class TaskTest(object):
             ok (_results[1].args[1]).is_a(Result)
         with spec("record end times."):
             result = _results[1].args[1]
-            ok (result.label) == "label1"
+            ok (result.label) == "hello"
             ok (result.user ).is_a(float)
             ok (result.sys  ).is_a(float)
             ok (result.total).is_a(float)
@@ -231,8 +234,7 @@ class TaskTest(object):
 
 
     def test_run(self):
-        benchmark = DummyObject(_started=None, _stopped=None)
-        task = Task(benchmark, label=None)
+        task = self.task
         intr = Interceptor()
         intr.intercept(task, '__enter__', '__exit__')
         args = []
@@ -249,6 +251,16 @@ class TaskTest(object):
             ok (intr[1].name) == '__exit__'
         with spec("return the return value of func."):
             ok (ret) == 'sos'
+
+
+    def test___iter__(self):
+        task = self.task
+        task.benchmark.loop = 5
+        i = 0
+        for j in task:
+            i += 1
+            ok (j) == i - 1
+        ok (i) == 5
 
 
 
@@ -631,15 +643,18 @@ class BenchmarkerTest(object):
 
     def test_Benchmarker(self):
         with spec("return Runner object."):
-            bm = Benchmarker(25)
+            bm = Benchmarker()
             ok (bm).is_a(Runner)
         with spec("create Runner, Reporter, Benchmarker, and Stat objects."):
+            bm = Benchmarker(loop=5)
             ok (bm.reporter).is_a(Reporter)
             ok (bm.benchmark).is_a(Benchmark)
             ok (bm.benchmark.reporter).is_(bm.reporter)
             ok (bm.stat).is_a(Stat)
             ok (bm.stat.runner).is_(bm)
+            ok (bm.benchmark.loop) == 5
         with spec("add 'width' argument into kwargs."):
+            bm = Benchmarker(25)
             ok (bm.reporter.width) == 25
 
 

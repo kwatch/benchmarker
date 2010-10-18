@@ -203,7 +203,7 @@ class Task(object):
         loop = self.benchmark.loop
         try:
             self.__enter__()
-            for i in xrange(self.loop):
+            for i in xrange(loop):
                 yield i
         finally:
             self.__exit__(*sys.exc_info())
@@ -216,9 +216,10 @@ TASK = Task
 class Benchmark(object):
 
 
-    def __init__(self, reporter, title="Benchmark", **kwargs):
+    def __init__(self, reporter, title="Benchmark", loop=1, **kwargs):
         self.reporter = reporter
         self.title    = title
+        self.loop     = loop
         self.results  = []
         self._benchmark_started = False
         self._empty_task = None
