@@ -45,53 +45,66 @@ class Reporter(object):
         for k in ('out', 'width', 'fmt', 'header','verbose', 'vout'):
             if k in kwargs:
                 setattr(self, k, kwargs[k])
+        #: if verbose mode is off then use dummy io for verbose output.
         if not self.verbose:
             self.vout = StringIO()
         self.prev_is_separator = None
 
 
     def start_verbose_mode(self):
+        #: switch output stream for verbose mode.
         self.__out = self.out
         self.out = self.vout
 
 
     def stop_verbose_mode(self):
+        #: switch back output stream for normal mode.
         self.out = self.__out
         del self.__out
 
 
     def write(self, s):
+        #: write argument into output stream.
         self.out.write(s)
+        #: clear prev_is_separator flag.
         self.prev_is_separator = False
+        #: return self.
         return self
 
 
     def flush(self):
+        #: if output stream can respond to 'flush()' then call it.
         if hasattr(self.out, 'flush'):
             self.out.flush()
 
 
     def print_header(self, title, items=None):
+        #: print header title and items.
         format = "%%-%ss" % (self.width, )
         header = items and (' %9s' * 4) % items or self.header
         self.write(format % ("## " + title)).write(header).write("\n")
 
 
     def print_label(self, label):
+        #: print benchmark label.
         format = "%%-%ss" % (self.width, )
         self.write(format % label[0:self.width])
+        #: flush output stream.
         self.flush()
 
 
     def print_times(self, user, sys, total, real):
+        #: print benchmark times.
         for v in (user, sys, total, real):
             self.write(" ").write(self.fmt % v)
         self.write("\n")
 
 
     def print_separator(self):
+        #: print separator if prev is not separator.
         if not self.prev_is_separator:
             self.write(self.sep)
+        #: set prev_is_separator flag.
         self.prev_is_separator = True
 
 
@@ -107,6 +120,7 @@ class Result(object):
 
 
     def __isub__(self, result):
+        #: subtract values.
         self.user  -= result.user
         self.sys   -= result.sys
         self.total -= result.total
@@ -116,6 +130,7 @@ class Result(object):
 
     @classmethod
     def average(cls, results):
+        #: calculate average of results.
         label = None
         user = sys = total = real = 0.0
         for r in results:
@@ -127,6 +142,7 @@ class Result(object):
             total += r.total
             real  += r.real
         n = len(results)
+        #: return new Result object.
         return cls(label, user/n, sys/n, total/n, real/n)
 
 
@@ -144,32 +160,51 @@ class Task(object):
 
     def __enter__(self):
         assert self.label
+        #: call benchmark._started().
         if self.benchmark:
             self.benchmark._started(self)
         gc.collect()    # start full-GC
+        #: start to record times.
         self._start_t = time.time()
         self._t1 = os.times()
+        #: return self.
         return self
 
 
     def __exit__(self, type, value, tb):
+        #: record end times.
         end_t = time.time()
         t2    = os.times()
         user  = t2[0] - self._t1[0]    # user time
         sys   = t2[1] - self._t1[1]    # system time
         total = sum(t2[:4]) - sum(self._t1[:4])  # total time (include child processes' time)
         real  = end_t - self._start_t  # real time
+        #: call benchmark._stopped() with Result object.
         result = RESULT(self.label, user, sys, total, real)
         if self.benchmark:
             self.benchmark._stopped(self, result)
+        #: return None
 
 
     def run(self, func, *args):
+        #: if label is not specified then use function name as label.
         if not getattr(self, 'label', None):  # use func name as label
             self.label = getattr(func, 'func_name', None) or getattr(func, '__name__', None)
+        #: simulate with-statement.
         try:
             self.__enter__()
+            #: return the return value of func.
             return func(*args)
+        finally:
+            self.__exit__(*sys.exc_info())
+
+
+    def __iter__(self):
+        loop = self.benchmark.loop
+        try:
+            self.__enter__()
+            for i in xrange(self.loop):
+                yield i
         finally:
             self.__exit__(*sys.exc_info())
 
@@ -191,6 +226,7 @@ class Benchmark(object):
 
 
     def bench(self, label):
+        #: return new Task object.
         return TASK(self, label=label)
 
 
@@ -198,28 +234,38 @@ class Benchmark(object):
 
 
     def empty(self, label="(Empty)"):
+        #: create new Task object and keep it.
         self._empty_task = task = TASK(self, label=label)
+        #: return Task object.
         return task
 
 
     def run(self, func, *args):
+        #: same as self.bench(None).run(func, *args).
         return self.bench(None).run(func, *args)
 
 
     def _started(self, task):
+        #: print header only once.
         if not self._benchmark_started:
             self._benchmark_started = True
             self.reporter.print_header(self.title)
+        #: print label.
         self.reporter.print_label(task.label)
 
 
     def _stopped(self, task, result):
+        #: if task is for empty loop then keep it.
         if task is self._empty_task:
             self._empty_result = result
+        #: if task is for normal benchmark...
         else:
+            #: if empty loop result exists then substitute it from current result.
             if self._empty_result:
                 result -= self._empty_result
+            #: keep result.
             self.results.append(result)
+        #: print benchmark result.
         r = result
         self.reporter.print_times(r.user, r.sys, r.total, r.real)
 
@@ -247,12 +293,15 @@ class Runner(object):
 
 
     def _get_benchmark(self):
+        #: if self.results is None then set self.benchmark.results to it.
         if self.results is None:
             self.results = self.benchmark.results
+        #: return self.benchmark.
         return self.benchmark
 
 
     def bench(self, label):
+        #: same as self.benchmark.bench(label).
         return self._get_benchmark().bench(label)
 
 
@@ -260,14 +309,17 @@ class Runner(object):
 
 
     def empty(self, label="(Empty)"):
+        #: same as self.benchmark.empty(label).
         return self._get_benchmark().empty(label)
 
 
     def run(self, func, *args):
+        #: same as self.benchmark.run(func, *args).
         return self._get_benchmark().run(func, *args)
 
 
     def _minmax_values_and_indecies(self, results, key, extra):
+        #: search min and max values and indecies.
         sorted_results = sorted(results, key=lambda ent: getattr(ent, key))
         arr = []
         for i in xrange(extra):
@@ -282,6 +334,7 @@ class Runner(object):
 
 
     def _delete_minmax_from(self, results, key, extra, fmt, label_fmt):
+        #: print min an max benchmarks.
         arr = self._minmax_values_and_indecies(results, key, extra)
         label = results[0].label
         for min_val, min_idx, max_val, max_idx in arr:
@@ -292,10 +345,12 @@ class Runner(object):
                          .write(fmt % max_val).write(" %9s" % max_pos).write("\n")
             label = ''
             results[min_idx] = results[max_idx] = None
+        #: return results without min and max results.
         return [ r for r in results if r ]
 
 
     def _average_results(self, all_results, key, extra):
+        #: calculate average of results.
         avg_results = []
         if extra > 0:
             fmt = " " + self.reporter.fmt
@@ -311,6 +366,7 @@ class Runner(object):
 
 
     def _print_results(self, results, title):
+        #: print results.
         self.reporter.print_header(title)
         for r in results:
             self.reporter.print_label(r.label)
@@ -320,13 +376,15 @@ class Runner(object):
     def repeat(self, n, extra=0, key='real'):
         self.reporter.start_verbose_mode()
         results_list = []
+        #: repeat n + 2*extra times.
         for i in xrange(n + 2 * extra):
             bm = BENCHMARK(self.reporter, title="Benchmark #%s" % (i+1))
             self.benchmark = bm
+            #: yield Benchmark object.
             yield bm
             results_list.append(bm.results)
             self.reporter.print_separator()
-        ## calc average
+        #: calculate average.
         num_results = len(results_list[0])
         all_results = [ [] for j in xrange(num_results) ]
         for results in results_list:
@@ -548,8 +606,10 @@ STAT = Stat
 
 
 def Benchmarker(width=None, **kwargs):
+    #: add 'width' argument into kwargs.
     if width is not None:
         kwargs['width'] = width
+    #: create Runner, Reporter, Benchmarker, and Stat objects.
     runner = RUNNER(**kwargs)
     runner.reporter  = REPORTER(**kwargs)
     runner.benchmark = BENCHMARK(runner.reporter, **kwargs)
@@ -557,4 +617,5 @@ def Benchmarker(width=None, **kwargs):
         kwargs = kwargs.copy()
         kwargs['width'] = runner.reporter.width
     runner.stat = STAT(runner, **kwargs)
+    #: return Runner object.
     return runner
