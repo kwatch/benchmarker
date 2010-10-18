@@ -296,7 +296,6 @@ class Runner(object):
 
 
     def _average_results(self, all_results, key, extra):
-        write = self.reporter.write
         avg_results = []
         if extra > 0:
             fmt = " " + self.reporter.fmt
