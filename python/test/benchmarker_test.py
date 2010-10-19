@@ -11,9 +11,9 @@ _ = os.path.dirname
 sys.path.append(_(_(__file__)))
 
 from oktest import ok, not_ok, run, spec
-from oktest.helper import dummy_io, Interceptor
+from oktest.helper import dummy_io, Interceptor, DummyObject
 import benchmarker
-from benchmarker import Benchmarker
+from benchmarker import Reporter, Result, Task, Benchmark, Runner, Stat, Benchmarker
 
 python2 = sys.version_info[0] == 2
 python3 = sys.version_info[0] == 3
@@ -22,45 +22,6 @@ if python2:
 if python3:
     xrange = range
     from io import StringIO
-
-
-
-from benchmarker import Reporter, Result, Task, Benchmark, Runner, Stat
-
-
-import types
-
-class DummyObject(object):
-
-    class Call(object):
-        def __init__(self, name, args, kwargs, ret=None):
-            self.name = name
-            self.args = args
-            self.kwargs = kwargs
-            self.ret = ret
-
-    def __init__(self, **kwargs):
-        self._calls = []
-        for name in kwargs:
-            setattr(self, name, self.__new_method(name, kwargs[name]))
-
-    def __new_method(self, name, val):
-        _calls = self._calls
-        if isinstance(val, types.FunctionType):
-            func = val
-            def f(self, *args, **kwargs):
-                r = DummyObject.Call(name, args, kwargs, None)
-                _calls.append(r)
-                r.ret = func(self, *args, **kwargs)
-                return r.ret
-        else:
-            def f(self, *args, **kwargs):
-                r = DummyObject.Call(name, args, kwargs, val)
-                _calls.append(r)
-                return val
-        f.func_name = f.__name__ = name
-        if python2: return types.MethodType(f, self, self.__class__)
-        if python3: return types.MethodType(f, self)
 
 
 
