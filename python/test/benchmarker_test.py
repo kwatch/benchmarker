@@ -566,7 +566,7 @@ Yuki                              1.2000    2.2000    3.2000    4.2000
             Result(("Yuki",   1.2, 2.2, 3.2, 5.0)),
         ]
         ok (runner.compared_matrix()) == """
-## Matrix                           real   [01]   [02]   [03]
+## Ratio Matrix                     real   [01]   [02]   [03]
 [01] Haruhi                       4.0000    0.0   25.0   50.0
 [02] Yuki                         5.0000  -20.0    0.0   20.0
 [03] Mikuru                       6.0000  -33.3  -16.7    0.0
@@ -583,7 +583,7 @@ Yuki                              1.2000    2.2000    3.2000    4.2000
         runner.print_compared_matrix()
         ok (runner.reporter.out.getvalue()) == """
 -------------------------------------------------------------------------------
-## Matrix                           real   [01]   [02]   [03]
+## Ratio Matrix                     real   [01]   [02]   [03]
 [01] Haruhi                       4.0000    0.0   25.0   50.0
 [02] Yuki                         5.0000  -20.0    0.0   20.0
 [03] Mikuru                       6.0000  -33.3  -16.7    0.0
@@ -613,15 +613,15 @@ Mikuru                            6.0000 ( 66.7) *************
 """[1:]
 
 
-    def test_matrix(self):
-        ok (self.bm.stat.matrix()) == """
-## Matrix                           real   [01]   [02]   [03]
+    def test_ratio_matrix(self):
+        ok (self.bm.stat.ratio_matrix()) == """
+## Ratio Matrix                     real   [01]   [02]   [03]
 [01] Haruhi                       4.0000  100.0  125.0  150.0
 [02] Yuki                         5.0000   80.0  100.0  120.0
 [03] Mikuru                       6.0000   66.7   83.3  100.0
 """[1:]
-        ok (self.bm.stat.matrix(compensate=-100.0)) == """
-## Matrix                           real   [01]   [02]   [03]
+        ok (self.bm.stat.ratio_matrix(compensate=-100.0)) == """
+## Ratio Matrix                     real   [01]   [02]   [03]
 [01] Haruhi                       4.0000    0.0   25.0   50.0
 [02] Yuki                         5.0000  -20.0    0.0   20.0
 [03] Mikuru                       6.0000  -33.3  -16.7    0.0
@@ -636,7 +636,7 @@ Haruhi                            4.0000 (100.0) ********************
 Yuki                              5.0000 ( 80.0) ****************
 Mikuru                            6.0000 ( 66.7) *************
 
-## Matrix                           real   [01]   [02]   [03]
+## Ratio Matrix                     real   [01]   [02]   [03]
 [01] Haruhi                       4.0000  100.0  125.0  150.0
 [02] Yuki                         5.0000   80.0  100.0  120.0
 [03] Mikuru                       6.0000   66.7   83.3  100.0

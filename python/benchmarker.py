@@ -435,14 +435,14 @@ class Runner(object):
 
 
     def compared_matrix(self, **kwargs):
-        """obsolete. use self.stat.matrix(compensate=-100.0) instead."""
-        return self.stat.matrix(compensate=-100.0, **kwargs)
+        """obsolete. use self.stat.ratio_matrix(compensate=-100.0) instead."""
+        return self.stat.ratio_matrix(compensate=-100.0, **kwargs)
 
 
     def print_compared_matrix(self, **kwargs):
-        """obsolete. use print self.stat.matrix(compensate=-100.0) instead."""
+        """obsolete. use print self.stat.ratio_matrix(compensate=-100.0) instead."""
         self.reporter.write("-" * 79).write("\n")
-        self.reporter.write(self.stat.matrix(compensate=-100.0, **kwargs)).write("\n")
+        self.reporter.write(self.stat.ratio_matrix(compensate=-100.0, **kwargs)).write("\n")
 
 
 RUNNER = Runner
@@ -524,7 +524,7 @@ def _dummy_namespace():
 
 
 
-    class Matrix(Statistics):
+    class RatioMatrix(Statistics):
 
 
         ## default values
@@ -546,7 +546,7 @@ def _dummy_namespace():
                 results = results[:]
                 results.sort(key=lambda r: getattr(r, key))
             values = [ getattr(result, key) for result in results ]
-            data = {'title': 'Matrix', 'key': key, 'compensate': compensate}
+            data = {'title': 'Ratio Matrix', 'key': key, 'compensate': compensate}
             data['results'] = []
             append = data['results'].append
             for i, val in enumerate(values):
@@ -574,7 +574,7 @@ def _dummy_namespace():
 
 
     RANKING = Ranking
-    MATRIX = Matrix
+    RATIO_MATRIX = RatioMatrix
 
 
     return locals()
@@ -608,15 +608,15 @@ class Stat(object):
         return statistics.Ranking(**kwargs).process(self.runner.results)
 
 
-    def matrix(self, **kwargs):
+    def ratio_matrix(self, **kwargs):
         kwargs = self._merge(kwargs, self.kwargs)
-        return statistics.Matrix(**kwargs).process(self.runner.results)
+        return statistics.RatioMatrix(**kwargs).process(self.runner.results)
 
 
     def all(self, almost=True, sep="\n", **kwargs):
         buf = ['']
         buf.append(self.ranking(**kwargs))
-        buf.append(self.matrix(**kwargs))
+        buf.append(self.ratio_matrix(**kwargs))
         return sep.join(buf)
 
 
