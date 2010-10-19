@@ -161,21 +161,38 @@ class ReporterTest(object):
 class ResultTest(object):
 
 
+    def test___iadd__(self):
+        with spec("add values."):
+            r1 = Result(('foo', 10.0, 20.0, 30.0, 40.0))
+            r2 = Result(('bar', 1.0, 2.0, 3.0, 4.0))
+            bkup = r1
+            r1 += r2
+            ok ([r1.label, r1.user, r1.sys, r1.total, r1.real]) == ['foo', 11.0, 22.0, 33.0, 44.0]
+            ok ([r2.label, r2.user, r2.sys, r2.total, r2.real]) == ['bar', 1.0, 2.0, 3.0, 4.0]
+        with spec("return new Result object."):
+            # falldown
+            not_ok (r1).is_(bkup)
+
+
     def test___isub__(self):
         with spec("subtract values."):
-            r1 = Result('foo', 10.0, 20.0, 30.0, 40.0)
-            r2 = Result('bar', 1.0, 2.0, 3.0, 4.0)
+            r1 = Result(('foo', 10.0, 20.0, 30.0, 40.0))
+            r2 = Result(('bar', 1.0, 2.0, 3.0, 4.0))
+            bkup = r1
             r1 -= r2
             ok ([r1.label, r1.user, r1.sys, r1.total, r1.real]) == ['foo', 9.0, 18.0, 27.0, 36.0]
             ok ([r2.label, r2.user, r2.sys, r2.total, r2.real]) == ['bar', 1.0, 2.0, 3.0, 4.0]
+        with spec("return new Result object."):
+            # falldown
+            not_ok (r1).is_(bkup)
 
 
     def test_average(self):
-        r1 = Result('foo', 1.0, 2.0, 3.0, 4.0)
-        r2 = Result('foo', 2.0, 3.0, 4.0, 5.0)
-        r3 = Result('foo', 3.0, 4.0, 5.0, 6.0)
-        r4 = Result('foo', 4.0, 5.0, 6.0, 7.0)
-        r5 = Result('foo', 5.0, 6.0, 7.0, 8.0)
+        r1 = Result(('foo', 1.0, 2.0, 3.0, 4.0))
+        r2 = Result(('foo', 2.0, 3.0, 4.0, 5.0))
+        r3 = Result(('foo', 3.0, 4.0, 5.0, 6.0))
+        r4 = Result(('foo', 4.0, 5.0, 6.0, 7.0))
+        r5 = Result(('foo', 5.0, 6.0, 7.0, 8.0))
         r = Result.average([r1, r2, r3, r4, r5])
         with spec("return new Result object."):
             ok (r).is_a(Result)
@@ -361,7 +378,7 @@ class BenchmarkTest(object):
 
     def test__stopped(self):
         b = self.benchmark
-        result = Result("(Empty)", 1.0, 2.0, 3.0, 4.0)
+        result = Result(("(Empty)", 1.0, 2.0, 3.0, 4.0))
         with spec("if task is for empty loop then keep it."):
             task = b.empty()
             assert b._empty_task is task
@@ -371,7 +388,7 @@ class BenchmarkTest(object):
         with spec("if task is for normal benchmark..."):
             assert len(b.results) == 0
             task = b.bench("label1")
-            result = Result("label1", 10.0, 20.0, 30.0, 40.0)
+            result = Result(("label1", 10.0, 20.0, 30.0, 40.0))
             b._stopped(task, result)
             with spec("keep result."):
                 ok (len(b.results)) == 1
@@ -456,11 +473,11 @@ class RunnerTest(object):
 
     def _results_fixture(self):
         return [
-            Result("SOS", 1.0, 5.1, 3.2, 3.3),
-            Result("SOS", 2.0, 4.1, 3.2, 4.3),
-            Result("SOS", 3.0, 3.1, 3.2, 2.3),
-            Result("SOS", 4.0, 2.1, 3.2, 1.3),
-            Result("SOS", 5.0, 1.1, 3.2, 5.3),
+            Result(("SOS", 1.0, 5.1, 3.2, 3.3)),
+            Result(("SOS", 2.0, 4.1, 3.2, 4.3)),
+            Result(("SOS", 3.0, 3.1, 3.2, 2.3)),
+            Result(("SOS", 4.0, 2.1, 3.2, 1.3)),
+            Result(("SOS", 5.0, 1.1, 3.2, 5.3)),
         ]
 
 
@@ -490,11 +507,11 @@ SOS                              1.3000        #4   5.3000        #5
         with spec("calculate average of results."):
             #results = self._results_fixture()
             results = [
-                Result("SOS", 1.0, 5.1, 3.2, 3.0),
-                Result("SOS", 2.0, 4.1, 3.2, 4.3),
-                Result("SOS", 3.0, 3.1, 3.2, 2.6),
-                Result("SOS", 4.0, 2.1, 3.2, 1.3),
-                Result("SOS", 5.0, 1.1, 3.2, 5.3),
+                Result(("SOS", 1.0, 5.1, 3.2, 3.0)),
+                Result(("SOS", 2.0, 4.1, 3.2, 4.3)),
+                Result(("SOS", 3.0, 3.1, 3.2, 2.6)),
+                Result(("SOS", 4.0, 2.1, 3.2, 1.3)),
+                Result(("SOS", 5.0, 1.1, 3.2, 5.3)),
             ]
             ret = self.runner._average_results([results], 'real', 1)
             ok (ret).is_a(list)
@@ -514,9 +531,9 @@ SOS                               1.3000        #4    5.3000        #5
 
     def test__print_results(self):
         results = [
-            Result("Haruhi", 1.0, 2.0, 3.0, 4.0),
-            Result("Mikuru", 1.1, 2.1, 3.1, 4.1),
-            Result("Yuki",   1.2, 2.2, 3.2, 4.2),
+            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
+            Result(("Mikuru", 1.1, 2.1, 3.1, 4.1)),
+            Result(("Yuki",   1.2, 2.2, 3.2, 4.2)),
         ]
         reporter = Reporter(out=StringIO())
         runner = Runner()
@@ -587,9 +604,9 @@ Yuki                              1.2000    2.2000    3.2000    4.2000
     def test_compared_matrix(self):
         runner = Benchmarker()
         runner.results = [
-            Result("Mikuru", 1.1, 2.1, 3.1, 6.0),
-            Result("Haruhi", 1.0, 2.0, 3.0, 4.0),
-            Result("Yuki",   1.2, 2.2, 3.2, 5.0),
+            Result(("Mikuru", 1.1, 2.1, 3.1, 6.0)),
+            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
+            Result(("Yuki",   1.2, 2.2, 3.2, 5.0)),
         ]
         ok (runner.compared_matrix()) == """
 ## Matrix                           real   [01]   [02]   [03]
@@ -602,9 +619,9 @@ Yuki                              1.2000    2.2000    3.2000    4.2000
     def test_print_compared_matrix(self):
         runner = Benchmarker(out=StringIO())
         runner.results = [
-            Result("Mikuru", 1.1, 2.1, 3.1, 6.0),
-            Result("Haruhi", 1.0, 2.0, 3.0, 4.0),
-            Result("Yuki",   1.2, 2.2, 3.2, 5.0),
+            Result(("Mikuru", 1.1, 2.1, 3.1, 6.0)),
+            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
+            Result(("Yuki",   1.2, 2.2, 3.2, 5.0)),
         ]
         runner.print_compared_matrix()
         ok (runner.reporter.out.getvalue()) == """
@@ -624,9 +641,9 @@ class StatTest(object):
     def before(self):
         self.bm = Benchmarker(out=StringIO())
         self.bm.results = [
-            Result("Mikuru", 1.1, 2.1, 3.1, 6.0),
-            Result("Haruhi", 1.0, 2.0, 3.0, 4.0),
-            Result("Yuki",   1.2, 2.2, 3.2, 5.0),
+            Result(("Mikuru", 1.1, 2.1, 3.1, 6.0)),
+            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
+            Result(("Yuki",   1.2, 2.2, 3.2, 5.0)),
         ]
 
 

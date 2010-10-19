@@ -112,20 +112,34 @@ REPORTER = Reporter
 
 
 
-class Result(object):
+class Result(tuple):
 
 
-    def __init__(self, label, user, sys, total, real):
-        self.label, self.user, self.sys, self.total, self.real = label, user, sys, total, real
+    label = property(lambda self: self[0])
+    user  = property(lambda self: self[1])
+    sys   = property(lambda self: self[2])
+    total = property(lambda self: self[3])
+    real  = property(lambda self: self[4])
 
 
-    def __isub__(self, result):
-        #: subtract values.
-        self.user  -= result.user
-        self.sys   -= result.sys
-        self.total -= result.total
-        self.real  -= result.real
-        return self
+    def __iadd__(self, other):
+        #: add values.
+        user  = self.user  + other.user
+        sys   = self.sys   + other.sys
+        total = self.total + other.total
+        real  = self.real  + other.real
+        #: return new Result object.
+        return Result((self.label, user, sys, total, real))
+
+
+    def __isub__(self, other):
+        #: substract values.
+        user  = self.user  - other.user
+        sys   = self.sys   - other.sys
+        total = self.total - other.total
+        real  = self.real  - other.real
+        #: return new Result object.
+        return Result((self.label, user, sys, total, real))
 
 
     @classmethod
@@ -143,7 +157,7 @@ class Result(object):
             real  += r.real
         n = len(results)
         #: return new Result object.
-        return cls(label, user/n, sys/n, total/n, real/n)
+        return cls((label, user/n, sys/n, total/n, real/n))
 
 
 RESULT = Result
@@ -180,7 +194,7 @@ class Task(object):
         total = sum(t2[:4]) - sum(self._t1[:4])  # total time (include child processes' time)
         real  = end_t - self._start_t  # real time
         #: call benchmark._stopped() with Result object.
-        result = RESULT(self.label, user, sys, total, real)
+        result = RESULT((self.label, user, sys, total, real))
         if self.benchmark:
             self.benchmark._stopped(self, result)
         #: return None
