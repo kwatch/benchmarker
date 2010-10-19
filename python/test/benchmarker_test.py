@@ -239,12 +239,13 @@ class TaskTest(object):
         intr.intercept(task, '__enter__', '__exit__')
         args = []
         def hello(arg1, arg2):
+            "hello benchmark"
             args.append(arg1)
             args.append(arg2)
             return 'sos'
         ret = task.run(hello, "foo", 123)
-        with spec("if label is not specified then use function name as label."):
-            ok (task.label) == "hello"
+        with spec("if label is not specified then use function desc or name as label."):
+            ok (task.label) == "hello benchmark"
         with spec("simulate with-statement."):
             ok (args) == ["foo", 123]
             ok (intr[0].name) == '__enter__'

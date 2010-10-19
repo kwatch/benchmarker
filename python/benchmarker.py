@@ -187,9 +187,10 @@ class Task(object):
 
 
     def run(self, func, *args):
-        #: if label is not specified then use function name as label.
-        if not getattr(self, 'label', None):  # use func name as label
-            self.label = getattr(func, 'func_name', None) or getattr(func, '__name__', None)
+        #: if label is not specified then use function desc or name as label.
+        if not getattr(self, 'label', None):
+            self.label = getattr(func, '__doc__', None) or \
+                         getattr(func, 'func_name', None) or getattr(func, '__name__', None)
         #: simulate with-statement.
         try:
             self.__enter__()
