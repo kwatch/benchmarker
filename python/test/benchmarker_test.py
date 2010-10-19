@@ -32,7 +32,7 @@ import types
 
 class DummyObject(object):
 
-    class Result(object):
+    class Call(object):
         def __init__(self, name, args, kwargs, ret=None):
             self.name = name
             self.args = args
@@ -40,23 +40,23 @@ class DummyObject(object):
             self.ret = ret
 
     def __init__(self, **kwargs):
-        self._results = []
+        self._calls = []
         for name in kwargs:
             setattr(self, name, self.__new_method(name, kwargs[name]))
 
     def __new_method(self, name, val):
-        results = self._results
+        _calls = self._calls
         if isinstance(val, types.FunctionType):
             func = val
             def f(self, *args, **kwargs):
-                r = DummyObject.Result(name, args, kwargs, None)
-                results.append(r)
+                r = DummyObject.Call(name, args, kwargs, None)
+                _calls.append(r)
                 r.ret = func(self, *args, **kwargs)
                 return r.ret
         else:
             def f(self, *args, **kwargs):
-                r = DummyObject.Result(name, args, kwargs, val)
-                results.append(r)
+                r = DummyObject.Call(name, args, kwargs, val)
+                _calls.append(r)
                 return val
         f.func_name = f.__name__ = name
         if python2: return types.MethodType(f, self, self.__class__)
@@ -230,15 +230,15 @@ class TaskTest(object):
         task = self.task
         task.__enter__()
         ret = task.__exit__(*sys.exc_info())
-        _results = self.benchmark._results
+        _calls = self.benchmark._calls
         with spec("call benchmark._stopped() with Result object."):
-            ok (len(_results)) == 2
-            ok (_results[0].name) == '_started'
-            ok (_results[1].name) == '_stopped'
-            ok (_results[1].args[0]) == task
-            ok (_results[1].args[1]).is_a(Result)
+            ok (len(_calls)) == 2
+            ok (_calls[0].name) == '_started'
+            ok (_calls[1].name) == '_stopped'
+            ok (_calls[1].args[0]) == task
+            ok (_calls[1].args[1]).is_a(Result)
         with spec("record end times."):
-            result = _results[1].args[1]
+            result = _calls[1].args[1]
             ok (result.label) == "hello"
             ok (result.user ).is_a(float)
             ok (result.sys  ).is_a(float)
@@ -361,15 +361,15 @@ class BenchmarkTest(object):
         task2 = DummyObject()
         task2.label = "SasakiDan"
         b._started(task2)
-        _results = b.reporter._results
+        _calls = b.reporter._calls
         with spec("print header only once."):
-            ok (len(_results)) == 3
-            ok (_results[0].name) == 'print_header'
-            ok (_results[1].name) == 'print_label'
-            ok (_results[2].name) == 'print_label'
+            ok (len(_calls)) == 3
+            ok (_calls[0].name) == 'print_header'
+            ok (_calls[1].name) == 'print_label'
+            ok (_calls[2].name) == 'print_label'
         with spec("print label."):
-            ok (_results[1].args) == ("SOS", )
-            ok (_results[2].args) == ("SasakiDan", )
+            ok (_calls[1].args) == ("SOS", )
+            ok (_calls[2].args) == ("SasakiDan", )
 
 
     def test__stopped(self):
@@ -395,7 +395,7 @@ class BenchmarkTest(object):
                 ok (b.results[0].total) == 27.0
                 ok (b.results[0].real)  == 36.0
         with spec("print benchmark result."):
-            results = b.reporter._results
+            results = b.reporter._calls
             ok (results[0].name) == 'print_times'
             ok (results[0].args) == (1.0, 2.0, 3.0, 4.0)
             ok (results[1].name) == 'print_times'
@@ -517,9 +517,9 @@ SOS                              1.3000        #4   5.3000        #5
             ok (ret[0].total).in_delta(3.2, 0.0001)
             ok (ret[0].real ).in_delta(3.3, 0.0001)
             #
-            _results = self.runner.reporter._results
-            ok (_results[0].name) == 'print_header'
-            ok (_results[0].args) == ('Remove min & max', )
+            _calls = self.runner.reporter._calls
+            ok (_calls[0].name) == 'print_header'
+            ok (_calls[0].args) == ('Remove min & max', )
             ok (self.runner.reporter.out.getvalue()) == """
 SOS                               1.3000        #4    5.3000        #5
 """[1:]
