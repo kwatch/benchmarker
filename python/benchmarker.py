@@ -8,23 +8,19 @@
 
 
 import sys, os, time, gc
-try:
+
+python2 = sys.version_info[0] == 2
+python3 = sys.version_info[0] == 3
+
+if python2:
     from cStringIO import StringIO
-except ImportError:
+if python3:
+    xrange = range
     from io import StringIO
 
 
 __all__ = ('Benchmarker', )
 __version__ = "$Release: 0.0.0 $".split(' ')[1]
-
-
-python2 = sys.version_info[0] == 2
-python3 = sys.version_info[0] == 3
-
-
-import __builtin__
-if not hasattr(__builtin__, 'xrange'):
-    xrange = range
 
 
 

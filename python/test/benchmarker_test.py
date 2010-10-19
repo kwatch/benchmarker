@@ -14,10 +14,14 @@ from oktest import ok, not_ok, run, spec
 from oktest.helper import dummy_io, Interceptor
 import benchmarker
 from benchmarker import Benchmarker
-try:
-    from cStringIO import StringIO    # Python 2.x
-except ImportError:
-    from io import StringIO           # Python 3.x
+
+python2 = sys.version_info[0] == 2
+python3 = sys.version_info[0] == 3
+if python2:
+    from cStringIO import StringIO
+if python3:
+    xrange = range
+    from io import StringIO
 
 
 
@@ -40,15 +44,6 @@ class DummyObject(object):
         for name in kwargs:
             setattr(self, name, self.__new_method(name, kwargs[name]))
 
-    def __nonzero__(self):
-        return True
-
-    def __len__(self):
-        return len(self._results)
-
-    def __getitem__(self, index):
-        return self._results[index]
-
     def __new_method(self, name, val):
         results = self._results
         if isinstance(val, types.FunctionType):
@@ -64,7 +59,8 @@ class DummyObject(object):
                 results.append(r)
                 return val
         f.func_name = f.__name__ = name
-        return types.MethodType(f, self, self.__class__)
+        if python2: return types.MethodType(f, self, self.__class__)
+        if python3: return types.MethodType(f, self)
 
 
 
