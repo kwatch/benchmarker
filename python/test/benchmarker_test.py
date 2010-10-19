@@ -193,7 +193,9 @@ class TaskTest(object):
 
     def before(self):
         self.benchmark = DummyObject(_started=None, _stopped=None)
+        self.benchmark.loop = 1
         self.task = Task(self.benchmark, "hello")
+        return self.task
 
 
     def test___enter__(self):
@@ -234,24 +236,53 @@ class TaskTest(object):
 
 
     def test_run(self):
-        task = self.task
-        intr = Interceptor()
-        intr.intercept(task, '__enter__', '__exit__')
-        args = []
-        def hello(arg1, arg2):
-            "hello benchmark"
-            args.append(arg1)
-            args.append(arg2)
-            return 'sos'
-        ret = task.run(hello, "foo", 123)
         with spec("if label is not specified then use function desc or name as label."):
-            ok (task.label) == "hello benchmark"
+            task = self.before()
+            task.label = None
+            def f1():
+                """hello1"""
+                pass
+            task.run(f1)
+            ok (task.label) == "hello1"
+            #
+            task = self.before()
+            task.label = None
+            def f2():
+                pass
+            task.run(f2)
+            ok (task.label) == "f2"
         with spec("simulate with-statement."):
+            task = self.task
+            intr = Interceptor()
+            intr.intercept(task, '__enter__', '__exit__')
+            args = []
+            def hello(arg1, arg2):
+                """hello benchmark"""
+                args.append(arg1)
+                args.append(arg2)
+                return 'sos'
+            ret = task.run(hello, "foo", 123)
             ok (args) == ["foo", 123]
             ok (intr[0].name) == '__enter__'
             ok (intr[1].name) == '__exit__'
         with spec("return the return value of func."):
+            # falldown
             ok (ret) == 'sos'
+        with spec("if loop count is specified then call function N times."):
+            task = self.before()
+            task.benchmark.loop = 3
+            cnt = [0]
+            def f3(arg):
+                cnt[0] += 1
+            task.run(f3, 999)
+            ok (cnt[0]) == 3
+        with spec("if loop count is not specified then call function one time."):
+            task = self.before()
+            cnt = [0]
+            def f3(arg):
+                cnt[0] += 1
+            task.run(f3, 999)
+            ok (cnt[0]) == 1
 
 
     def test___iter__(self):

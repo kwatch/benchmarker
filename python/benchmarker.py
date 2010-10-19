@@ -192,15 +192,22 @@ class Task(object):
             self.label = getattr(func, '__doc__', None) or \
                          getattr(func, 'func_name', None) or getattr(func, '__name__', None)
         #: simulate with-statement.
+        loop = self.benchmark.loop
         try:
             self.__enter__()
-            #: return the return value of func.
-            return func(*args)
+            #: if loop count is specified then call function N times.
+            if loop > 1:
+                for i in xrange(loop):
+                    func(*args)
+            #: if loop count is not specified then call function one time.
+            else:
+                return func(*args)
         finally:
             self.__exit__(*sys.exc_info())
 
 
     def __iter__(self):
+        #: yield benchmark block N times.
         loop = self.benchmark.loop
         try:
             self.__enter__()
