@@ -379,7 +379,7 @@ class Runner(object):
         results_list = []
         #: repeat n + 2*extra times.
         for i in xrange(n + 2 * extra):
-            bm = BENCHMARK(self.reporter, title="Benchmark #%s" % (i+1))
+            bm = BENCHMARK(self.reporter, title="Benchmark #%s" % (i+1), loop=self.loop)
             self.benchmark = bm
             #: yield Benchmark object.
             yield bm
