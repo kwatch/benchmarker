@@ -226,7 +226,7 @@ class Benchmark(object):
         self._empty_result = None
 
 
-    def bench(self, label):
+    def bench(self, label=None):
         #: return new Task object.
         return TASK(self, label=label)
 
@@ -301,7 +301,7 @@ class Runner(object):
         return self.benchmark
 
 
-    def bench(self, label):
+    def bench(self, label=None):
         #: same as self.benchmark.bench(label).
         return self._get_benchmark().bench(label)
 
