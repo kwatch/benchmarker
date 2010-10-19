@@ -31,7 +31,7 @@ python = prop('python', 'python')
 
 @recipe
 def task_test(c):
-    for fname in glob('test/test_*.py'):
+    for fname in glob('test/*_test.py'):
         system(c%"$(python) $(fname)")
 
 
@@ -112,3 +112,29 @@ def task_package(c, *args, **kwargs):
                 system(c%'$(py) setup.py bdist_egg')
                 mv("dist/*.egg", "..")
                 rm_rf("build", "dist")
+
+
+@recipe
+@product('test/oktest.py')
+def file_test_oktest_py(c):
+    fpath = '../../oktest/python/lib/oktest.py'
+    if not os.path.exists(fpath):
+        raise Exception("%f: not found." % fpath)
+    cp(fpath, c.product)
+
+
+@recipe
+@ingreds('test/oktest.py')
+def oktest(c):
+    """copy oktest.py to test"""
+    pass
+
+
+
+@recipe
+@product('README.html')
+@ingreds('README.txt')
+def file_readme_html(c):
+    """generate README.html"""
+    #system(c%"rst2html.py -i utf-8 -o utf-8 -l en --stylesheet-path=style.css $(ingred) > $(product)")
+    system(c%"rst2html.py -i utf-8 -o utf-8 -l en $(ingred) > $(product)")
