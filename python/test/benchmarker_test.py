@@ -11,7 +11,7 @@ _ = os.path.dirname
 sys.path.append(_(_(__file__)))
 
 from oktest import ok, not_ok, run, spec
-from oktest.helper import dummy_io, Interceptor, DummyObject
+from oktest.helper import dummy_io, Tracer, FakeObject
 import benchmarker
 from benchmarker import Reporter, Result, Task, Benchmark, Runner, Stat, Benchmarker
 
@@ -72,7 +72,7 @@ class ReporterTest(object):
 
     def test_flush(self):
         with spec("if output stream can respond to 'flush()' then call it."):
-            sout = DummyObject()
+            sout = FakeObject()
             r = Reporter(out=sout)
             not_ok (lambda: r.flush()).raises(Exception)
             arr = [False]
@@ -97,7 +97,7 @@ class ReporterTest(object):
         arr = [False]
         def flush(self, ):
             arr[0] = True
-        out = DummyObject(write=write, flush=flush)
+        out = FakeObject(write=write, flush=flush)
         with spec("print benchmark label."):
             r = Reporter(out=out)
             r.print_label('sos')
@@ -166,7 +166,8 @@ class TaskTest(object):
 
 
     def before(self):
-        self.benchmark = DummyObject(_started=None, _stopped=None)
+        self.tracer = Tracer()
+        self.benchmark = self.tracer.fake_obj(_started=None, _stopped=None)
         self.benchmark.loop = 1
         self.task = Task(self.benchmark, "hello")
         return self.task
@@ -174,12 +175,12 @@ class TaskTest(object):
 
     def test___enter__(self):
         task = self.task
-        intr = Interceptor()
-        intr.intercept(self.benchmark, _started=lambda self, x: x)
+        tr = Tracer()
+        tr.fake_method(self.benchmark, _started=lambda self, x: x)
         ret = task.__enter__()
         with spec("call benchmark._started()."):
-            ok (intr[0].name) == '_started'
-            ok (intr[0].args) == (task, )
+            ok (tr[0].name) == '_started'
+            ok (tr[0].args) == (task, )
         with spec("start to record times."):
             ok (task._start_t).is_a(float)
             ok (task._t1).is_a(tuple)
@@ -191,15 +192,15 @@ class TaskTest(object):
         task = self.task
         task.__enter__()
         ret = task.__exit__(*sys.exc_info())
-        _calls = self.benchmark._calls
+        tr = self.tracer
         with spec("call benchmark._stopped() with Result object."):
-            ok (len(_calls)) == 2
-            ok (_calls[0].name) == '_started'
-            ok (_calls[1].name) == '_stopped'
-            ok (_calls[1].args[0]) == task
-            ok (_calls[1].args[1]).is_a(Result)
+            ok (len(tr)) == 2
+            ok (tr[0].name) == '_started'
+            ok (tr[1].name) == '_stopped'
+            ok (tr[1].args[0]) == task
+            ok (tr[1].args[1]).is_a(Result)
         with spec("record end times."):
-            result = _calls[1].args[1]
+            result = tr[1].args[1]
             ok (result.label) == "hello"
             ok (result.user ).is_a(float)
             ok (result.sys  ).is_a(float)
@@ -227,8 +228,8 @@ class TaskTest(object):
             ok (task.label) == "f2"
         with spec("simulate with-statement."):
             task = self.task
-            intr = Interceptor()
-            intr.intercept(task, '__enter__', '__exit__')
+            tr = Tracer()
+            tr.trace_method(task, '__enter__', '__exit__')
             args = []
             def hello(arg1, arg2):
                 """hello benchmark"""
@@ -237,8 +238,8 @@ class TaskTest(object):
                 return 'sos'
             ret = task.run(hello, "foo", 123)
             ok (args) == ["foo", 123]
-            ok (intr[0].name) == '__enter__'
-            ok (intr[1].name) == '__exit__'
+            ok (tr[0].name) == '__enter__'
+            ok (tr[1].name) == '__exit__'
         with spec("return the return value of func."):
             # falldown
             ok (ret) == 'sos'
@@ -274,7 +275,8 @@ class BenchmarkTest(object):
 
 
     def before(self):
-        reporter = DummyObject(write=None, print_header=None, print_label=None, print_times=None)
+        self.tracer = Tracer()
+        reporter = self.tracer.fake_obj(write=None, print_header=None, print_label=None, print_times=None)
         self.benchmark = Benchmark(reporter)
 
 
@@ -316,21 +318,21 @@ class BenchmarkTest(object):
 
     def test__started(self):
         b = self.benchmark
-        task1 = DummyObject()
+        task1 = FakeObject()
         task1.label = "SOS"
         b._started(task1)
-        task2 = DummyObject()
+        task2 = FakeObject()
         task2.label = "SasakiDan"
         b._started(task2)
-        _calls = b.reporter._calls
+        tr = self.tracer
         with spec("print header only once."):
-            ok (len(_calls)) == 3
-            ok (_calls[0].name) == 'print_header'
-            ok (_calls[1].name) == 'print_label'
-            ok (_calls[2].name) == 'print_label'
+            ok (len(tr)) == 3
+            ok (tr[0].name) == 'print_header'
+            ok (tr[1].name) == 'print_label'
+            ok (tr[2].name) == 'print_label'
         with spec("print label."):
-            ok (_calls[1].args) == ("SOS", )
-            ok (_calls[2].args) == ("SasakiDan", )
+            ok (tr[1].args) == ("SOS", )
+            ok (tr[2].args) == ("SasakiDan", )
 
 
     def test__stopped(self):
@@ -371,7 +373,8 @@ class RunnerTest(object):
         def write(self, arg):
             self.out.write(arg)
             return self
-        reporter = DummyObject(write=write, print_header=None, print_label=None, print_times=None)
+        self.tracer = Tracer()
+        reporter = self.tracer.fake_obj(write=write, print_header=None, print_label=None, print_times=None)
         reporter.out = StringIO()
         reporter.fmt = "%9.4f"
         reporter.width = 30
@@ -417,15 +420,15 @@ class RunnerTest(object):
 
 
     def test_run(self):
-        intr = Interceptor()
+        tr = self.tracer
         runner = self.runner
-        intr.intercept(runner.benchmark, 'run')
+        tr.trace_method(runner.benchmark, 'run')
         def hello(*args):
             pass
         with spec("same as self.benchmark.run(func, *args)."):
             runner.run(hello, 999, None)
-            ok (intr[0].name) == 'run'
-            ok (intr[0].args) == (hello, 999, None)
+            ok (tr[0].name) == 'run'
+            ok (tr[0].args) == (hello, 999, None)
 
 
     def _results_fixture(self):
