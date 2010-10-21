@@ -82,31 +82,27 @@ module Benchmarker
   class Result
 
 
-    def initialize(label, user=nil, sys=nil, real=nil)
-      @label, @user, @sys, @real = label, user, sys, real
+    def initialize(label, user=nil, sys=nil, total=nil, real=nil)
+      @label, @user, @sys, @total, @real = label, user, sys, total, real
     end
 
 
-    attr_accessor :label, :user, :sys, :real
-
-
-    def total
-      @user + @sys
-    end
+    attr_accessor :label, :user, :sys, :total, :real
 
 
     def self.average(results)
       label = nil
-      user = sys = real = 0.0
+      user = sys = total = real = 0.0
       results.each do |r|
         (label ||= r.label) == r.label  or
           raise "*** assertion: #{label.inspect} == #{r.label.inspect}: failed."
-        user += r.user
-        sys  += r.sys
-        real += r.real
+        user  += r.user
+        sys   += r.sys
+        total += r.total
+        real  += r.real
       end
       n = results.length
-      return self.new(label, user/n, sys/n, real/n)
+      return self.new(label, user/n, sys/n, total/n, real/n)
     end
 
 
@@ -171,8 +167,7 @@ module Benchmarker
     end
 
 
-    def print_times(user, sys, real)
-      total = user + sys
+    def print_times(user, sys, total, real)
       [user, sys, total, real].each {|t| @out << " #{@fmt}" % t }
       @out << "\n"
     end
@@ -300,8 +295,9 @@ module Benchmarker
         sys  -= r.sys
         real -= r.real
       end
-      @reporter.print_times(user, sys, real)
-      @results << RESULT.new(label, user, sys, real)
+      total = user + sys
+      @reporter.print_times(user, sys, total, real)
+      @results << RESULT.new(label, user, sys, total, real)
       after() unless @_skip
       @results[-1]
     end
@@ -359,7 +355,7 @@ module Benchmarker
       @reporter.print_header(title)
       results.each do |r|
         @reporter.print_label(r.label)
-        @reporter.print_times(r.user, r.sys, r.real)
+        @reporter.print_times(r.user, r.sys, r.total, r.real)
       end
     end
 
