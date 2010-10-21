@@ -43,18 +43,19 @@ Basic example (ex1.py)::
     
     ## Python 2.5 or later
     loop = 1000 * 1000
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
     with bm.empty():              # optional: empty loop results are
         for i in xrange(loop):    # subtracted automatically from
             pass                  # other benchmark results.
     with bm('"".join((s,s,s))'):
         for i in xrange(loop):
-            sos = "".join(("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"))
+            sos = "".join((s1, s2, s3, s4, s5))
     with bm('s+s+s'):
         for i in xrange(loop):
-            sos = "Haruhi" + "Mikuru" + "Yuki" + "Itsuki" + "Kyon"
+            sos = s1 + s2 + s3 + s4 + s5
     with bm('"%s%s%s" % (s,s,s)'):
         for i in xrange(loop):
-            sos = "%s%s%s%s%s" % ("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon")
+            sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
     
     ### Python 2.4
     #def f0(n):
@@ -63,15 +64,15 @@ Basic example (ex1.py)::
     #def f1(n):
     #    """''.join((s,s,s))"""
     #    for i in xrange(n):
-    #        sos = "".join(("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"))
+    #        sos = "".join((s1, s2, s3, s4, s5))
     #def f2(n):
     #    """s+s+s"""
     #    for i in xrange(n):
-    #        sos = "Haruhi" + "Mikuru" + "Yuki" + "Itsuki" + "Kyon"
+    #        sos = s1 + s2 + s3 + s4 + s5
     #def f3(n):
     #    """'%s%s%s' % (s,s,s)"""
     #    for i in xrange(n):
-    #        sos = "%s%s%s%s%s" % ("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon")
+    #        sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
     #bm.empty().run(f0, loop)
     #bm().run(f1, loop)
     #bm().run(f2, loop)
@@ -87,27 +88,27 @@ Output example::
     ## benchmarker:       release 0.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
     ## python version:    2.5.5
-    ## python executable: /usr/local/python/2.5.5/bin/python2.5
+    ## python executable: /usr/local/python/2.5.5/bin/python
     
     ## Benchmark                        user       sys     total      real
-    (Empty)                           0.1100    0.0300    0.1400    0.1441
-    "".join((s,s,s))                  0.4200   -0.0300    0.3900    0.3961
-    s+s+s                             0.2500   -0.0300    0.2200    0.2197
-    "%s%s%s" % (s,s,s)                0.5700   -0.0300    0.5400    0.5423
+    (Empty)                           0.1200    0.0300    0.1500    0.1605
+    "".join((s,s,s))                  0.7300   -0.0300    0.7000    0.6992
+    s+s+s                             0.6600   -0.0200    0.6400    0.6321
+    "%s%s%s" % (s,s,s)                0.8700   -0.0300    0.8400    0.8305
     
     ## Ranking                          real  ratio  chart
-    s+s+s                             0.2197 (100.0) ********************
-    "".join((s,s,s))                  0.3961 ( 55.5) ***********
-    "%s%s%s" % (s,s,s)                0.5423 ( 40.5) ********
+    s+s+s                             0.6321 (100.0) ********************
+    "".join((s,s,s))                  0.6992 ( 90.4) ******************
+    "%s%s%s" % (s,s,s)                0.8305 ( 76.1) ***************
     
-    ## Matrix                           real   [01]   [02]   [03]
-    [01] s+s+s                        0.2197  100.0  180.3  246.8
-    [02] "".join((s,s,s))             0.3961   55.5  100.0  136.9
-    [03] "%s%s%s" % (s,s,s)           0.5423   40.5   73.0  100.0
-
+    ## Ratio Matrix                     real   [01]   [02]   [03]
+    [01] s+s+s                        0.6321  100.0  110.6  131.4
+    [02] "".join((s,s,s))             0.6992   90.4  100.0  118.8
+    [03] "%s%s%s" % (s,s,s)           0.8305   76.1   84.2  100.0
+    
 
 Notice that benchmark results are subtracted by '(Empty)' loop results.
-For example: 0.3961 = 0.5402 - 0.1441; -0.0300 = 0.0000 - 0.0300; and so on.
+For example: 0.7300 = 0.8500 - 0.1200; -0.0300 = 0.000 - 0.0300; 0.7000 = 0.8500 - 0.1500; 0.6992 = 0.8597 - 0.1605; and so on.
 
 If you pass 'loop=N' to Benchmarker(), benchmark code can be more simple.
 
@@ -121,27 +122,28 @@ Example (ex2.py)::
     print(bm.platform())
     
     ## use for-statement instead of with-statement
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
     for i in bm.empty():
         pass
     for i in bm('"".join((s,s,s))'):
-        sos = "".join(("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"))
+        sos = "".join((s1, s2, s3, s4, s5))
     for i in bm('s+s+s'):
-        sos = "Haruhi" + "Mikuru" + "Yuki" + "Itsuki" + "Kyon"
+        sos = s1 + s2 + s3 + s4 + s5
     for i in bm('"%s%s%s" % (s,s,s)'):
-        sos = "%s%s%s%s%s" % ("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon")
+        sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
     
     ### or
     #def f0():
     #    pass
     #def f1():
     #    """''.join((s,s,s))"""
-    #    sos = "".join(("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"))
+    #    sos = "".join((s1, s2, s3, s4, s5))
     #def f2():
     #    """s+s+s"""
-    #    sos = "Haruhi" + "Mikuru" + "Yuki" + "Itsuki" + "Kyon"
+    #    sos = s1 + s2 + s3 + s4 + s5
     #def f3():
     #    """'%s%s%s' % (s,s,s)"""
-    #    sos = "%s%s%s%s%s" % ("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon")
+    #    sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
     #bm.empty().run(f0)
     #bm().run(f1)
     #bm().run(f2)
@@ -164,28 +166,29 @@ Example (ex3.py)::
     print(bm.platform())
     
     ## repeat benchmark 3 times + 2*1 times
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
     for b in bm.repeat(3, extra=1):
         for i in b.empty():
             pass
         for i in b('"".join((s,s,s))'):
-            sos = "".join(("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"))
+            sos = "".join((s1, s2, s3, s4, s5))
         for i in b('s+s+s'):
-            sos = "Haruhi" + "Mikuru" + "Yuki" + "Itsuki" + "Kyon"
+            sos = s1 + s2 + s3 + s4 + s5
         for i in b('"%s%s%s" % (s,s,s)'):
-            sos = "%s%s%s%s%s" % ("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon")
+            sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
     
     ## or
     #def f0():
     #    pass
     #def f1():
     #    """''.join((s,s,s))"""
-    #    sos = "".join(("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"))
+    #    sos = "".join((s1, s2, s3, s4, s5))
     #def f2():
     #    """s+s+s"""
-    #    sos = "Haruhi" + "Mikuru" + "Yuki" + "Itsuki" + "Kyon"
+    #    sos = s1 + s2 + s3 + s4 + s5
     #def f3():
     #    """'%s%s%s' % (s,s,s)"""
-    #    sos = "%s%s%s%s%s" % ("Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon")
+    #    sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
     #for b in bm.repeat(5, extra=1):
     #    b.empty().run(f0)
     #    b().run(f1)
@@ -202,82 +205,83 @@ Output example::
     ## benchmarker:       release 0.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
     ## python version:    2.5.5
-    ## python executable: /usr/local/python/2.5.5/bin/python2.5
+    ## python executable: /usr/local/python/2.5.5/bin/python
     
     ## Benchmark #1                     user       sys     total      real
-    (Empty)                           0.1500    0.0100    0.1600    0.1706
-    "".join((s,s,s))                  0.4200   -0.0100    0.4100    0.4110
-    s+s+s                             0.3000   -0.0100    0.2900    0.2870
-    "%s%s%s" % (s,s,s)                0.6000   -0.0100    0.5900    0.5797
+    (Empty)                           0.1600    0.0000    0.1600    0.1637
+    "".join((s,s,s))                  0.7400    0.0000    0.7400    0.7474
+    s+s+s                             0.6400    0.0000    0.6400    0.6394
+    "%s%s%s" % (s,s,s)                0.9000    0.0000    0.9000    0.9071
     
     ## Benchmark #2                     user       sys     total      real
-    (Empty)                           0.1500    0.0000    0.1500    0.1545
-    "".join((s,s,s))                  0.4200    0.0000    0.4200    0.4243
-    s+s+s                             0.3000    0.0000    0.3000    0.2996
-    "%s%s%s" % (s,s,s)                0.6000    0.0000    0.6000    0.5938
+    (Empty)                           0.1700    0.0000    0.1700    0.1715
+    "".join((s,s,s))                  0.7200    0.0000    0.7200    0.7289
+    s+s+s                             0.6400    0.0000    0.6400    0.6537
+    "%s%s%s" % (s,s,s)                0.8600    0.0000    0.8600    0.8662
     
     ## Benchmark #3                     user       sys     total      real
-    (Empty)                           0.1500    0.0000    0.1500    0.1545
-    "".join((s,s,s))                  0.4200    0.0000    0.4200    0.4197
-    s+s+s                             0.3000    0.0000    0.3000    0.2984
-    "%s%s%s" % (s,s,s)                0.6000    0.0000    0.6000    0.5929
+    (Empty)                           0.1600    0.0000    0.1600    0.1679
+    "".join((s,s,s))                  0.7500    0.0000    0.7500    0.7416
+    s+s+s                             0.6400    0.0000    0.6400    0.6315
+    "%s%s%s" % (s,s,s)                0.8800    0.0000    0.8800    0.8829
     
     ## Benchmark #4                     user       sys     total      real
-    (Empty)                           0.1500    0.0000    0.1500    0.1553
-    "".join((s,s,s))                  0.4200    0.0100    0.4300    0.4239
-    s+s+s                             0.2900    0.0000    0.2900    0.2929
-    "%s%s%s" % (s,s,s)                0.5900    0.0000    0.5900    0.5975
+    (Empty)                           0.1600    0.0000    0.1600    0.1588
+    "".join((s,s,s))                  0.7400    0.0100    0.7500    0.7465
+    s+s+s                             0.6300    0.0000    0.6300    0.6440
+    "%s%s%s" % (s,s,s)                0.9000    0.0000    0.9000    0.9057
     
     ## Benchmark #5                     user       sys     total      real
-    (Empty)                           0.1600    0.0000    0.1600    0.1546
-    "".join((s,s,s))                  0.4100    0.0000    0.4100    0.4192
-    s+s+s                             0.2900    0.0000    0.2900    0.3035
-    "%s%s%s" % (s,s,s)                0.5900    0.0000    0.5900    0.5994
+    (Empty)                           0.1500    0.0000    0.1500    0.1589
+    "".join((s,s,s))                  0.7500    0.0000    0.7500    0.7549
+    s+s+s                             0.6400    0.0000    0.6400    0.6317
+    "%s%s%s" % (s,s,s)                0.9100    0.0000    0.9100    0.9147
     
     ## Remove min & max                  min    bench#       max    bench#
-    "".join((s,s,s))                  0.4110        #1    0.4243        #2
-    s+s+s                             0.2870        #1    0.3035        #5
-    "%s%s%s" % (s,s,s)                0.5797        #1    0.5994        #5
+    "".join((s,s,s))                  0.7289        #2    0.7549        #5
+    s+s+s                             0.6315        #3    0.6537        #2
+    "%s%s%s" % (s,s,s)                0.8662        #2    0.9147        #5
     
     ## Average of 3 (=5-2*1)            user       sys     total      real
-    "".join((s,s,s))                  0.4167    0.0033    0.4200    0.4209
-    s+s+s                             0.2967    0.0000    0.2967    0.2970
-    "%s%s%s" % (s,s,s)                0.5967    0.0000    0.5967    0.5947
+    "".join((s,s,s))                  0.7433    0.0033    0.7467    0.7452
+    s+s+s                             0.6367    0.0000    0.6367    0.6384
+    "%s%s%s" % (s,s,s)                0.8933    0.0000    0.8933    0.8986
     
     ## Ranking                          real  ratio  chart
-    s+s+s                             0.2970 (100.0) ********************
-    "".join((s,s,s))                  0.4209 ( 70.5) **************
-    "%s%s%s" % (s,s,s)                0.5947 ( 49.9) *********
+    s+s+s                             0.6384 (100.0) ********************
+    "".join((s,s,s))                  0.7452 ( 85.7) *****************
+    "%s%s%s" % (s,s,s)                0.8986 ( 71.0) **************
     
-    ## Matrix                           real   [01]   [02]   [03]
-    [01] s+s+s                        0.2970  100.0  141.7  200.3
-    [02] "".join((s,s,s))             0.4209   70.5  100.0  141.3
-    [03] "%s%s%s" % (s,s,s)           0.5947   49.9   70.8  100.0
+    ## Ratio Matrix                     real   [01]   [02]   [03]
+    [01] s+s+s                        0.6384  100.0  116.7  140.8
+    [02] "".join((s,s,s))             0.7452   85.7  100.0  120.6
+    [03] "%s%s%s" % (s,s,s)           0.8986   71.0   82.9  100.0
+    
 
 In the above example, minimum and maximum results are removed automatically before calculate average result because 'extra=1' is specified.
 
 If you needs only average result, redirect stderr to /dev/null or dummy file. ::
 
-    $ python ex3.py 2> /dev/null
+    $ python ex3.py > /dev/null
     ## benchmarker:       release 0.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
     ## python version:    2.5.5
-    ## python executable: /usr/local/python/2.5.5/bin/python2.5
+    ## python executable: /usr/local/python/2.5.5/bin/python
     
     ## Average of 3 (=5-2*1)            user       sys     total      real
-    "".join((s,s,s))                  0.4167    0.0033    0.4200    0.4209
-    s+s+s                             0.2967    0.0000    0.2967    0.2970
-    "%s%s%s" % (s,s,s)                0.5967    0.0000    0.5967    0.5947
+    "".join((s,s,s))                  0.7433    0.0033    0.7467    0.7452
+    s+s+s                             0.6367    0.0000    0.6367    0.6384
+    "%s%s%s" % (s,s,s)                0.8933    0.0000    0.8933    0.8986
     
     ## Ranking                          real  ratio  chart
-    s+s+s                             0.2970 (100.0) ********************
-    "".join((s,s,s))                  0.4209 ( 70.5) **************
-    "%s%s%s" % (s,s,s)                0.5947 ( 49.9) *********
+    s+s+s                             0.6384 (100.0) ********************
+    "".join((s,s,s))                  0.7452 ( 85.7) *****************
+    "%s%s%s" % (s,s,s)                0.8986 ( 71.0) **************
     
-    ## Matrix                           real   [01]   [02]   [03]
-    [01] s+s+s                        0.2970  100.0  141.7  200.3
-    [02] "".join((s,s,s))             0.4209   70.5  100.0  141.3
-    [03] "%s%s%s" % (s,s,s)           0.5947   49.9   70.8  100.0
+    ## Ratio Matrix                     real   [01]   [02]   [03]
+    [01] s+s+s                        0.6384  100.0  116.7  140.8
+    [02] "".join((s,s,s))             0.7452   85.7  100.0  120.6
+    [03] "%s%s%s" % (s,s,s)           0.8986   71.0   82.9  100.0
 
     
     
