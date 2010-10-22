@@ -171,3 +171,30 @@ def file_readme_html(c):
     """generate README.html"""
     #system(c%"rst2html.py -i utf-8 -o utf-8 -l en --stylesheet-path=style.css $(ingred) > $(product)")
     system(c%"rst2html.py -i utf-8 -o utf-8 -l en $(ingred) > $(product)")
+
+
+@recipe
+def task_examples(c):
+    """retrieve example files from README.txt"""
+    script_name = None
+    lines = None
+    for line in open('README.txt'):
+        import sys
+        if script_name:
+            m1 = re.match('^    (.*\n)', line)
+            m2 = re.match('^\s*$', line)
+            if m1:
+                lines.append(m1.group(1))
+                continue
+            elif m2:
+                lines.append("\n")
+                continue
+            else:
+                open(script_name, 'w').write(''.join(lines))
+                script_name = None
+                lines = None
+                #continue
+        m = re.search(r'\((ex\d\.py)\)', line)
+        if m:
+            script_name = m.group(1)
+            lines = []
