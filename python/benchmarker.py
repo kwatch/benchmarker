@@ -420,7 +420,8 @@ class Runner(object):
         self._print_results(self.results, title)
 
 
-    def platform(self):
+    @staticmethod
+    def platform():
         buf = []
         a = buf.append
         a("## benchmarker:       release %s (for python)\n" % (__version__, ))
