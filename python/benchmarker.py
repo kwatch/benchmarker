@@ -431,6 +431,19 @@ class Runner(object):
         return ''.join(buf)
 
 
+    def __enter__(self):
+        #: print platform information.
+        self.reporter.write(self.platform()).write("\n")
+        #: return self.
+        return self
+
+
+    def __exit__(self, *args):
+        #: print stat.all().
+        self.reporter.write(self.stat.all()).write("\n")
+        #: return None.
+
+
     #def stats(self):
     #    return "\n" + self.stat.all()
 

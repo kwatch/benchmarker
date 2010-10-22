@@ -561,6 +561,33 @@ Yuki                              1.2000    2.2000    3.2000    4.2000
         ok (lines[3].startswith('## python executable: ')) == True
 
 
+    def test___enter__(self):
+        ret = self.runner.__enter__()
+        with spec("print platform information."):
+            s = self.runner.reporter.out.getvalue()
+            lines = s.splitlines(True)
+            ok (lines[0].startswith('## benchmarker: '))       == True
+            ok (lines[1].startswith('## python platform: '))   == True
+            ok (lines[2].startswith('## python version: '))    == True
+            ok (lines[3].startswith('## python executable: ')) == True
+        with spec("return self."):
+            ok (ret).is_(self.runner)
+
+
+    def test__exit__(self):
+        self.runner.stat = Stat(self.runner)
+        self.runner.results = [
+            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
+        ]
+        ret = self.runner.__exit__(*sys.exc_info())
+        with spec("print stat.all()."):
+            s = self.runner.reporter.out.getvalue()
+            ok (s).matches(r'## Ranking')
+            ok (s).matches(r'## Ratio Matrix')
+        with spec("return None."):
+            ok (ret) == None
+
+
     def test_compared_matrix(self):
         runner = Benchmarker()
         runner.results = [
