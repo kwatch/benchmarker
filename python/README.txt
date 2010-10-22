@@ -27,8 +27,54 @@ Installation::
     $ sudo python setup.py install
 
 
-Examples
---------
+Example for Busy People
+-----------------------
+
+ex0.py::
+
+    from __future__ import with_statement
+    from benchmarker import Benchmarker
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+    with Benchmarker(loop=1000*1000) as bm:
+        for i in bm.empty():    ## empty loop
+            pass
+        for i in bm('"".join((s,s,s))'):
+            sos = "".join((s1, s2, s3, s4, s5))
+        for i in bm('s+s+s'):
+            sos = s1 + s2 + s3 + s4 + s5
+        for i in bm('"%s%s%s" % (s,s,s)'):
+            sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
+
+Output::
+
+    $ python ex0.py
+    ## benchmarker:       release 0.0.0 (for python)
+    ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
+    ## python version:    2.5.5
+    ## python executable: /usr/local/python/2.5.5/bin/python
+    
+    ## Benchmark                        user       sys     total      real
+    (Empty)                           0.1200    0.0300    0.1500    0.1605
+    "".join((s,s,s))                  0.7300   -0.0300    0.7000    0.6992
+    s+s+s                             0.6600   -0.0200    0.6400    0.6321
+    "%s%s%s" % (s,s,s)                0.8700   -0.0300    0.8400    0.8305
+    
+    ## Ranking                          real  ratio  chart
+    s+s+s                             0.6321 (100.0) ********************
+    "".join((s,s,s))                  0.6992 ( 90.4) ******************
+    "%s%s%s" % (s,s,s)                0.8305 ( 76.1) ***************
+    
+    ## Ratio Matrix                     real   [01]   [02]   [03]
+    [01] s+s+s                        0.6321  100.0  110.6  131.4
+    [02] "".join((s,s,s))             0.6992   90.4  100.0  118.8
+    [03] "%s%s%s" % (s,s,s)           0.8305   76.1   84.2  100.0
+
+Notice that empty loop times (user, sys, total, and real) are subtracted from other benchmark times automatically.
+For example, 0.6992 = 0.8597 - 0.1605.
+
+
+Step by Step Examples
+---------------------
 
 Basic example (ex1.py)::
 
@@ -36,7 +82,7 @@ Basic example (ex1.py)::
     if 'xrange' not in globals():
         xrange = range
     
-    ## start benchmark
+    ## benchmarker object
     from benchmarker import Benchmarker
     bm = Benchmarker()     # or Benchmarker(width=30, out=sys.stderr)
     print(bm.platform())   # python version, os information, ...
@@ -282,6 +328,24 @@ If you needs only average result, redirect stderr to /dev/null or dummy file. ::
     [01] s+s+s                        0.6384  100.0  116.7  140.8
     [02] "".join((s,s,s))             0.7452   85.7  100.0  120.6
     [03] "%s%s%s" % (s,s,s)           0.8986   71.0   82.9  100.0
+
+If you always print platform information and statistics, you can simplify code by with-statement.
+
+Example (ex4.py)::
+
+    from __future__ import with_statement
+    from benchmarker import Benchmarker
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+    with Benchmarker(loop=1000*1000) as bm:
+        for b in bm.repeat(3, extra=1):
+            for i in b.empty():
+                pass
+            for i in b('"".join((s,s,s))'):
+                sos = "".join((s1, s2, s3, s4, s5))
+            for i in b('s+s+s'):
+                sos = s1 + s2 + s3 + s4 + s5
+            for i in b('"%s%s%s" % (s,s,s)'):
+                sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
 
     
     
