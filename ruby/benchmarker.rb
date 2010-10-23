@@ -90,6 +90,11 @@ module Benchmarker
     attr_accessor :label, :user, :sys, :total, :real
 
 
+    def to_a
+      [@label, @user, @sys, @total, @real]
+    end
+
+
     def self.average(results)
       label = nil
       user = sys = total = real = 0.0

@@ -30,6 +30,16 @@ class Benchmarker::ResultTest
   end
 
 
+  def test_to_a
+
+    spec "return values as an array" do
+      r = Benchmarker::Result.new("AAA", 1.1, 2.2, 3.5, 4.9)
+      ok_(r.to_a) == ['AAA', 1.1, 2.2, 3.5, 4.9]
+    end
+
+  end
+
+
   def test_SELF_average
 
     klass = Benchmarker::Result
