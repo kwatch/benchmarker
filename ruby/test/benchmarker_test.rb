@@ -12,41 +12,6 @@ require 'benchmarker'
 
 
 
-class Interceptor
-
-  def initialize(object, method, &block)
-    @object, @method, @block = object, method, block
-    @called = false
-    intercept()
-  end
-
-  attr_accessor :object, :method, :block, :called, :args, :return
-
-  private
-
-  def intercept
-    Thread.current[:__interceptor] = self
-    class << @object
-      intr = Thread.current[:__interceptor]
-      Thread.current[:__interceptor] = nil
-      method = intr.method
-      alias_name = "__#{method}_#{rand().to_s[2..-1]}"
-      alias_method alias_name, method
-      define_method(method) do |*args|
-        intr.called = true
-        intr.args   = args
-        intr.return = intr.block ? intr.block.call(*args) \
-                                 : __send__(alias_name, *args)
-        intr.return
-      end
-    end
-    return self
-  end
-
-end
-
-
-
 class Benchmarker::ResultTest
   include Oktest::TestCase
 
@@ -594,9 +559,10 @@ END
     spec "call @statistics.ranking()." do
       r = @runner
       r.bench("AAA") { x = 1 }
-      intr = Interceptor.new(r.statistics, :ranking)
+      tr = tracer()
+      tr.trace_method(r.statistics, :ranking)
       ret = r.ranking()
-      ok_(intr.called) == true
+      ok_(tr[0].name) == :ranking
       ok_(ret) == <<'END'
 ## Ranking                          real  ratio
 AAA                               0.0000 (100.0) ********************
@@ -611,9 +577,10 @@ END
     spec "call @statistics.matrix()." do
       r = @runner
       r.bench("AAA") { x = 1 }
-      intr = Interceptor.new(r.statistics, :matrix)
+      tr = tracer()
+      tr.trace_method(r.statistics, :matrix)
       ret = r.matrix()
-      ok_(intr.called) == true
+      ok_(tr[0].name) == :matrix
       ok_(ret) == <<'END'
 ## Matrix                           real   [01]
 [01] AAA                          0.0000  100.0
