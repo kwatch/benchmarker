@@ -3,6 +3,79 @@ CHANGES
 =======
 
 
+Release 2.0.0
+-------------
+
+* Rewrited entirely.
+
+* Enhance to support fot-statement.
+  ::
+      bm = Benchmarker(loop=1000*1000)
+      for i in bm('example'):
+        #... do something ...
+
+      ## the above is same as:
+      with bm('example'):
+        for i in xrange(1000*1000):
+	  #... do something ...
+
+* Enhance to support new feature to repeat benchmarks.
+  ::
+      bm = Benchmarker()
+      for b in bm.repeat(5):   # repeat benchmark 5 times
+        with b('example1'):
+	  #... do something ...
+        with b('example2'):
+	  #... do something ...
+
+* 'compared_matrix()' is replaced by 'stat.all()'.
+  'stat.all()' shows benchmark ranking and ratio matrix.
+  ::
+
+       bm = Benchmarker()
+       with bm('example'):
+          # ....
+       print(bm.stat.all())   # ranking and ratio matrix
+
+* Enhance to support 'Benchmark.platform()' which gives you platform
+  information.
+  ::
+
+      print bm.platform()
+      #### output example
+      ## benchmarker:       release 2.0.0 (for python)
+      ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
+      ## python version:    2.5.5
+      ## python executable: /usr/local/python/2.5.5/bin/python2.5
+
+* 'with-statement' for benchmarker object prints platform info and statistics
+  automatically.
+  ::
+
+      with Benchmarker() as bm:
+        wtih bm('fib(30)'):
+          fib(30)
+      #### the above is same as:
+      # bm = Benchmarker()
+      # print(bm.platform())
+      # with bm('fib(30)'):
+      #   fib(30)
+      # print(bm.stat.all())
+
+* Enhance Benchmarker.run() to use function docment (__doc__) as benchmark
+  label when label is not specified.
+  ::
+
+      def fib(n):
+        """fibonacchi"""
+        return n <= 2 and 1 or fib(n-1) + fib(n-2)
+      bm = Benchmarker()
+      bm.run(fib, 30)    # same as bm("fibonacchi").run(fib, 30)
+
+* Default format of times is changed from '%9.3f' to '%9.4f'.
+
+
+
 Release 1.1.0
 -------------
 
