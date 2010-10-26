@@ -293,11 +293,17 @@ class Benchmarker::RunnerTest
   include Oktest::TestCase
 
 
+  def _new_runner
+    runner = Benchmarker::Runner.new()
+    runner.reporter = Benchmarker::Reporter.new(:out=>'', :verbose=>false)
+    runner.statistics = Benchmarker::Statistics.new()
+    runner
+  end
+
+
   def before
     @klass = Benchmarker::Runner
-    @runner = @klass.new()
-    @runner.reporter = Benchmarker::Reporter.new(:out=>'', :verbose=>false)
-    @runner.statistics = Benchmarker::Statistics.new()
+    @runner = _new_runner()
   end
 
 
@@ -308,40 +314,6 @@ class Benchmarker::RunnerTest
       ok_(r.loop) == 99
     end
 
-  end
-
-
-  def test_before
-
-    spec "if header is not printed then prit it." do
-      r = @runner
-      varname = '@header_title'
-      r.instance_variable_set(varname, 'TEST1')
-      # 1st
-      r.reporter.out = ""
-      r.__send__(:before)
-      ok_(r.reporter.out) == "## TEST1                            user       sys     total      real\n"
-      ok_(r.instance_variable_get(varname)) == nil
-      # 2nd
-      r.reporter.out = ""
-      r.__send__(:before)
-      ok_(r.reporter.out) == ""
-    end
-
-    spec "do empty loop bench if @loop is set." do
-      r = @klass.new(:loop=>9)
-      r.reporter = Benchmarker::Reporter.new(:out=>"")
-      r.__send__(:before)
-      dummy = r.instance_variable_get('@_dummy_result')
-      ok_(dummy).is_a?(Benchmarker::Result)
-      ok_(dummy.label) == '(Empty loop)'
-      ok_(r.instance_variable_get('@results').empty?) == true
-    end
-
-  end
-
-
-  def test_after
   end
 
 
@@ -366,6 +338,19 @@ class Benchmarker::RunnerTest
       ok_(r.results.length) == 1
       ok_(r.results[0]).is_a?(Benchmarker::Result)
       ok_(r.results[0].label) == "BBB"
+    end
+
+    spec "if header is not printed then prit it." do
+      r = _new_runner()
+      rexp = /\#\# Benchmark\s+user\s+sys\s+total\s+real/
+      # 1st
+      r.reporter.out = ""
+      r.bench('label1') { }
+      ok_(r.reporter.out.split(/^/).grep(rexp).length) == 1
+      # 2nd
+      r.reporter.out = ""
+      r.bench('label2') { }
+      ok_(r.reporter.out.split(/^/).grep(rexp).length) == 0
     end
 
   end
@@ -496,6 +481,7 @@ END
       r = @klass.new(:loop=>7)
       r.reporter = Benchmarker::Reporter.new(:out=>"", :verbose_out=>"")
       r.repeat(3, :extra=>1) do
+        r.empty { }
         r.bench("AAA") { a = 1 }
         r.bench("BBBB") { b = 1 }
         r.bench("CC") { c = 1 }
@@ -509,31 +495,31 @@ END
       ok_(r.reporter.out.gsub(/-0\.0/, ' 0.0')) == expected
       expected = <<'END'
 ## Repeat (1)                       user       sys     total      real
-(Empty loop)                      0.0000    0.0000    0.0000    0.0000
+(Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
 ## Repeat (2)                       user       sys     total      real
-(Empty loop)                      0.0000    0.0000    0.0000    0.0000
+(Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
 ## Repeat (3)                       user       sys     total      real
-(Empty loop)                      0.0000    0.0000    0.0000    0.0000
+(Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
 ## Repeat (4)                       user       sys     total      real
-(Empty loop)                      0.0000    0.0000    0.0000    0.0000
+(Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
 ## Repeat (5)                       user       sys     total      real
-(Empty loop)                      0.0000    0.0000    0.0000    0.0000
+(Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000

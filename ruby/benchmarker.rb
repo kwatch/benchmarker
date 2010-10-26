@@ -261,31 +261,14 @@ module Benchmarker
     attr_accessor :results, :results_list, :loop, :reporter, :statistics
 
 
-    def before
-      if @header_title
-        @reporter.print_header(@header_title)
-        @header_title = nil
-      end
-      if @loop > 1 && ! @_empty_result
-        @_skip = true
-        bench('(Empty loop)') do end
-        @_skip = nil
-        @_empty_result = @results.pop
-      end
-    end
-    protected :before
-
-
-    def after
-    end
-    protected :after
-
-
     ##
     ## execute block as benchmark
     ##
     def bench(label)
-      before() unless @_skip
+      if @header_title
+        @reporter.print_header(@header_title)
+        @header_title = nil
+      end
       @reporter.print_label(label)
       loop = @loop
       GC.start
@@ -303,7 +286,6 @@ module Benchmarker
       total = user + sys
       @reporter.print_times(user, sys, total, real)
       @results << RESULT.new(label, user, sys, total, real)
-      after() unless @_skip
       @results[-1]
     end
 
