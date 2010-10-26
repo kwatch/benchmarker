@@ -254,6 +254,7 @@ module Benchmarker
     def initialize(opts={})
       @loop, = DEFAULTS.merge(opts).values_at(:loop)
       @header_title = 'Benchmark'
+      @_header_printed = false
       @results = []
     end
 
@@ -265,9 +266,9 @@ module Benchmarker
     ## execute block as benchmark
     ##
     def bench(label)
-      if @header_title
+      if ! @_header_printed
+        @_header_printed = true
         @reporter.print_header(@header_title)
-        @header_title = nil
       end
       @reporter.print_label(label)
       loop = @loop
@@ -304,6 +305,7 @@ module Benchmarker
 
     def _reset(header_title)
       @header_title = header_title
+      @_header_printed = false
       @_empty_result = nil
       @results = []
     end
