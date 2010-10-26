@@ -266,11 +266,11 @@ module Benchmarker
         @reporter.print_header(@header_title)
         @header_title = nil
       end
-      if @loop > 1 && ! @_dummy_result
+      if @loop > 1 && ! @_empty_result
         @_skip = true
         bench('(Empty loop)') do end
         @_skip = nil
-        @_dummy_result = @results.pop
+        @_empty_result = @results.pop
       end
     end
     protected :before
@@ -295,7 +295,7 @@ module Benchmarker
       t2  = Time.now
       pt2 = Process.times
       user, sys, real = pt2.utime - pt1.utime, pt2.stime - pt1.stime, t2 - t1
-      if (r = @_dummy_result)
+      if (r = @_empty_result)
         user -= r.user
         sys  -= r.sys
         real -= r.real
@@ -308,12 +308,21 @@ module Benchmarker
     end
 
 
+    ##
+    ## do empty loop
+    ##
+    def empty(label="(Empty)", &block)
+      bench(label, &block)
+      @_empty_block = @results.pop
+    end
+
+
     private
 
 
     def _reset(header_title)
       @header_title = header_title
-      @_dummy_result = nil
+      @_empty_result = nil
       @results = []
     end
 
