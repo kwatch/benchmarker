@@ -266,13 +266,13 @@ END
   end
 
 
-  def test_matrix
+  def test_ratio_matrix
 
     spec "calculate each ratios and return it." do
       st = @klass.new()
-      output = st.matrix(@@_results1)
+      output = st.ratio_matrix(@@_results1)
       expected = <<'END'
-## Matrix                           real   [01]   [02]   [03]   [04]   [05]
+## Ratio Matrix                     real   [01]   [02]   [03]   [04]   [05]
 [01] CCC                          2.1000  100.0  104.8  109.5  114.3  119.0
 [02] BBB                          2.2000   95.5  100.0  104.5  109.1  113.6
 [03] EEE                          2.3000   91.3   95.7  100.0  104.3  108.7
@@ -582,17 +582,17 @@ END
   end
 
 
-  def test_matrix
+  def test_ratio_matrix
 
-    spec "call @statistics.matrix()." do
+    spec "call @statistics.ratio_matrix()." do
       r = @runner
       r.bench("AAA") { x = 1 }
       tr = tracer()
-      tr.trace_method(r.statistics, :matrix)
-      ret = r.matrix()
-      ok_(tr[0].name) == :matrix
+      tr.trace_method(r.statistics, :ratio_matrix)
+      ret = r.ratio_matrix()
+      ok_(tr[0].name) == :ratio_matrix
       ok_(ret) == <<'END'
-## Matrix                           real   [01]
+## Ratio Matrix                     real   [01]
 [01] AAA                          0.0000  100.0
 END
     end

@@ -46,7 +46,7 @@
 ###    puts bm.stats()   # or bm.stats(:compensate=>-100.0)
 ###    ### or
 ###    # puts bm.ranking
-###    # puts bm.matrix
+###    # puts bm.ratio_matrix
 ###
 ###
 ### output example:
@@ -68,7 +68,7 @@
 ###    Enumerable#each & '+='            0.1469 ( 55.2) ***********
 ###    Enumerable#inject                 0.1797 ( 45.1) *********
 ###
-###    ## Matrix                           real   [01]   [02]   [03]
+###    ## Ratio Matrix                     real   [01]   [02]   [03]
 ###    [01] while-stmt                   0.0811  100.0  181.2  221.6
 ###    [02] Enumerable#each & '+='       0.1469   55.2  100.0  122.3
 ###    [03] Enumerable#inject            0.1797   45.1   81.8  100.0
@@ -216,12 +216,12 @@ module Benchmarker
     end
 
 
-    def matrix(results, opts={})
+    def ratio_matrix(results, opts={})
       key, width, fmt, sort, compensate = \
         DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort, :compensate)
       results = results.sort_by {|r| r.__send__(key) } if sort
       sb = ""
-      sb << "%-#{width}s %9s" % ['## Matrix', key.to_s]
+      sb << "%-#{width}s %9s" % ['## Ratio Matrix', key.to_s]
       width -= "[00] ".length
       (1..results.length).each {|n| sb << "   [%02d]" % n }
       sb << "\n"
@@ -422,19 +422,19 @@ module Benchmarker
     ##   :compensate=>0.0  : compensation of time (try '-100.0' if you want)
     ##   :width=>30        : width of titles
     ##
-    def matrix(opts={})
+    def ratio_matrix(opts={})
       opts[:width] ||= @reporter.width
-      return @statistics.matrix(@results, opts)
+      return @statistics.ratio_matrix(@results, opts)
     end
 
 
     ##
-    ## return ranking() and matrix()
+    ## return ranking() and ratio_matrix()
     ##
     def stats(opts={})
       sb = ""
       sb << "\n" << ranking(opts)
-      sb << "\n" << matrix(opts)
+      sb << "\n" << ratio_matrix(opts)
       return sb
     end
 
