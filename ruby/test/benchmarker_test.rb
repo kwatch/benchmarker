@@ -85,18 +85,18 @@ class Benchmarker::ReporterTest
 
     spec "take options." do
       r = @klass.new(:out=>"OUT", :width=>"WIDTH", :fmt=>"FMT", :header=>"HEADER",
-                    :verbose=>"VERBOSE", :verbose_out=>"VOUT")
+                    :verbose=>"VERBOSE", :vout=>"VOUT")
       ok_(r.out) == "OUT"
       ok_(r.width) == "WIDTH"
       ok_(r.fmt) == "FMT"
       ok_(r.header) == "HEADER"
       ok_(r.verbose) == "VERBOSE"
-      ok_(r.verbose_out) == "VOUT"
+      ok_(r.vout) == "VOUT"
     end
 
-    spec "if :verbose is false then set @verbose_out to dummy string." do
-      r = @klass.new(:verbose=>false, :verbose_out=>$stderr)
-      ok_(r.verbose_out) == ""
+    spec "if :verbose is false then set @vout to dummy string." do
+      r = @klass.new(:verbose=>false, :vout=>$stderr)
+      ok_(r.vout) == ""
     end
 
   end
@@ -106,7 +106,7 @@ class Benchmarker::ReporterTest
 
     spec "switch @out to verbose output." do
       vout = ""
-      r = @klass.new(:verbose_out=>vout)
+      r = @klass.new(:vout=>vout)
       out = r.out
       r.start_verbose_region
       ok_(r.out).same?(vout)
@@ -122,7 +122,7 @@ class Benchmarker::ReporterTest
     spec "switch back @out to original object." do
       out = "(out)"
       vout = "(vout)"
-      r = @klass.new(:out=>out, :verbose_out=>vout)
+      r = @klass.new(:out=>out, :vout=>vout)
       r.start_verbose_region
       r << "foo"
       ok_(out) == "(out)"
@@ -371,7 +371,7 @@ class Benchmarker::RunnerTest
     proc_obj = proc {|extra, label|
       results = _create_results.call(label)
       runner = @klass.new()
-      runner.reporter = Benchmarker::Reporter.new(:out=>'', :verbose_out=>'')
+      runner.reporter = Benchmarker::Reporter.new(:out=>'', :vout=>'')
       runner.__send__(:_delete_minmax_from, results, key, extra, fmt, label_fmt)
       reported[extra] = runner.reporter.out
       results
@@ -430,7 +430,7 @@ class Benchmarker::RunnerTest
     spec "if extra is less than or equal to 0 then just calculate averages." do
       results_matrix = [ _create_results.call("AAA"), _create_results.call("BBB") ]
       runner = @klass.new
-      runner.reporter = Benchmarker::Reporter.new(:out=>"", :verbose_out=>"")
+      runner.reporter = Benchmarker::Reporter.new(:out=>"", :vout=>"")
       key, extra = :real, 0
       avg_results = runner.__send__(:_average_results, results_matrix, key, extra)
       ok_(avg_results[0].label) == 'AAA'
@@ -479,7 +479,7 @@ END
 
     spec "repeated result is printed into separated outout." do
       r = @klass.new(:loop=>7)
-      r.reporter = Benchmarker::Reporter.new(:out=>"", :verbose_out=>"")
+      r.reporter = Benchmarker::Reporter.new(:out=>"", :vout=>"")
       r.repeat(3, :extra=>1) do
         r.empty { }
         r.bench("AAA") { a = 1 }
@@ -530,7 +530,7 @@ BBBB                              0.0000       (?)    0.0000       (?)
 CC                                0.0000       (?)    0.0000       (?)
 
 END
-      actual = r.reporter.verbose_out.gsub(/-0\.0/, ' 0.0') \
+      actual = r.reporter.vout.gsub(/-0\.0/, ' 0.0') \
                                      .gsub(/   \(\d\)/, '   (?)') \
                                      .gsub(/0\.000\d/, '0.0000')
       ok_(actual) == expected

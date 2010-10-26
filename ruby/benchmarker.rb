@@ -124,24 +124,24 @@ module Benchmarker
       :fmt     => "%9.4f",
       :header  => " %9s %9s %9s %9s" % ['user', 'sys', 'total', 'real'],
       :verbose => true,
-      :verbose_out => $stderr,
+      :vout    => $stderr,   # verbose output
     }
 
 
     def initialize(opts={})
       opts = DEFAULTS.merge(opts)
-      @out, @width, @fmt, @header, @verbose, @verbose_out = \
-        opts.values_at(:out, :width, :fmt, :header, :verbose, :verbose_out)
-      @verbose_out = '' unless @verbose
+      @out, @width, @fmt, @header, @verbose, @vout = \
+        opts.values_at(:out, :width, :fmt, :header, :verbose, :vout)
+      @vout = '' unless @verbose
     end
 
 
-    attr_accessor :out, :width, :fmt, :header, :verbose, :verbose_out
+    attr_accessor :out, :width, :fmt, :header, :verbose, :vout
 
 
     def start_verbose_region
       @__out = @out
-      @out = @verbose_out
+      @out = @vout
     end
 
 
@@ -375,7 +375,7 @@ module Benchmarker
       @results_matrix = []
       (n + 2 * extra).times do |i|
         _reset("Benchmark \##{i+1}")
-        yield i
+        yield self
         @results.each_with_index do |r, j|
           (@results_matrix[j] ||= []) << r
         end
