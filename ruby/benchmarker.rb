@@ -374,7 +374,7 @@ module Benchmarker
       @reporter.start_verbose_region
       @results_matrix = []
       (n + 2 * extra).times do |i|
-        _reset("Repeat (#{i+1})")
+        _reset("Benchmark \##{i+1}")
         yield i
         @results.each_with_index do |r, j|
           (@results_matrix[j] ||= []) << r

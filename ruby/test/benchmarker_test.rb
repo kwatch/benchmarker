@@ -494,31 +494,31 @@ CC                                0.0000    0.0000    0.0000    0.0000
 END
       ok_(r.reporter.out.gsub(/-0\.0/, ' 0.0')) == expected
       expected = <<'END'
-## Repeat (1)                       user       sys     total      real
+## Benchmark #1                     user       sys     total      real
 (Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
-## Repeat (2)                       user       sys     total      real
+## Benchmark #2                     user       sys     total      real
 (Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
-## Repeat (3)                       user       sys     total      real
+## Benchmark #3                     user       sys     total      real
 (Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
-## Repeat (4)                       user       sys     total      real
+## Benchmark #4                     user       sys     total      real
 (Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
-## Repeat (5)                       user       sys     total      real
+## Benchmark #5                     user       sys     total      real
 (Empty)                           0.0000    0.0000    0.0000    0.0000
 AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
