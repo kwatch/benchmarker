@@ -576,13 +576,13 @@ def _dummy_namespace():
             a(format % ("## " + data['title'], data['key']))
             width -= len("[00] ")
             for n in xrange(1, len(data['results']) + 1):
-                a("   [%02d]" % n)
+                a("    [%02d]" % n)
             a("\n")
             format = "[%02d] %-" + str(width) + "s " + fmt
             for i, d in enumerate(data['results']):
                 a(format % (i+1, d['label'][0:width], d['value']))
                 for ratio in d['ratios']:
-                    a(" %6.1f" % ratio)
+                    a(" %7.1f" % ratio)
                 a("\n")
             return "".join(buf)
 

@@ -64,10 +64,10 @@ Output::
     "".join((s,s,s))                  0.6992 ( 90.4) ******************
     "%s%s%s" % (s,s,s)                0.8305 ( 76.1) ***************
     
-    ## Ratio Matrix                     real   [01]   [02]   [03]
-    [01] s+s+s                        0.6321  100.0  110.6  131.4
-    [02] "".join((s,s,s))             0.6992   90.4  100.0  118.8
-    [03] "%s%s%s" % (s,s,s)           0.8305   76.1   84.2  100.0
+    ## Ratio Matrix                     real    [01]    [02]    [03]
+    [01] s+s+s                        0.6321   100.0   110.6   131.4
+    [02] "".join((s,s,s))             0.6992    90.4   100.0   118.8
+    [03] "%s%s%s" % (s,s,s)           0.8305    76.1    84.2   100.0
 
 Notice that empty loop times (user, sys, total, and real) are subtracted from other benchmark times automatically.
 For example, 0.6992 = 0.8597 - 0.1605.
@@ -147,10 +147,10 @@ Output example::
     "".join((s,s,s))                  0.6992 ( 90.4) ******************
     "%s%s%s" % (s,s,s)                0.8305 ( 76.1) ***************
     
-    ## Ratio Matrix                     real   [01]   [02]   [03]
-    [01] s+s+s                        0.6321  100.0  110.6  131.4
-    [02] "".join((s,s,s))             0.6992   90.4  100.0  118.8
-    [03] "%s%s%s" % (s,s,s)           0.8305   76.1   84.2  100.0
+    ## Ratio Matrix                     real    [01]    [02]    [03]
+    [01] s+s+s                        0.6321   100.0   110.6   131.4
+    [02] "".join((s,s,s))             0.6992    90.4   100.0   118.8
+    [03] "%s%s%s" % (s,s,s)           0.8305    76.1    84.2   100.0
     
 
 Notice that benchmark results are subtracted by '(Empty)' loop results.
@@ -298,10 +298,10 @@ Output example::
     "".join((s,s,s))                  0.7452 ( 85.7) *****************
     "%s%s%s" % (s,s,s)                0.8986 ( 71.0) **************
     
-    ## Ratio Matrix                     real   [01]   [02]   [03]
-    [01] s+s+s                        0.6384  100.0  116.7  140.8
-    [02] "".join((s,s,s))             0.7452   85.7  100.0  120.6
-    [03] "%s%s%s" % (s,s,s)           0.8986   71.0   82.9  100.0
+    ## Ratio Matrix                     real    [01]    [02]    [03]
+    [01] s+s+s                        0.6384   100.0   116.7   140.8
+    [02] "".join((s,s,s))             0.7452    85.7   100.0   120.6
+    [03] "%s%s%s" % (s,s,s)           0.8986    71.0    82.9   100.0
     
 
 In the above example, minimum and maximum results are removed automatically before calculate average result because 'extra=1' is specified.
@@ -324,10 +324,10 @@ If you needs only average result, redirect stderr to /dev/null or dummy file. ::
     "".join((s,s,s))                  0.7452 ( 85.7) *****************
     "%s%s%s" % (s,s,s)                0.8986 ( 71.0) **************
     
-    ## Ratio Matrix                     real   [01]   [02]   [03]
-    [01] s+s+s                        0.6384  100.0  116.7  140.8
-    [02] "".join((s,s,s))             0.7452   85.7  100.0  120.6
-    [03] "%s%s%s" % (s,s,s)           0.8986   71.0   82.9  100.0
+    ## Ratio Matrix                     real    [01]    [02]    [03]
+    [01] s+s+s                        0.6384   100.0   116.7   140.8
+    [02] "".join((s,s,s))             0.7452    85.7   100.0   120.6
+    [03] "%s%s%s" % (s,s,s)           0.8986    71.0    82.9   100.0
 
 If you always print platform information and statistics, you can simplify code by with-statement.
 
