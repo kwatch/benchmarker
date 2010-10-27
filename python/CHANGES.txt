@@ -8,13 +8,14 @@ Release 2.0.0
 
 * Rewrited entirely.
 
-* Enhance to support fot-statement.
+* Enhance to support for-statement.
   ::
       bm = Benchmarker(loop=1000*1000)
       for i in bm('example'):
         #... do something ...
 
       ## the above is same as:
+      bm = Benchmarker()
       with bm('example'):
         for i in xrange(1000*1000):
 	  #... do something ...
