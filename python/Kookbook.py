@@ -37,7 +37,7 @@ def task_test(c):
 
 @recipe
 def task_test_all(c):
-    "do test with python 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2a2"
+    "do test with python 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2a3"
     versions = [
         #('2.4', '/opt/local/bin/python2.4'),
         ('2.5', '/opt/local/bin/python2.5'),
@@ -45,7 +45,7 @@ def task_test_all(c):
         ('2.7', '/opt/local/bin/python2.7'),
         ('3.0', '/usr/local/python/3.0.1/bin/python'),
         ('3.1', '/usr/local/python/3.1/bin/python'),
-        ('3.2', '/usr/local/python/3.2a2/bin/python'),
+        ('3.2', '/usr/local/python/3.2a3/bin/python'),
     ]
     for ver, bin in versions:
         print("#")
