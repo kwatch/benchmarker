@@ -3,13 +3,23 @@ CHANGES
 =======
 
 
-Release 2.0.0
--------------
+Release 2.0.0 (2010-10-28)
+--------------------------
 
 * Rewrited entirely.
 
-* Enhance to support for-statement.
-  ::
+* Enhance to support empty loop. Result of empty loop is subtracted
+  automatically  automatically from other benchmark result. ::
+
+      bm = Benchmarker()
+      with bm.empty():
+        for i in xrange(1000*1000):
+          pass
+      with bm('my benchmark 1'):
+        #... do something ...
+
+* Enhance to support for-statement. ::
+
       bm = Benchmarker(loop=1000*1000)
       for i in bm('example'):
         #... do something ...
@@ -20,8 +30,8 @@ Release 2.0.0
         for i in xrange(1000*1000):
 	  #... do something ...
 
-* Enhance to support new feature to repeat benchmarks.
-  ::
+* Enhance to support new feature to repeat benchmarks. ::
+
       bm = Benchmarker()
       for b in bm.repeat(5):   # repeat benchmark 5 times
         with b('example1'):
@@ -30,8 +40,7 @@ Release 2.0.0
 	  #... do something ...
 
 * 'compared_matrix()' is replaced by 'stat.all()'.
-  'stat.all()' shows benchmark ranking and ratio matrix.
-  ::
+  'stat.all()' shows benchmark ranking and ratio matrix. ::
 
        bm = Benchmarker()
        with bm('example'):
@@ -39,8 +48,7 @@ Release 2.0.0
        print(bm.stat.all())   # ranking and ratio matrix
 
 * Enhance to support 'Benchmark.platform()' which gives you platform
-  information.
-  ::
+  information. ::
 
       print bm.platform()
       #### output example
@@ -50,8 +58,7 @@ Release 2.0.0
       ## python executable: /usr/local/python/2.5.5/bin/python2.5
 
 * 'with-statement' for benchmarker object prints platform info and statistics
-  automatically.
-  ::
+  automatically. ::
 
       with Benchmarker() as bm:
         wtih bm('fib(30)'):
@@ -64,8 +71,7 @@ Release 2.0.0
       # print(bm.stat.all())
 
 * Enhance Benchmarker.run() to use function docment (__doc__) as benchmark
-  label when label is not specified.
-  ::
+  label when label is not specified. ::
 
       def fib(n):
         """fibonacchi"""
@@ -77,25 +83,22 @@ Release 2.0.0
 
 
 
-Release 1.1.0
--------------
+Release 1.1.0 (2010-06-26)
+--------------------------
 
-* Enhance Benchmarker.run() to take function args.
-  ::
+* Enhance Benchmarker.run() to take function args. ::
 
     bm = Benchmarker()
     bm('fib(34)').run(fib, 34)   # same as .run(lambda: fib(34))
 
 * (experimental) Enhance Benchmarker.run() to use function name as title
-  if title is not specified.
-  ::
+  if title is not specified. ::
 
     def fib34(): fib(34)
     bm = Benchmarker()
     bm.run(fib34)     # same as bm('fib34').run(fib34)
 
-* Enhanced to support compared matrix of benchmark results.
-  ::
+* Enhanced to support compared matrix of benchmark results. ::
 
     bm = Benchmarker(9)
     bm('fib(30)').run(fib, 30)
@@ -113,8 +116,7 @@ Release 1.1.0
     #[02] fib(31)     0.7222s    -37.9%       -     65.7%
     #[03] fib(32)     1.1967s    -62.5%   -39.6%       - 
 
-* Benchmark results are stored into Benchmarker.results as a list of tuples.
-  ::
+* Benchmark results are stored into Benchmarker.results as a list of tuples. ::
 
     bm = Benchmarker()
     bm('fib(34)').run(fib, 34)
@@ -130,8 +132,8 @@ Release 1.1.0
 * Changed to run full-GC for each benchmarks
 
 
-Release 1.0.0
--------------
+Release 1.0.0 (2010-05-16)
+--------------------------
 
 * public release
 
