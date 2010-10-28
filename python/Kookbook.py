@@ -20,7 +20,7 @@ from glob import glob
 from kook.utils import read_file, write_file
 kook_default_product = 'test'
 
-release   = prop('release', '1.1.0')
+release   = prop('release', '2.0.0')
 package   = prop('package', 'Benchmarker')
 copyright = prop('copyright', "copyright(c) 2010 kuwata-lab.com all rights reserved")
 license   = "Public Domain"

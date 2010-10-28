@@ -4,5 +4,5 @@ MANIFEST
 README.txt
 benchmarker.py
 setup.py
+test/benchmarker_test.py
 test/oktest.py
-test/test_benchmarker.py
