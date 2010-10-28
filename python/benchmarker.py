@@ -219,12 +219,16 @@ class Task(object):
     def __iter__(self):
         #: yield benchmark block N times.
         loop = self.benchmark.loop
-        try:
-            self.__enter__()
-            for i in xrange(loop):
-                yield i
-        finally:
-            self.__exit__(*sys.exc_info())
+        #self.__enter__()
+        #try:
+        #    for i in xrange(loop):
+        #        yield i  # SyntaxError: 'yield' not allowed in a 'try' block with a 'finally' clause
+        #finally:
+        #    self.__exit__(*sys.exc_info())
+        self.__enter__()
+        for i in xrange(loop):
+            yield i
+        self.__exit__(*sys.exc_info())
 
 
 TASK = Task
