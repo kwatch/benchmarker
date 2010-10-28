@@ -23,7 +23,7 @@ maintainer = author
 maintainer_email = email
 url      = 'http://pypi.python.org/pypi/Benchmarker/'
 desc     = 'a small utility for benchmarking'
-detail   = """
+detail   = r'''
 Benchmarker is a small utility to benchmark your code.
 
 See `CHANGES.txt <http://bitbucket.org/kwatch/benchmarker/annotate/tip/python/CHANGES.txt>`_
@@ -391,7 +391,7 @@ Tips
     #('s+s+s', 0.44, 0.0, 0.44, 0.4340)
     #('"%s%s%s" % (s,s,s)', 0.75, 0.0, 0.75, 0.7666)
 
-"""[1:]
+'''[1:]
 license  = 'Public Domain'
 platforms = 'any'
 #download = 'http://downloads.sourceforge.net/oktest/Benchmarker-%s.tar.gz' % version
