@@ -390,9 +390,9 @@ class Benchmarker::RunnerTest
 
     spec "report remove min and max results." do
       # falldown
-      ok_(reported[1]) == "AAA          2.1000       (4)   2.5000       (3)\n"
-      ok_(reported[2]) == "BBB          2.1000       (4)   2.5000       (3)\n" \
-                        + "             2.2000       (1)   2.4000       (2)\n"
+      ok_(reported[1]) == "AAA          2.1000        #4   2.5000        #3\n"
+      ok_(reported[2]) == "BBB          2.1000        #4   2.5000        #3\n" \
+                        + "             2.2000        #1   2.4000        #2\n"
     end
 
   end
@@ -524,14 +524,14 @@ AAA                               0.0000    0.0000    0.0000    0.0000
 BBBB                              0.0000    0.0000    0.0000    0.0000
 CC                                0.0000    0.0000    0.0000    0.0000
 
-## Remove min & max                  min    repeat       max    repeat
-AAA                               0.0000       (?)    0.0000       (?)
-BBBB                              0.0000       (?)    0.0000       (?)
-CC                                0.0000       (?)    0.0000       (?)
+## Remove min & max                  min    bench#       max    bench#
+AAA                               0.0000        #?    0.0000        #?
+BBBB                              0.0000        #?    0.0000        #?
+CC                                0.0000        #?    0.0000        #?
 
 END
       actual = r.reporter.vout.gsub(/-0\.0/, ' 0.0') \
-                                     .gsub(/   \(\d\)/, '   (?)') \
+                                     .gsub(/    \#\d/, '    #?') \
                                      .gsub(/0\.000\d/, '0.0000')
       ok_(actual) == expected
     end

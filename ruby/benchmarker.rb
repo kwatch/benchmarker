@@ -320,8 +320,8 @@ module Benchmarker
         min = min_r.__send__(key);  min_idx = results.index(min_r)
         max = max_r.__send__(key);  max_idx = results.index(max_r)
         @reporter << (label_fmt % label) \
-                  << (fmt % min) << (" %9s" % "(#{min_idx+1})") \
-                  << (fmt % max) << (" %9s" % "(#{max_idx+1})") << "\n"
+                  << (fmt % min) << (" %9s" % "\##{min_idx+1}") \
+                  << (fmt % max) << (" %9s" % "\##{max_idx+1}") << "\n"
         label = nil
         results[min_idx] = results[max_idx] = nil
       end
@@ -333,7 +333,7 @@ module Benchmarker
       if extra > 0
         fmt, label_fmt = " #{@reporter.fmt}", "%-#{@reporter.width}s"
         @reporter << (label_fmt % "## Remove min & max") \
-                  << (" %9s %9s %9s %9s" % ['min', 'repeat', 'max', 'repeat']) << "\n"
+                  << (" %9s %9s %9s %9s" % ['min', 'bench#', 'max', 'bench#']) << "\n"
         avg_results = results_matrix.collect {|results|
           results = results.dup
           _delete_minmax_from(results, key, extra, fmt, label_fmt)
