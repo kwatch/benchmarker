@@ -296,7 +296,6 @@ class Benchmarker::RunnerTest
   def _new_runner
     runner = Benchmarker::Runner.new()
     runner.reporter = Benchmarker::Reporter.new(:out=>'', :verbose=>false)
-    runner.statistics = Benchmarker::Statistics.new()
     runner
   end
 
@@ -556,8 +555,8 @@ END
       r = @runner
       r.bench("AAA") { x = 1 }
       tr = tracer()
-      tr.trace_method(r.statistics, :ranking)
-      ret = r.ranking()
+      tr.trace_method(r.stat, :ranking)
+      ret = r.stat.ranking()
       ok_(tr[0].name) == :ranking
       ok_(ret) == <<'END'
 ## Ranking                          real  ratio
@@ -574,8 +573,8 @@ END
       r = @runner
       r.bench("AAA") { x = 1 }
       tr = tracer()
-      tr.trace_method(r.statistics, :ratio_matrix)
-      ret = r.ratio_matrix()
+      tr.trace_method(r.stat, :ratio_matrix)
+      ret = r.stat.ratio_matrix()
       ok_(tr[0].name) == :ratio_matrix
       ok_(ret) == <<'END'
 ## Ratio Matrix                     real   [01]

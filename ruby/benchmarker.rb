@@ -199,6 +199,12 @@ module Benchmarker
     end
 
 
+    ##
+    ## return ranking, sorted by key
+    ##
+    ## options:
+    ##   :key=>:real       : :real, :user, :sys, or :total
+    ##
     def ranking(results, opts={})
       key, width, fmt = @opts.merge(opts).values_at(:key, :width, :fmt)
       sb = ""
@@ -216,6 +222,15 @@ module Benchmarker
     end
 
 
+    ##
+    ## return compared ratio matrix
+    ##
+    ## options:
+    ##   :sort=>true       : sort benchmark results
+    ##   :key=>:real       : :real, :user, :sys, or :total
+    ##   :compensate=>0.0  : compensation of time (try '-100.0' if you want)
+    ##   :width=>30        : width of titles
+    ##
     def ratio_matrix(results, opts={})
       key, width, fmt, sort, compensate = \
         DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort, :compensate)
@@ -243,6 +258,50 @@ module Benchmarker
 
 
 
+  class StatisticsProxy
+
+
+    def initialize(runner, statistics)
+      @runner = runner
+      @statistics = statistics
+    end
+
+
+    attr_accessor :runner, :statistics
+
+
+    def _proxy(method, opts)
+      opts[:width] ||= @runner.reporter.width if @runner.reporter
+      return @statistics.__send__(method, @runner.results, opts)
+    end
+    private :_proxy
+
+
+    def ranking(opts={})
+      return _proxy(:ranking, opts)
+    end
+
+
+    def ratio_matrix(opts={})
+      return _proxy(:ratio_matrix, opts)
+    end
+
+
+    ##
+    ## return ranking() and ratio_matrix()
+    ##
+    def all(opts={})
+      sb = ""
+      sb << "\n" << ranking(opts)
+      sb << "\n" << ratio_matrix(opts)
+      return sb
+    end
+
+
+  end
+
+
+
   class Runner
 
 
@@ -256,10 +315,12 @@ module Benchmarker
       @header_title = 'Benchmark'
       @_header_printed = false
       @results = []
+      @reporter = REPORTER.new(opts)
+      @stat = StatisticsProxy.new(self, STATISTICS.new(opts))
     end
 
 
-    attr_accessor :results, :results_list, :loop, :reporter, :statistics
+    attr_accessor :results, :results_list, :loop, :reporter, :stat
 
 
     ##
@@ -395,44 +456,6 @@ module Benchmarker
 
 
     ##
-    ## return ranking, sorted by key
-    ##
-    ## options:
-    ##   :key=>:real       : :real, :user, :sys, or :total
-    ##
-    def ranking(opts={})
-      opts[:width] ||= @reporter.width
-      return @statistics.ranking(@results, opts)
-    end
-
-
-    ##
-    ## return compared ratio matrix
-    ##
-    ## options:
-    ##   :sort=>true       : sort benchmark results
-    ##   :key=>:real       : :real, :user, :sys, or :total
-    ##   :compensate=>0.0  : compensation of time (try '-100.0' if you want)
-    ##   :width=>30        : width of titles
-    ##
-    def ratio_matrix(opts={})
-      opts[:width] ||= @reporter.width
-      return @statistics.ratio_matrix(@results, opts)
-    end
-
-
-    ##
-    ## return ranking() and ratio_matrix()
-    ##
-    def stats(opts={})
-      sb = ""
-      sb << "\n" << ranking(opts)
-      sb << "\n" << ratio_matrix(opts)
-      return sb
-    end
-
-
-    ##
     ## return platform information
     ##
     def platform
@@ -500,12 +523,12 @@ module Benchmarker
   ##
   def self.new(opts={})
     runner = RUNNER.new(opts)
-    runner.reporter = REPORTER.new(opts)
-    runner.statistics = STATISTICS.new(opts)
+    #runner.reporter = REPORTER.new(opts)
+    #runner.stat.statistics = STATISTICS.new(opts)
     if block_given?
       puts runner.platform
       yield runner
-      puts runner.stats
+      puts runner.stat.all
     end
     return runner
   end
