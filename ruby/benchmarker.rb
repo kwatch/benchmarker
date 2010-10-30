@@ -442,6 +442,7 @@ module Benchmarker
       sb << "## RUBY_VERSION:       #{RUBY_VERSION}\n"
       sb << "## RUBY_PATCHLEVEL:    #{RUBY_PATCHLEVEL}\n"
       sb << "## RUBY_RELEASE_DATE:  #{RUBY_RELEASE_DATE}\n"
+      sb << "\n"
       return sb
     end
 
@@ -503,7 +504,6 @@ module Benchmarker
     runner.statistics = STATISTICS.new(opts)
     if block_given?
       puts runner.platform
-      puts
       yield runner
       puts runner.stats
     end
