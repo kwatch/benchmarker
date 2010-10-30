@@ -501,6 +501,12 @@ module Benchmarker
     runner = RUNNER.new(opts)
     runner.reporter = REPORTER.new(opts)
     runner.statistics = STATISTICS.new(opts)
+    if block_given?
+      puts runner.platform
+      puts
+      yield runner
+      puts runner.stats
+    end
     return runner
   end
 
