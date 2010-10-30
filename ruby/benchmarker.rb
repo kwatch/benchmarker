@@ -526,9 +526,10 @@ module Benchmarker
     #runner.reporter = REPORTER.new(opts)
     #runner.stat.statistics = STATISTICS.new(opts)
     if block_given?
-      puts runner.platform
+      out = opts[:out] || REPORTER::DEFAULTS[:out]
+      out.puts runner.platform
       yield runner
-      puts runner.stat.all
+      out.puts runner.stat.all
     end
     return runner
   end
