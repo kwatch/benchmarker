@@ -313,15 +313,32 @@ Mikuru                           4.7500 ( 89.5%) **********************
                 for _ in bm.repeat(3, extra=0):
                     i += 1
                 ok (i) == 7 + 2*1
+        with spec("if ntimes is 1 and extra is 0 then not repeat."):
+            bm2 = Benchmarker()
+            tr = Tracer()
+            tr.trace_method(bm2, '_calc_average_results')
+            #
+            i = 0
+            for _ in bm2.repeat(1, extra=0):
+                i += 1
+            ok (i) == 1
+            ok (len(tr)) == 0
+            #
+            i = 0
+            for _ in bm2.repeat(1, extra=1):
+                i += 1
+            ok (i) == 3
+            ok (len(tr)) == 1
+            ok (tr[0].name) == '_calc_average_results'
         with spec("replaces 'echo' object to stderr temporarily if verbose."):
             bm.verbose = True
-            for _ in bm.repeat(1):
+            for _ in bm.repeat(2):
                 not_ok (benchmarker.echo).is_(echo)
                 ok (benchmarker.echo).is_(benchmarker.echo_error)
             ok (benchmarker.echo).is_(echo)
         with spec("replaces 'echo' object to dummy I/O temporarily if not verbose."):
             bm.verbose = False
-            for _ in bm.repeat(1):
+            for _ in bm.repeat(2):
                 not_ok (benchmarker.echo).is_(echo)
                 not_ok (benchmarker.echo).is_(benchmarker.echo_error)
                 ok (benchmarker.echo).is_a(Echo)
@@ -351,7 +368,7 @@ Mikuru                           4.7500 ( 89.5%) **********************
                 ok (results[0]).is_a(Result)
         with spec("restores 'echo' object after block."):
             tmp = benchmarker.echo
-            for _ in bm.repeat(1):
+            for _ in bm.repeat(2):
                 ok (benchmarker.echo) != tmp
             ok (benchmarker.echo) == tmp
         #

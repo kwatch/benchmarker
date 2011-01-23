@@ -222,6 +222,10 @@ class Benchmarker(object):
         global cmdopt
         if cmdopt.repeat is not None:  ntimes = cmdopt.repeat
         if cmdopt.extra  is not None:  extra  = cmdopt.extra
+        #: if ntimes is 1 and extra is 0 then not repeat.
+        if ntimes == 1 and extra == 0:
+            yield 1
+            return
         #: replaces 'echo' object to stderr temporarily if verbose.
         #: replaces 'echo' object to dummy I/O temporarily if not verbose.
         global echo, echo_error
