@@ -2,12 +2,12 @@
 
 ###
 ### $Release: $
-### $Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
+### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###
 
 ##
-# cookbook for Benchmarker -- you must install pykook at first.
+## cookbook for Benchmarker -- you must install pykook at first.
 ## pykook is a build tool like Rake. you can define your task in Python.
 ## http://pypi.python.org/pypi/Kook/
 ## http://www.kuwata-lab.com/kook/pykook-users-guide.html
@@ -22,7 +22,7 @@ kook_default_product = 'test'
 
 release   = prop('release', '2.0.0')
 package   = prop('package', 'Benchmarker')
-copyright = prop('copyright', "copyright(c) 2010 kuwata-lab.com all rights reserved")
+copyright = prop('copyright', "copyright(c) 2010-2011 kuwata-lab.com all rights reserved")
 license   = "Public Domain"
 #kook_default_product = 'test'
 
@@ -167,10 +167,12 @@ def oktest(c):
 @recipe
 @product('README.html')
 @ingreds('README.txt')
-def file_readme_html(c):
+def file_README_html(c):
     """generate README.html"""
     #system(c%"rst2html.py -i utf-8 -o utf-8 -l en --stylesheet-path=style.css $(ingred) > $(product)")
-    system(c%"rst2html.py -i utf-8 -o utf-8 -l en $(ingred) > $(product)")
+    #system(c%"rst2html.py -i utf-8 -o utf-8 -l en $(ingred) > $(product)")
+    system_f(c%'kwaser -t html-css $(ingred) > $(product)')
+    system_f(c%'tidy -q -m -utf8 -i -w 0 $(product)')
 
 
 @recipe
