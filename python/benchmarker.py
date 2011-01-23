@@ -154,6 +154,10 @@ class Benchmarker(object):
         self.all_results = None
         #: creates Statistics object using STATISTICS variable.
         self.stats = STATISTICS()
+        #: overrides by command-line option.
+        global cmdopt
+        if cmdopt.verbose is not None:  self.verbose = cmdopt.verbose
+        if cmdopt.loop    is not None:  self.loop    = cmdopt.loop
 
     def _setup(self, section_title):
         self._section_title = section_title
@@ -194,9 +198,11 @@ class Benchmarker(object):
         is_first = not self.results and self._current_empty_result is None
         if is_first:
             echo.section_title(self._section_title)
-        #: creates new Result object and saves it.
+        #: creates new Result object.
         result = Result(label)
-        self.results.append(result)
+        #: saves created Result object except that label is specified to skip in command-line.
+        if not cmdopt.should_skip(label):
+            self.results.append(result)
         #: returns Task object with Result object.
         #: passes current empty result to task object.
         return Task(result, loop=self.loop, _empty=self._current_empty_result)
@@ -212,6 +218,10 @@ class Benchmarker(object):
         return task
 
     def repeat(self, ntimes, extra=0):
+        #: overrides by command-line option.
+        global cmdopt
+        if cmdopt.repeat is not None:  ntimes = cmdopt.repeat
+        if cmdopt.extra  is not None:  extra  = cmdopt.extra
         #: replaces 'echo' object to stderr temporarily if verbose.
         #: replaces 'echo' object to dummy I/O temporarily if not verbose.
         global echo, echo_error
@@ -395,6 +405,10 @@ class Task(object):
         echo.task_times(*r.to_tuple())
 
     def run(self, func, *args):   # **kwargs
+        #: just returns if task is specified to skip in command-line.
+        if cmdopt.should_skip(self.result.label):
+            return self
+        #
         loop = self.loop
         #: calls __enter__() to simulate with-statement.
         self.__enter__()
@@ -413,6 +427,10 @@ class Task(object):
         return self
 
     def __iter__(self):
+        #: just returns if task is specified to skip in command-line.
+        if cmdopt.should_skip(self.result.label):
+            return
+        #
         loop = self.loop
         raised = False
         #: calls __enter__() to simulate with-statement.

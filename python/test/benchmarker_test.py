@@ -30,6 +30,16 @@ def _set_output():
 def _get_output():
     return benchmarker.echo._out.getvalue()
 
+from contextlib import contextmanager
+@contextmanager
+def _dummy_cmdopt():
+    try:
+        bkup = benchmarker.cmdopt
+        benchmarker.cmdopt = CommandOption()
+        yield benchmarker.cmdopt
+    finally:
+        benchmarker.cmdopt = bkup
+
 
 class Format_TC(object):
 
@@ -185,6 +195,13 @@ class Benchmarker_TC(object):
                 ok (bm2.stats._kwargs) == {}
             finally:
                 benchmarker.STATISTICS = bkup
+        with spec("overrides by command-line option."):
+            with _dummy_cmdopt():
+                benchmarker.cmdopt.verbose = False
+                benchmarker.cmdopt.loop    = 123
+                bm = Benchmarker()
+                ok (bm.verbose) == False
+                ok (bm.loop)    == 123
 
     def test__setup(self):
         pass
@@ -249,10 +266,18 @@ Mikuru                           4.7500 ( 89.5%) **********************
         with spec("prints section title if called at the first time."):
             s = _get_output()
             ok (s) == '\n##                                 user       sys     total      real\n'
-        with spec("creates new Result object and saves it."):
+        with spec("creates new Result object."):
             ok (len(bm.results)) == 1
             ok (bm.results[0]).is_a(Result)
             ok (bm.results[0].label) == "SOS"
+        with spec("saves created Result object except that label is specified to skip in command-line."):
+            with _dummy_cmdopt():
+                Tracer().fake_method(benchmarker.cmdopt, should_skip=True)
+                assert benchmarker.cmdopt.should_skip('ANY') == True
+                bm2 = Benchmarker()
+                assert bm2.results == []
+                bm2('SOS')
+                ok (bm2.results) == []
         with spec("returns Task object with Result object."):
             ok (ret).is_a(Task)
             ok (ret.result).is_(bm.results[0])
@@ -280,6 +305,14 @@ Mikuru                           4.7500 ( 89.5%) **********************
         bm = self.bm
         echo = benchmarker.echo
         assert echo != benchmarker.echo_error
+        with spec("overrides by command-line option."):
+            with _dummy_cmdopt():
+                benchmarker.cmdopt.repeat = 7
+                benchmarker.cmdopt.extra = 1
+                i = 0
+                for _ in bm.repeat(3, extra=0):
+                    i += 1
+                ok (i) == 7 + 2*1
         with spec("replaces 'echo' object to stderr temporarily if verbose."):
             bm.verbose = True
             for _ in bm.repeat(1):
@@ -621,7 +654,19 @@ class Task_TC(object):
 
     def test_run(self):
         loop = 3
-        task = self._new_task("SOS", 3)
+        task = self._new_task("SOS", loop)
+        #
+        with spec("just returns if task is specified to skip in command-line."):
+            count = [0]
+            def f():
+                count[0] += 1
+            with _dummy_cmdopt():
+                Tracer().fake_method(benchmarker.cmdopt, should_skip=True)
+                task.run(f)
+                ok (count[0]) == 0
+            task.run(f)
+            ok (count[0]) == loop
+        #
         tr = Tracer()
         tr.trace_method(task, '__enter__', '__exit__')
         count = [0]
@@ -644,6 +689,18 @@ class Task_TC(object):
     def test___iter__(self):
         loop = 3
         task = self._new_task("SOS", 3)
+        #
+        with spec("just returns if task is specified to skip in command-line."):
+            count = 0
+            with _dummy_cmdopt():
+                Tracer().fake_method(benchmarker.cmdopt, should_skip=True)
+                for _ in task:
+                    count += 1
+                ok (count) == 0
+            for _ in task:
+                count += 1
+            ok (count) == loop
+        #
         tr = Tracer()
         tr.trace_method(task, '__enter__', '__exit__')
         count = 0
