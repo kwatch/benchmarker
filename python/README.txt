@@ -1,386 +1,479 @@
-======
-README
-======
-
-$Release: 1.1.0 $
+.=title:	Benchmarker README
+.?stylesheet:	docstyle.css
 
 
-Overview
---------
+$Release: $.^
+$License: Public Domain $.^
+$Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved. $.^
+
+
+
+.$ Overview
 
 Benchmarker is a small utility for benchmarking.
 
+.? Quick Example (ex0.py)
+.-------------------- ex0.py
+from benchmarker import Benchmarker
 
-Download
---------
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+with Benchmarker(width=20, loop=1000*1000) as bm:
+    for _ in bm.empty():     ## empty loop
+        pass
+    for _ in bm('join'):
+        sos = ''.join((s1, s2, s3, s4, s5))
+    for _ in bm('concat'):
+        sos = s1 + s2 + s3 + s4 + s5
+    for _ in bm('format'):
+        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+.--------------------
 
-http://pypi.python.org/pypi/Benchmarker/
+.? Output example
+.====================
+$ python ex0.py
+## benchmarker:       release 0.0.0 (for python)
+## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
+## python version:    2.7.1
+## python executable: /usr/local/python/2.7.1/bin/python
 
-Installation::
+##                       user       sys     total      real
+(Empty)                0.1600    0.0000    0.1600    0.1639
+join                   0.6500    0.0000    0.6500    0.6483
+concat                 0.5700    0.0000    0.5700    0.5711
+format                 0.7600    0.0000    0.7600    0.7568
 
-    ## if you have installed easy_install:
-    $ sudo easy_install Benchmarker
-    ## or download Benchmarker-X.X.X.tar.gz and install it
-    $ wget http://pypi.python.org/packages/source/B/Benchmarker/Benchmarker-X.X.X.tar.gz
-    $ tar xzf Benchmarker-X.X.X.tar.gz
-    $ cd Benchmarker-X.X.X/
-    $ sudo python setup.py install
+## Ranking               real
+concat                 0.5711 (100.0%) *************************
+join                   0.6483 ( 88.1%) **********************
+format                 0.7568 ( 75.5%) *******************
 
-
-Example for Busy People
------------------------
-
-ex0.py::
-
-    from __future__ import with_statement
-    from benchmarker import Benchmarker
-    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-    with Benchmarker(loop=1000*1000) as bm:
-        for i in bm.empty():    ## empty loop
-            pass
-        for i in bm('"".join((s,s,s))'):
-            sos = "".join((s1, s2, s3, s4, s5))
-        for i in bm('s+s+s'):
-            sos = s1 + s2 + s3 + s4 + s5
-        for i in bm('"%s%s%s" % (s,s,s)'):
-            sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
-
-Output::
-
-    $ python ex0.py
-    ## benchmarker:       release 0.0.0 (for python)
-    ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
-    ## python version:    2.5.5
-    ## python executable: /usr/local/python/2.5.5/bin/python
-    
-    ## Benchmark                        user       sys     total      real
-    (Empty)                           0.1200    0.0300    0.1500    0.1605
-    "".join((s,s,s))                  0.7300   -0.0300    0.7000    0.6992
-    s+s+s                             0.6600   -0.0200    0.6400    0.6321
-    "%s%s%s" % (s,s,s)                0.8700   -0.0300    0.8400    0.8305
-    
-    ## Ranking                          real  ratio  chart
-    s+s+s                             0.6321 (100.0) ********************
-    "".join((s,s,s))                  0.6992 ( 90.4) ******************
-    "%s%s%s" % (s,s,s)                0.8305 ( 76.1) ***************
-    
-    ## Ratio Matrix                     real    [01]    [02]    [03]
-    [01] s+s+s                        0.6321   100.0   110.6   131.4
-    [02] "".join((s,s,s))             0.6992    90.4   100.0   118.8
-    [03] "%s%s%s" % (s,s,s)           0.8305    76.1    84.2   100.0
+## Ratio Matrix          real    [01]    [02]    [03]
+[01] concat            0.5711  100.0%  113.5%  132.5%
+[02] join              0.6483   88.1%  100.0%  116.7%
+[03] format            0.7568   75.5%   85.7%  100.0%
+.====================
 
 Notice that empty loop times (user, sys, total, and real) are subtracted from other benchmark times automatically.
-For example, 0.6992 = 0.8597 - 0.1605.
+For example:
+
+.+========================================
+  benchmark label   ., real (second)
+.----------------------------------------
+  join              ., 0.6483 (= 0.8122 - 0.1639)
+  concat            ., 0.5711 (= 0.7350 - 0.1639)
+  format            ., 0.7568 (= 0.9207 - 0.1639)
+.+========================================
+
+{{!NOTICE:!}} This release doesn't have compatibility with previous version.
+See {{<CHANGES.txt>}} for details.
 
 
-Step by Step Examples
----------------------
+.$ Download and Install
 
-Basic example (ex1.py)::
+{{<http://pypi.python.org/pypi/Benchmarker/>}}
 
-    from __future__ import with_statement
-    if 'xrange' not in globals():
-        xrange = range
-    
-    ## benchmarker object
-    from benchmarker import Benchmarker
-    bm = Benchmarker()     # or Benchmarker(width=30, out=sys.stderr)
-    print(bm.platform())   # python version, os information, ...
-    
-    ## Python 2.5 or later
-    loop = 1000 * 1000
-    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-    with bm.empty():              # optional: empty loop results are
-        for i in xrange(loop):    # subtracted automatically from
-            pass                  # other benchmark results.
-    with bm('"".join((s,s,s))'):
+.? Installation
+.====================
+## if you have installed easy_install:
+$ sudo easy_install Benchmarker
+## or download Benchmarker-X.X.X.tar.gz and install it
+$ wget http://pypi.python.org/packages/source/B/Benchmarker/Benchmarker-X.X.X.tar.gz
+$ tar xzf Benchmarker-X.X.X.tar.gz
+$ cd Benchmarker-X.X.X/
+$ sudo python setup.py install
+.====================
+
+
+
+.$ Step by Step Examples
+
+
+.$$ Basic Example
+
+.? ex1.py
+.-------------------- ex1.py
+{{*from benchmarker import Benchmarker*}}
+
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+loop = 1000 * 1000
+{{*with Benchmarker(width=20) as bm:*}}
+    {{*with bm('join'):*}}
         for i in xrange(loop):
-            sos = "".join((s1, s2, s3, s4, s5))
-    with bm('s+s+s'):
+            sos = ''.join((s1, s2, s3, s4, s5))
+    {{*with bm('concat'):*}}
         for i in xrange(loop):
             sos = s1 + s2 + s3 + s4 + s5
-    with bm('"%s%s%s" % (s,s,s)'):
+    {{*with bm('format'):*}}
         for i in xrange(loop):
-            sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
-    
-    ### Python 2.4
-    #def f0(n):
-    #    for i in xrange(n):
-    #        pass
-    #def f1(n):
-    #    """''.join((s,s,s))"""
-    #    for i in xrange(n):
-    #        sos = "".join((s1, s2, s3, s4, s5))
-    #def f2(n):
-    #    """s+s+s"""
-    #    for i in xrange(n):
-    #        sos = s1 + s2 + s3 + s4 + s5
-    #def f3(n):
-    #    """'%s%s%s' % (s,s,s)"""
-    #    for i in xrange(n):
-    #        sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
-    #bm.empty().run(f0, loop)
-    #bm().run(f1, loop)
-    #bm().run(f2, loop)
-    #bm().run(f3, loop)
-    
-    ## statistics
-    print(bm.stat.all())
+            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+.--------------------
+
+.? Output example
+.====================
+$ python ex1.py
+## benchmarker:       release 0.0.0 (for python)
+## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
+## python version:    2.7.1
+## python executable: /usr/local/python/2.7.1/bin/python
+
+##                       user       sys     total      real
+join                   0.7300    0.0000    0.7300    0.7358
+concat                 0.6500    0.0000    0.6500    0.6482
+format                 0.8400    0.0000    0.8400    0.8442
+
+## Ranking               real
+concat                 0.6482 (100.0%) *************************
+join                   0.7358 ( 88.1%) **********************
+format                 0.8442 ( 76.8%) *******************
+
+## Ratio Matrix          real    [01]    [02]    [03]
+[01] concat            0.6482  100.0%  113.5%  130.2%
+[02] join              0.7358   88.1%  100.0%  114.7%
+[03] format            0.8442   76.8%   87.2%  100.0%
+.====================
 
 
-Output example::
+.$$ Empty Loop
 
-    $ python ex1.py
-    ## benchmarker:       release 0.0.0 (for python)
-    ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
-    ## python version:    2.5.5
-    ## python executable: /usr/local/python/2.5.5/bin/python
-    
-    ## Benchmark                        user       sys     total      real
-    (Empty)                           0.1200    0.0300    0.1500    0.1605
-    "".join((s,s,s))                  0.7300   -0.0300    0.7000    0.6992
-    s+s+s                             0.6600   -0.0200    0.6400    0.6321
-    "%s%s%s" % (s,s,s)                0.8700   -0.0300    0.8400    0.8305
-    
-    ## Ranking                          real  ratio  chart
-    s+s+s                             0.6321 (100.0) ********************
-    "".join((s,s,s))                  0.6992 ( 90.4) ******************
-    "%s%s%s" % (s,s,s)                0.8305 ( 76.1) ***************
-    
-    ## Ratio Matrix                     real    [01]    [02]    [03]
-    [01] s+s+s                        0.6321   100.0   110.6   131.4
-    [02] "".join((s,s,s))             0.6992    90.4   100.0   118.8
-    [03] "%s%s%s" % (s,s,s)           0.8305    76.1    84.2   100.0
-    
+.? ex2.py
+.-------------------- ex2.py
+from benchmarker import Benchmarker
+
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+loop = 1000 * 1000
+with Benchmarker(width=20) as bm:
+    {{*with bm.empty():*}}
+        {{*for i in xrange(loop):*}}
+            {{*pass*}}
+    with bm('join'):
+        for i in xrange(loop):
+            sos = ''.join((s1, s2, s3, s4, s5))
+    with bm('concat'):
+        for i in xrange(loop):
+            sos = s1 + s2 + s3 + s4 + s5
+    with bm('format'):
+        for i in xrange(loop):
+            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+.--------------------
+
+.? Output Example
+.====================
+$ python ex2.py
+## benchmarker:       release 0.0.0 (for python)
+## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
+## python version:    2.7.1
+## python executable: /usr/local/python/2.7.1/bin/python
+
+##                       user       sys     total      real
+(Empty)                0.0800    0.0000    0.0800    0.0824
+join                   0.6600    0.0000    0.6600    0.6541
+concat                 0.5600    0.0000    0.5600    0.5592
+format                 0.7600    0.0000    0.7600    0.7603
+
+## Ranking               real
+concat                 0.5592 (100.0%) *************************
+join                   0.6541 ( 85.5%) *********************
+format                 0.7603 ( 73.6%) ******************
+
+## Ratio Matrix          real    [01]    [02]    [03]
+[01] concat            0.5592  100.0%  117.0%  135.9%
+[02] join              0.6541   85.5%  100.0%  116.2%
+[03] format            0.7603   73.6%   86.0%  100.0%
+.====================
 
 Notice that benchmark results are subtracted by '(Empty)' loop results.
-For example: 0.7300 = 0.8500 - 0.1200; -0.0300 = 0.000 - 0.0300; 0.7000 = 0.8500 - 0.1500; 0.6992 = 0.8597 - 0.1605; and so on.
+For example:
 
-If you pass 'loop=N' to Benchmarker(), benchmark code can be more simple.
+.+========================================
+  benchmark label   ., real (second)
+.----------------------------------------
+  join              ., 0.6541 (= 0.7365 - 0.0824)
+  concat            ., 0.5592 (= 0.6416 - 0.0824)
+  format            ., 0.7603 (= 0.8427 - 0.0824)
+.+========================================
 
-Example (ex2.py)::
 
-    from __future__ import with_statement
-    
-    ## start benchmark
-    from benchmarker import Benchmarker
-    bm = Benchmarker(loop=1000*1000)    ## specify loop count (default: 1)
-    print(bm.platform())
-    
-    ## use for-statement instead of with-statement
-    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-    for i in bm.empty():
+.$$ Loop
+
+.? ex3.py
+.-------------------- ex3.py
+from benchmarker import Benchmarker
+
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+with Benchmarker(width=20, {{*loop=1000*1000*}}) as bm:
+    {{*for _ in bm.empty():*}}
         pass
-    for i in bm('"".join((s,s,s))'):
-        sos = "".join((s1, s2, s3, s4, s5))
-    for i in bm('s+s+s'):
+    {{*for _ in bm('join'):*}}
+        sos = ''.join((s1, s2, s3, s4, s5))
+    {{*for _ in bm('concat'):*}}
         sos = s1 + s2 + s3 + s4 + s5
-    for i in bm('"%s%s%s" % (s,s,s)'):
-        sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
-    
-    ### or
-    #def f0():
-    #    pass
-    #def f1():
-    #    """''.join((s,s,s))"""
-    #    sos = "".join((s1, s2, s3, s4, s5))
-    #def f2():
-    #    """s+s+s"""
-    #    sos = s1 + s2 + s3 + s4 + s5
-    #def f3():
-    #    """'%s%s%s' % (s,s,s)"""
-    #    sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
-    #bm.empty().run(f0)
-    #bm().run(f1)
-    #bm().run(f2)
-    #bm().run(f3)
-    
-    ## statistics
-    print(bm.stat.all())
+    {{*for _ in bm('format'):*}}
+        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+.--------------------
+
+.? Output Example
+.====================
+$ python ex3.py
+## benchmarker:       release 0.0.0 (for python)
+## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
+## python version:    2.7.1
+## python executable: /usr/local/python/2.7.1/bin/python
+
+##                       user       sys     total      real
+(Empty)                0.1600    0.0000    0.1600    0.1683
+join                   0.6500    0.0000    0.6500    0.6457
+concat                 0.5700    0.0000    0.5700    0.5660
+format                 0.7500    0.0000    0.7500    0.7440
+
+## Ranking               real
+concat                 0.5660 (100.0%) *************************
+join                   0.6457 ( 87.6%) **********************
+format                 0.7440 ( 76.1%) *******************
+
+## Ratio Matrix          real    [01]    [02]    [03]
+[01] concat            0.5660  100.0%  114.1%  131.5%
+[02] join              0.6457   87.6%  100.0%  115.2%
+[03] format            0.7440   76.1%   86.8%  100.0%
+.====================
 
 
-You can repeat benchmarks and calculate average of them.
-If you specify 'extra=1' parameter, Benchmarker will remove min and max values from benchmarks to remove abnormal result.
+.$$ Repeat
 
-Example (ex3.py)::
+.? ex4.py
+.-------------------- ex4.py
+from benchmarker import Benchmarker
 
-    from __future__ import with_statement
-    
-    ## start benchmark
-    from benchmarker import Benchmarker
-    bm = Benchmarker(loop=1000*1000)    ## specify loop count
-    print(bm.platform())
-    
-    ## repeat benchmark 3 times + 2*1 times
-    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-    for b in bm.repeat(3, extra=1):
-        for i in b.empty():
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+with Benchmarker(width=25, loop=1000*1000) as bm:
+    {{*for _ in bm.repeat(3, extra=1):*}}
+        for _ in bm.empty():
             pass
-        for i in b('"".join((s,s,s))'):
-            sos = "".join((s1, s2, s3, s4, s5))
-        for i in b('s+s+s'):
+        for _ in bm('join'):
+            sos = ''.join((s1, s2, s3, s4, s5))
+        for _ in bm('concat'):
             sos = s1 + s2 + s3 + s4 + s5
-        for i in b('"%s%s%s" % (s,s,s)'):
-            sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
-    
-    ## or
-    #def f0():
-    #    pass
-    #def f1():
-    #    """''.join((s,s,s))"""
-    #    sos = "".join((s1, s2, s3, s4, s5))
-    #def f2():
-    #    """s+s+s"""
-    #    sos = s1 + s2 + s3 + s4 + s5
-    #def f3():
-    #    """'%s%s%s' % (s,s,s)"""
-    #    sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
-    #for b in bm.repeat(5, extra=1):
-    #    b.empty().run(f0)
-    #    b().run(f1)
-    #    b().run(f2)
-    #    b().run(f3)
-    
-    ## statistics
-    print(bm.stat.all())
+        for _ in bm('format'):
+            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+.--------------------
+
+.? Output Example
+.====================
+$ python ex4.py
+## benchmarker:       release 0.0.0 (for python)
+## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
+## python version:    2.7.1
+## python executable: /usr/local/python/2.7.1/bin/python
+
+## (#1)                       user       sys     total      real
+(Empty)                     0.1600    0.0000    0.1600    0.1562
+join                        0.6500    0.0000    0.6500    0.6591
+concat                      0.5600    0.0000    0.5600    0.5626
+format                      0.7500    0.0000    0.7500    0.7662
+
+## (#2)                       user       sys     total      real
+(Empty)                     0.1600    0.0000    0.1600    0.1561
+join                        0.6500    0.0000    0.6500    0.6520
+concat                      0.5500    0.0000    0.5500    0.5571
+format                      0.7500    0.0000    0.7500    0.7524
+
+## (#3)                       user       sys     total      real
+(Empty)                     0.1500    0.0000    0.1500    0.1555
+join                        0.6600    0.0000    0.6600    0.6563
+concat                      0.5600    0.0000    0.5600    0.5593
+format                      0.7500    0.0000    0.7500    0.7536
+
+## (#4)                       user       sys     total      real
+(Empty)                     0.1600    0.0000    0.1600    0.1585
+join                        0.6500    0.0000    0.6500    0.6518
+concat                      0.5500    0.0000    0.5500    0.5597
+format                      0.7500    0.0000    0.7500    0.7539
+
+## (#5)                       user       sys     total      real
+(Empty)                     0.1600    0.0000    0.1600    0.1601
+join                        0.6500    0.0000    0.6500    0.6482
+concat                      0.5600    0.0000    0.5600    0.5703
+format                      0.7400    0.0000    0.7400    0.7463
+
+## Remove min & max            min    repeat       max    repeat
+join                        0.6482      (#5)    0.6591      (#1)
+concat                      0.5571      (#2)    0.5703      (#5)
+format                      0.7463      (#5)    0.7662      (#1)
+
+## Average of 3 (=5-2*1)      user       sys     total      real
+join                        0.6533    0.0000    0.6533    0.6534
+concat                      0.5567    0.0000    0.5567    0.5605
+format                      0.7500    0.0000    0.7500    0.7533
+
+## Ranking                    real
+concat                      0.5605 (100.0%) *************************
+join                        0.6534 ( 85.8%) *********************
+format                      0.7533 ( 74.4%) *******************
+
+## Ratio Matrix               real    [01]    [02]    [03]
+[01] concat                 0.5605  100.0%  116.6%  134.4%
+[02] join                   0.6534   85.8%  100.0%  115.3%
+[03] format                 0.7533   74.4%   86.7%  100.0%
+.====================
+
+If you prefer to print only averaged data, pass {{,verbose=False,}} to {{,Benchmark(),}}.
+
+.--------------------
+with Benchmark(loop=1000*1000, {{*verbose=False*}}) as bm:
+    ....
+.--------------------
+
+Or just ignore standard error.
+
+.====================
+$ python ex4.py 2>/dev/null
+.====================
 
 
-Output example::
+.$$ Function
 
-    $ python ex3.py
-    ## benchmarker:       release 0.0.0 (for python)
-    ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
-    ## python version:    2.5.5
-    ## python executable: /usr/local/python/2.5.5/bin/python
-    
-    ## Benchmark #1                     user       sys     total      real
-    (Empty)                           0.1600    0.0000    0.1600    0.1637
-    "".join((s,s,s))                  0.7400    0.0000    0.7400    0.7474
-    s+s+s                             0.6400    0.0000    0.6400    0.6394
-    "%s%s%s" % (s,s,s)                0.9000    0.0000    0.9000    0.9071
-    
-    ## Benchmark #2                     user       sys     total      real
-    (Empty)                           0.1700    0.0000    0.1700    0.1715
-    "".join((s,s,s))                  0.7200    0.0000    0.7200    0.7289
-    s+s+s                             0.6400    0.0000    0.6400    0.6537
-    "%s%s%s" % (s,s,s)                0.8600    0.0000    0.8600    0.8662
-    
-    ## Benchmark #3                     user       sys     total      real
-    (Empty)                           0.1600    0.0000    0.1600    0.1679
-    "".join((s,s,s))                  0.7500    0.0000    0.7500    0.7416
-    s+s+s                             0.6400    0.0000    0.6400    0.6315
-    "%s%s%s" % (s,s,s)                0.8800    0.0000    0.8800    0.8829
-    
-    ## Benchmark #4                     user       sys     total      real
-    (Empty)                           0.1600    0.0000    0.1600    0.1588
-    "".join((s,s,s))                  0.7400    0.0100    0.7500    0.7465
-    s+s+s                             0.6300    0.0000    0.6300    0.6440
-    "%s%s%s" % (s,s,s)                0.9000    0.0000    0.9000    0.9057
-    
-    ## Benchmark #5                     user       sys     total      real
-    (Empty)                           0.1500    0.0000    0.1500    0.1589
-    "".join((s,s,s))                  0.7500    0.0000    0.7500    0.7549
-    s+s+s                             0.6400    0.0000    0.6400    0.6317
-    "%s%s%s" % (s,s,s)                0.9100    0.0000    0.9100    0.9147
-    
-    ## Remove min & max                  min    bench#       max    bench#
-    "".join((s,s,s))                  0.7289        #2    0.7549        #5
-    s+s+s                             0.6315        #3    0.6537        #2
-    "%s%s%s" % (s,s,s)                0.8662        #2    0.9147        #5
-    
-    ## Average of 3 (=5-2*1)            user       sys     total      real
-    "".join((s,s,s))                  0.7433    0.0033    0.7467    0.7452
-    s+s+s                             0.6367    0.0000    0.6367    0.6384
-    "%s%s%s" % (s,s,s)                0.8933    0.0000    0.8933    0.8986
-    
-    ## Ranking                          real  ratio  chart
-    s+s+s                             0.6384 (100.0) ********************
-    "".join((s,s,s))                  0.7452 ( 85.7) *****************
-    "%s%s%s" % (s,s,s)                0.8986 ( 71.0) **************
-    
-    ## Ratio Matrix                     real    [01]    [02]    [03]
-    [01] s+s+s                        0.6384   100.0   116.7   140.8
-    [02] "".join((s,s,s))             0.7452    85.7   100.0   120.6
-    [03] "%s%s%s" % (s,s,s)           0.8986    71.0    82.9   100.0
-    
+You can write benchmark code as function.
 
-In the above example, minimum and maximum results are removed automatically before calculate average result because 'extra=1' is specified.
+.? ex5.py
+.-------------------- ex5.py
+from benchmarker import Benchmarker
 
-If you needs only average result, redirect stderr to /dev/null or dummy file. ::
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
 
-    $ python ex3.py > /dev/null
-    ## benchmarker:       release 0.0.0 (for python)
-    ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
-    ## python version:    2.5.5
-    ## python executable: /usr/local/python/2.5.5/bin/python
-    
-    ## Average of 3 (=5-2*1)            user       sys     total      real
-    "".join((s,s,s))                  0.7433    0.0033    0.7467    0.7452
-    s+s+s                             0.6367    0.0000    0.6367    0.6384
-    "%s%s%s" % (s,s,s)                0.8933    0.0000    0.8933    0.8986
-    
-    ## Ranking                          real  ratio  chart
-    s+s+s                             0.6384 (100.0) ********************
-    "".join((s,s,s))                  0.7452 ( 85.7) *****************
-    "%s%s%s" % (s,s,s)                0.8986 ( 71.0) **************
-    
-    ## Ratio Matrix                     real    [01]    [02]    [03]
-    [01] s+s+s                        0.6384   100.0   116.7   140.8
-    [02] "".join((s,s,s))             0.7452    85.7   100.0   120.6
-    [03] "%s%s%s" % (s,s,s)           0.8986    71.0    82.9   100.0
+def f1(n):
+    """join"""
+    for _ in xrange(n):
+        sos = ''.join((s1, s2, s3, s4, s5))
+def f2(n):
+    """concat"""
+    for _ in xrange(n):
+        sos = s1 + s2 + s3 + s4 + s5
+def f3(n):
+    """format"""
+    for _ in xrange(loop):
+        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 
-If you always print platform information and statistics, you can simplify code by with-statement.
+loop = 1000 * 1000
+with Benchmarker(width=20) as bm:
+    for _ in bm.repeat(3, extra=1):
+        {{*bm.run(f1, loop)   # or bm('join').run(f1, loop)*}}
+        {{*bm.run(f2, loop)   # or bm('concat').run(f2, loop)*}}
+        {{*bm.run(f3, loop)   # or bm('format').run(f3, loop)*}}
+.--------------------
 
-Example (ex4.py)::
+Benchmarker uses document string of function as a label of benchmark.
+If function doesn't have a document string, Benchmarker uses function name as label instead of document string.
 
-    from __future__ import with_statement
-    from benchmarker import Benchmarker
-    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-    with Benchmarker(loop=1000*1000) as bm:
-        for b in bm.repeat(3, extra=1):
-            for i in b.empty():
-                pass
-            for i in b('"".join((s,s,s))'):
-                sos = "".join((s1, s2, s3, s4, s5))
-            for i in b('s+s+s'):
-                sos = s1 + s2 + s3 + s4 + s5
-            for i in b('"%s%s%s" % (s,s,s)'):
-                sos = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
+.--------------------
+## This code...
+bm.run(func, arg1, arg2)
+## is same as:
+bm(func.__doc__ or func.__name__).run(func, arg1, arg2)
+.--------------------
 
-    
-    
-Tips
-----
-
-* If you don't specify benchmark label, function document or name is used as label.
-  ::
-
-    def f2():
-        """s+s+s"""
-        sos = "Haruhi" + "Mikuru" + "Yuki" + "Itsuki" + "Kyon"
-    bm = Benchmarker()
-    bm().run(f2)     # same as bm('s+s+s').run(f2)
-
-
-* You can get benchmark results by bm.results.
-  ::
-
-    for result in bm.results:
-        print(result)
-    ## output example:
-    #('"".join((s,s,s))', 0.57, 0.0,  0.57, 0.5772)
-    #('s+s+s', 0.44, 0.0, 0.44, 0.4340)
-    #('"%s%s%s" % (s,s,s)', 0.75, 0.0, 0.75, 0.7666)
+.#.? Output Example
+.#.====================
+.#$ python ex5.py
+.### benchmarker:       release 0.0.0 (for python)
+.### python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
+.### python version:    2.7.1
+.### python executable: /usr/local/python/2.7.1/bin/python
+.#
+.### (#1)                  user       sys     total      real
+.#join                   0.6000    0.0000    0.6000    0.5990
+.#concat                 0.5000    0.0000    0.5000    0.5085
+.#format                 0.6800    0.0000    0.6800    0.6754
+.#
+.### (#2)                  user       sys     total      real
+.#join                   0.5900    0.0000    0.5900    0.5931
+.#concat                 0.5100    0.0000    0.5100    0.5185
+.#format                 0.6700    0.0000    0.6700    0.6776
+.#
+.### (#3)                  user       sys     total      real
+.#join                   0.5900    0.0000    0.5900    0.5927
+.#concat                 0.5100    0.0000    0.5100    0.5072
+.#format                 0.6700    0.0000    0.6700    0.6758
+.#
+.### (#4)                  user       sys     total      real
+.#join                   0.6000    0.0000    0.6000    0.6028
+.#concat                 0.5000    0.0000    0.5000    0.5061
+.#format                 0.6700    0.0000    0.6700    0.6774
+.#
+.### (#5)                  user       sys     total      real
+.#join                   0.6000    0.0000    0.6000    0.5997
+.#concat                 0.5000    0.0000    0.5000    0.5043
+.#format                 0.6700    0.0000    0.6700    0.6746
+.#
+.### Remove min & max       min    repeat       max    repeat
+.#join                   0.5927      (#3)    0.6028      (#4)
+.#concat                 0.5043      (#5)    0.5185      (#2)
+.#format                 0.6746      (#5)    0.6776      (#2)
+.#
+.### Average of 3 (=5-2*1)     user       sys     total      real
+.#join                   0.5967    0.0000    0.5967    0.5973
+.#concat                 0.5033    0.0000    0.5033    0.5073
+.#format                 0.6733    0.0000    0.6733    0.6762
+.#
+.### Ranking               real
+.#concat                 0.5073 (100.0%) *************************
+.#join                   0.5973 ( 84.9%) *********************
+.#format                 0.6762 ( 75.0%) *******************
+.#
+.### Ratio Matrix          real    [01]    [02]    [03]
+.#[01] concat            0.5073  100.0%  117.7%  133.3%
+.#[02] join              0.5973   84.9%  100.0%  113.2%
+.#[03] format            0.6762   75.0%   88.3%  100.0%
+.#.====================
 
 
 
-License
--------
-
-$License: Public Domain $
+.$ Tips
 
 
-Copyright
----------
+.$$ Output Format
 
-$Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
+Benchmarker allows you to customize output format through {{,benchmarker.format,}} object.
+
+.--------------------
+from benchmarker import format
+format.label_width = 30       # same as Benchmark(width=30)
+format.time        = '%9.4f'
+.--------------------
+
+
+.$$ Benchmark Results
+
+You can get benchmark results by {{,bm.results,}} or {{,bm.all_results,}}.
+
+.--------------------
+for result in bm.results:
+    print(result.label)
+    print(result.user)
+    print(result.sys)
+    print(result.total)
+    print(result.real)
+.--------------------
+
+
+.$$ Python 2.4 support
+
+With-statement is not available in Python 2.4.
+But don't worry, Benchmarker provides a solution.
+
+.--------------------
+## Instead of with-statement,
+with Benchmarker() as bm:
+    for _ in bm.repeat(5):
+        bm.run(func, arg1, arg2)
+
+## for-statement is available!
+{{*for bm in Benchmarker(width=20):*}}
+    for _ in bm.repeat(5):
+        bm.run(func, arg1, arg2)
+
+## Or if you like:
+bm = Benchmarker(width=20)
+{{*bm.__enter__()*}}
+for _ in bm.repeat(5):
+    bm.run(func, arg1, arg2)
+{{*bm.__exit__()*}}
+.--------------------
