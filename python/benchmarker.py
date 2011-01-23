@@ -474,6 +474,9 @@ class Statistics(object):
         b(format.time_label % "real")
         b("\n")
         ## body
+        #: returns empty ranking if results is empty.
+        if not results:
+            return ''.join(buf)
         key = self.KEY
         sorted = self._sorted(results)
         fastest = sorted[self.REVERSE and -1 or 0]
@@ -493,11 +496,14 @@ class Statistics(object):
         #: returns ratio matrix as string.
         buf = []; b = buf.append
         ## cell width
-        reals = [ result.real for result in results ]
-        reals.sort()
-        max_ratio = 100 * reals[-1] / reals[0]
-        width = len(str(int(max_ratio))) + 2
-        if width < 6: width = 6
+        if results:
+            reals = [ result.real for result in results ]
+            reals.sort()
+            max_ratio = 100 * reals[-1] / reals[0]
+            width = len(str(int(max_ratio))) + 2
+            if width < 6: width = 6
+        else:
+            width = 6
         ## header
         b(format.label % "## Ratio Matrix")
         b(format.time_label % "real")
@@ -507,6 +513,9 @@ class Statistics(object):
             b(fmt % label)
         b("\n")
         ## matrix
+        #: returns empty ranking if results is empty.
+        if not results:
+            return ''.join(buf)
         key = self.KEY
         if self.SORT:  results = self._sorted(results)
         compensate = self.COMPENSATE

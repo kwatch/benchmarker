@@ -746,6 +746,9 @@ Mikuru                           4.7500 ( 84.2%) *********************
         with spec("returns ranking as string."):
             ret = self.stats.ranking(self.results)
             ok (ret) == expected
+        with spec("returns empty ranking if results is empty."):
+            ret = self.stats.ranking([])
+            ok (ret) == "## Ranking                         real\n"
 
     def test_ratio_matrix(self):
         expected = r"""
@@ -758,6 +761,9 @@ Mikuru                           4.7500 ( 84.2%) *********************
         with spec("returns ratio matrix as string."):
             ret = self.stats.ratio_matrix(self.results)
             ok (ret) == expected
+        with spec("returns empty ranking if results is empty."):
+            ret = self.stats.ratio_matrix([])
+            ok (ret) == "## Ratio Matrix                    real\n"
 
 
 class CommandOption_TC(object):
