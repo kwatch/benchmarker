@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-import sys
+import sys, re
 try:
     from StringIO import StringIO
 except ImportError:
@@ -815,14 +815,17 @@ class CommandOption_TC(object):
     def test__populate_opts(self):
         cmdopt = self.cmdopt
         opts = Tracer().fake_obj()
-        opts.__dict__.update(dict(quiet=True, loop=3, repeat=5, extra=1, exclude=True))
+        opts.__dict__.update(dict(quiet=True, loop=3, repeat=5, extra=1, exclude='[0-9]+'))
         with spec("sets attributes according to options."):
-            cmdopt._populate_opts(opts)
+            cmdopt._populate_opts(opts, ['label1', 'a*'])
             ok (cmdopt.verbose) == False
             ok (cmdopt.loop)    == 3
             ok (cmdopt.repeat)  == 5
             ok (cmdopt.extra)   == 1
-            ok (cmdopt.exclude) == True
+            ok (cmdopt.exclude) == '[0-9]+'
+        with spec("converts patterns into regexps."):
+            ok (cmdopt._exclude_rexps) == [re.compile('[0-9]+')]
+            ok (cmdopt._include_rexps) == [re.compile('^label1$'), re.compile('^a.*$')]
 
     def test__parse_user_options(self):
         cmdopt = self.cmdopt
@@ -848,7 +851,7 @@ Options:
   -n N           loop each benchmark    # same as Benchmarker(loop=N)
   -r N           repeat all benchmarks  # same as bm.repeat(N)
   -X N           ignore N of min/max    # same as bm.repeat(extra=N)
-  -x             do all benchmarks except benchmarks specified by args
+  -x REGEXP      skip benchmarks matched to REGEXP pattern
   --name[=val]   user-defined option
                  ex.
                      # get value of user-defined option
@@ -881,8 +884,8 @@ Options:
             cmdopt = CommandOption()
             cmdopt.parse(['foo.py', '-x', 'foo', 'b*'])
             ok (cmdopt.should_skip('foo')) == True
-            ok (cmdopt.should_skip('bar')) == True
-            ok (cmdopt.should_skip('goo')) == False
+            ok (cmdopt.should_skip('bar')) == False
+            ok (cmdopt.should_skip('goo')) == True
         with spec("if '-h' or '--help' specified then print help message and exit."):
             cmdopt = CommandOption()
             expected = cmdopt._help_message() + "\n"
@@ -906,29 +909,27 @@ Options:
                 ok (sys.stdout.getvalue()) == expected
 
     def test_should_skip(self):
-        cmdopt = self.cmdopt
-        with spec("returns False if no labels specified in command-line."):
-            c = CommandOption()
-            c.parse(['foo.py',])
-            ok (c.should_skip('sos')) == False
         with spec("returns False if task is for empty loop."):
             c = CommandOption()
-            c.parse(['foo.py', '(Empty)'])
+            c.parse(['foo.py', '-x', '^.*$'])
             ok (c.should_skip('(Empty)')) == False
-        with spec("when '-x' specified in command-line..."):
+        with spec("returns True if task label matches to exclude pattern."):
             c = CommandOption()
-            c.parse(['foo.py', '-x', 'sasaki',])
-            with spec("returns True (should skip) if label found in command-line."):
-                ok (c.should_skip('sasaki')) == True
-            with spec("returns False (should not skip) if label not found in command-line."):
-                ok (c.should_skip('kyon')) == False
-        with spec("when '-x' not specified in command-line..."):
+            c.parse(['foo.py', '-x', '[0-9]+'])
+            ok (c.should_skip('aaa123bbb')) == True
+            ok (c.should_skip('aaabbb')) == False
+        with spec("when labels are specified in command-line..."):
             c = CommandOption()
-            c.parse(['foo.py', 'sasaki',])
-            with spec("returns False (should not skip) if label found in command-line."):
-                ok (c.should_skip('sasaki')) == False
-            with spec("returns True (should skip) if label not found in command-line."):
-                ok (c.should_skip('kyon')) == True
+            c.parse(['test.py', 'foo', 'f*'])
+            with spec("returns False if task label matches to them."):
+                ok (c.should_skip('foo')) == False
+                ok (c.should_skip('fuga')) == False
+            with spec("returns True if task label doesn't match to them."):
+                ok (c.should_skip('bar')) == True
+        with spec("returns False if no labels specified in command-line."):
+            c = CommandOption()
+            c.parse(['test.py'])
+            ok (c.should_skip('foo')) == False
 
 
 class GlobalFunctions_TC(object):

@@ -544,7 +544,9 @@ class CommandOption(object):
         self.repeat  = None
         self.extra   = None
         self.exclude = None
-        self._label_rexps = ()
+        self.args    = []
+        self._exclude_rexps = []
+        self._include_rexps = []
         self._user_option_dict = {}
 
     def __getitem__(self, name):
@@ -573,7 +575,7 @@ class CommandOption(object):
         add("-n", None,        dest="loop",    type="int", metavar="N", help="loop each benchmark    # same as Benchmarker(loop=N)")
         add("-r", None,        dest="repeat",  type="int", metavar="N", help="repeat all benchmarks  # same as bm.repeat(N)")
         add("-X", None,        dest="extra",   type="int", metavar="N", help="ignore N of min/max    # same as bm.repeat(extra=N)")
-        add("-x", None,        dest="exclude", action="store_true",     help="do all benchmarks except benchmarks specified by args")
+        add("-x", None,        dest="exclude", metavar="REGEXP",        help="skip benchmarks matched to REGEXP pattern")
         return parser
 
     def _separate_user_options(self, argv):
@@ -587,13 +589,17 @@ class CommandOption(object):
                 new_argv.append(arg)
         return new_argv, user_options
 
-    def _populate_opts(self, opts):
+    def _populate_opts(self, opts, args):
         #: sets attributes according to options.
         if opts.quiet   is not None:  self.verbose = False
         if opts.loop    is not None:  self.loop    = int(opts.loop)
         if opts.repeat  is not None:  self.repeat  = int(opts.repeat)
         if opts.extra   is not None:  self.extra   = int(opts.extra)
-        if opts.exclude is not None:  self.exclude = True
+        if opts.exclude is not None:  self.exclude = opts.exclude
+        self.args = args
+        #: converts patterns into regexps.
+        self._exclude_rexps = opts.exclude and [re.compile(opts.exclude)] or []
+        self._include_rexps = [ re.compile(_meta2rexp(arg)) for arg in self.args ]
 
     def _parse_user_options(self, user_options):
         d = {}
@@ -627,14 +633,9 @@ class CommandOption(object):
         argv, user_options = self._separate_user_options(argv)
         parser = self._new_option_parser()
         opts, args = parser.parse_args(argv)
-        self._populate_opts(opts)
-        self._label_rexps = [ re.compile(_meta2rexp(arg)) for arg in args[1:] ]
+        args = args[1:]
+        self._populate_opts(opts, args)
         self._user_option_dict = self._parse_user_options(user_options)
-        #
-        #sys.stderr.write("\033[0;31m*** debug: opts=%r\033[0m\n" % (opts, ))
-        #sys.stderr.write("\033[0;31m*** debug: args=%r\033[0m\n" % (args, ))
-        #sys.stderr.write("\033[0;31m*** debug: user_options=%r\033[0m\n" % (user_options, ))
-        #sys.stderr.write("\033[0;31m*** debug: self._user_option_dict=%r\033[0m\n" % (self._user_option_dict, ))
         #: if '-h' or '--help' specified then print help message and exit.
         if opts.help:
             print(self._help_message(parser))
@@ -645,28 +646,26 @@ class CommandOption(object):
             sys.exit()
 
     def should_skip(self, task_label):
-        #: returns False if no labels specified in command-line.
-        if not self._label_rexps:
-            return False
         #: returns False if task is for empty loop.
         if task_label == '(Empty)':
             return False
-        #
-        found = False
-        for rexp in self._label_rexps:
-            if rexp.match(task_label):
-                found = True
-                break
-        #: when '-x' specified in command-line...
-        if self.exclude:
-            #: returns True (should skip) if label found in command-line.
-            #: returns False (should not skip) if label not found in command-line.
-            return found
-        #: when '-x' not specified in command-line...
+        #: returns True if task label matches to exclude pattern.
+        if self._exclude_rexps:
+            for rexp in self._exclude_rexps:
+                if rexp.search(task_label):
+                    return True
+        #: when labels are specified in command-line...
+        if self.args:
+            #: returns False if task label matches to them.
+            assert self._include_rexps
+            for rexp in self._include_rexps:
+                if rexp.search(task_label):
+                    return False
+            #: returns True if task label doesn't match to them.
+            return True
+        #: returns False if no labels specified in command-line.
         else:
-            #: returns False (should not skip) if label found in command-line.
-            #: returns True (should skip) if label not found in command-line.
-            return not found
+            return False
 
 
 cmdopt = CommandOption()
