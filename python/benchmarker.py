@@ -572,7 +572,7 @@ class CommandOption(object):
         add("-q", None,        dest="quiet",   action="store_true",     help="quiet (not verbose)    # same as Benchmarker(verbose=False)")
         add("-n", None,        dest="loop",    type="int", metavar="N", help="loop each benchmark    # same as Benchmarker(loop=N)")
         add("-r", None,        dest="repeat",  type="int", metavar="N", help="repeat all benchmarks  # same as bm.repeat(N)")
-        add("-e", None,        dest="extra",   type="int", metavar="N", help="ignore N of min/max    # same as bm.repeat(extra=N)")
+        add("-X", None,        dest="extra",   type="int", metavar="N", help="ignore N of min/max    # same as bm.repeat(extra=N)")
         add("-x", None,        dest="exclude", action="store_true",     help="do all benchmarks except benchmarks specified by args")
         return parser
 

@@ -847,7 +847,7 @@ Options:
   -q             quiet (not verbose)    # same as Benchmarker(verbose=False)
   -n N           loop each benchmark    # same as Benchmarker(loop=N)
   -r N           repeat all benchmarks  # same as bm.repeat(N)
-  -e N           ignore N of min/max    # same as bm.repeat(extra=N)
+  -X N           ignore N of min/max    # same as bm.repeat(extra=N)
   -x             do all benchmarks except benchmarks specified by args
   --name[=val]   user-defined option
                  ex.
@@ -864,10 +864,11 @@ Options:
             pass
         with spec("parses command line options and sets attributes."):
             cmdopt = CommandOption()
-            cmdopt.parse(['foo.py', '-qn100', '-r', '9', '--k1', '--k2=v2', '--k3=', 'foo', 'b*'])
+            cmdopt.parse(['foo.py', '-qn100', '-r', '9', '-X1', '--k1', '--k2=v2', '--k3=', 'foo', 'b*'])
             ok (cmdopt.verbose) == False
-            ok (cmdopt.loop) == 100
-            ok (cmdopt.repeat) == 9
+            ok (cmdopt.loop)    == 100
+            ok (cmdopt.repeat)  == 9
+            ok (cmdopt.extra)   == 1
             ok (cmdopt.exclude) == None
             ok (cmdopt['k1']) == True
             ok (cmdopt['k2']) == 'v2'
