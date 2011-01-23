@@ -2,430 +2,302 @@
 
 ###
 ### $Release: $
-### $Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
+### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###
 
-
-import sys, os, time, gc
+import sys, os, re, time, gc
+from os   import times as _os_times
+from time import time  as _time_time
 
 python2 = sys.version_info[0] == 2
 python3 = sys.version_info[0] == 3
 
 if python2:
-    from cStringIO import StringIO
+    from StringIO import StringIO
 if python3:
     xrange = range
     from io import StringIO
 
-
-__all__ = ('Benchmarker', )
+__all__     = ('Benchmarker', )
 __version__ = "$Release: 0.0.0 $".split(' ')[1]
 
 
+class Format(object):
 
-class Reporter(object):
+    def __init__(self):
+        #: sets 'label_width' property.
+        self.label_width  = 30
+        #self.label       = '%-30s'
+        #: sets 'time' property.
+        self.time         = '%9.4f'
+        #self.times       = '%9.4f %9.4f %9.4f %9.4f'
+        #self.time_label  = '%9s'
+        #self.times_label = '%9s %9s %9s %9s'
 
+    def _get_label_width(self):
+        #: returns '__label_with' attribute.
+        return self.__label_width
 
-    ## default values
-    out     = sys.stdout
-    width   = 30
-    fmt     = "%9.4f"
-    header  = " %9s %9s %9s %9s" % ('user', 'sys', 'total', 'real')
-    verbose = True
-    vout    = sys.stderr
-    sep     = "\n"
+    def _set_label_width(self, width):
+        #: sets both '__label_width' and 'label' attributes.
+        self.__label_width = width
+        self.label = '%-' + str(width) + 's'
 
+    label_width = property(_get_label_width, _set_label_width)
 
-    def __init__(self, **kwargs):
-        for k in ('out', 'width', 'fmt', 'header','verbose', 'vout'):
-            if k in kwargs:
-                setattr(self, k, kwargs[k])
-        #: if verbose mode is off then use dummy io for verbose output.
-        if not self.verbose:
-            self.vout = StringIO()
-        self.prev_is_separator = None
+    def _get_time(self):
+        #: returns '__time' attribute.
+        return self.__time
 
+    def _set_time(self, fmt):
+        #: sets '__time', 'time_label', 'times' and 'times_label' attrs.
+        sfmt = re.sub(r'\.\d+f', 's', fmt)   # ex. '%9.4f' -> '%9s'
+        self.__time      = fmt
+        self.time_label  = sfmt
+        self.times       = ' '.join((fmt, fmt, fmt, fmt))
+        self.times_label = ' '.join((sfmt, sfmt, sfmt, sfmt))
 
-    def start_verbose_mode(self):
-        #: switch output stream for verbose mode.
-        self.__out = self.out
-        self.out = self.vout
-
-
-    def stop_verbose_mode(self):
-        #: switch back output stream for normal mode.
-        self.out = self.__out
-        del self.__out
-
-
-    def write(self, s):
-        #: write argument into output stream.
-        self.out.write(s)
-        #: clear prev_is_separator flag.
-        self.prev_is_separator = False
-        #: return self.
-        return self
+    time = property(_get_time, _set_time)
 
 
-    def flush(self):
-        #: if output stream can respond to 'flush()' then call it.
-        if hasattr(self.out, 'flush'):
-            self.out.flush()
+format = Format()
 
 
-    def print_header(self, title, items=None):
-        #: print header title and items.
-        format = "%%-%ss" % (self.width, )
-        header = items and (' %9s' * 4) % items or self.header
-        self.write(format % ("## " + title)).write(header).write("\n")
+class Echo(object):
 
-
-    def print_label(self, label):
-        #: print benchmark label.
-        format = "%%-%ss" % (self.width, )
-        self.write(format % label[0:self.width])
-        #: flush output stream.
-        self.flush()
-
-
-    def print_times(self, user, sys, total, real):
-        #: print benchmark times.
-        for v in (user, sys, total, real):
-            self.write(" ").write(self.fmt % v)
-        self.write("\n")
-
-
-    def print_separator(self):
-        #: print separator if prev is not separator.
-        if not self.prev_is_separator:
-            self.write(self.sep)
-        #: set prev_is_separator flag.
-        self.prev_is_separator = True
-
-
-REPORTER = Reporter
-
-
-
-class Result(tuple):
-
-
-    label = property(lambda self: self[0])
-    user  = property(lambda self: self[1])
-    sys   = property(lambda self: self[2])
-    total = property(lambda self: self[3])
-    real  = property(lambda self: self[4])
-
-
-    def __iadd__(self, other):
-        #: add values.
-        user  = self.user  + other.user
-        sys   = self.sys   + other.sys
-        total = self.total + other.total
-        real  = self.real  + other.real
-        #: return new Result object.
-        return Result((self.label, user, sys, total, real))
-
-
-    def __isub__(self, other):
-        #: substract values.
-        user  = self.user  - other.user
-        sys   = self.sys   - other.sys
-        total = self.total - other.total
-        real  = self.real  - other.real
-        #: return new Result object.
-        return Result((self.label, user, sys, total, real))
-
+    def __init__(self, out):
+        self._out = out
+        self.prev = ''
 
     @classmethod
-    def average(cls, results):
-        #: calculate average of results.
-        label = None
-        user = sys = total = real = 0.0
-        for r in results:
-            if label is None: label = r.label
-            if label != r.label:
-                raise ValueError("%r: label is different from previous one (=%r)" % (r.label, label))
-            user  += r.user
-            sys   += r.sys
-            total += r.total
-            real  += r.real
-        n = len(results)
-        #: return new Result object.
-        return cls((label, user/n, sys/n, total/n, real/n))
+    def create_dummy(cls):
+        #: returns Echo object with dummy I/O.
+        return cls(StringIO())
+
+    def flush(self):
+        #: calls _out.flush() only if _out has 'flush' method.
+        if hasattr(self._out, 'flush'):
+            self._out.flush()
+
+    def str(self, string):
+        #: does nothing if argument is empty.
+        if not string:
+            return
+        #: writes argument and keep it to prev attribute.
+        self._out.write(string)
+        self.prev = string
+
+    __call__ = str
+
+    def text(self, string):
+        #: does nothing if argument is empty.
+        if not string:
+            return
+        #: adds '\n' at the end of argument if it doesn't end with '\n'.
+        if not string.endswith("\n"):
+            string += "\n"
+        #: writes argument and keep it to prev attribute.
+        self.str(string)
+
+    def separator(self):
+        prev = self.prev
+        #: prints an empty line if nothing is printed.
+        if   not prev:               self.str("\n")
+        #: prints nothing if prev is empty line.
+        elif prev.endswith("\n\n"):  pass
+        #: print an empty line elsewhere.
+        elif prev.endswith("\n"):    self.str("\n")
+        else:                        self.str("\n\n")
+
+    def section_title(self, title, head1='user', head2='sys', head3='total', head4='real'):
+        #: prints separator.
+        self.separator()
+        #: prints title and headers.
+        self.str(format.label % title)
+        self.str(format.times_label % (head1, head2, head3, head4))
+        self.str("\n")
+
+    def task_label(self, label):
+        #: shrinks too long label.
+        if len(label) > format.label_width:
+            label = label[:format.label_width - 3] + '...'
+        #: prints label.
+        self.str(format.label % label)
+        #: flushes output.
+        self.flush()
+
+    def task_times(self, user, sys, total, real):
+        #: prints times.
+        self.str(format.times % (user, sys, total, real))
+        self.str("\n")
 
 
-RESULT = Result
+echo       = Echo(sys.stdout)
+echo_error = Echo(sys.stderr)
 
 
+class Benchmarker(object):
 
-class Task(object):
+    verbose = True
 
+    def __init__(self, width=None, loop=1, verbose=None):
+        #: sets format.label_with if 'wdith' option is specified.
+        if width:
+            format.label_width = width
+        #: sets 'loop' attribute.
+        self.loop  = loop
+        #: sets 'verbose' attribute if its option is specified.
+        if verbose is not None:  self.verbose = verbose
+        #
+        self._setup("##")
+        self.all_results = None
+        #: creates Statistics object using STATISTICS variable.
+        self.stats = STATISTICS()
 
-    def __init__(self, benchmark, label=None):
-        self.benchmark = benchmark
-        self.label     = label
-
+    def _setup(self, section_title):
+        self._section_title = section_title
+        self.results = []
+        self._current_empty_result = None
 
     def __enter__(self):
-        assert self.label
-        #: call benchmark._started().
-        if self.benchmark:
-            self.benchmark._started(self)
-        gc.collect()    # start full-GC
-        #: start to record times.
-        self._start_t = time.time()
-        self._t1 = os.times()
-        #: return self.
+        #: prints platform information.
+        echo.text(self.platform())
+        #: returns self.
         return self
 
-
-    def __exit__(self, type, value, tb):
-        #: record end times.
-        end_t = time.time()
-        t2    = os.times()
-        user  = t2[0] - self._t1[0]    # user time
-        sys   = t2[1] - self._t1[1]    # system time
-        total = sum(t2[:4]) - sum(self._t1[:4])  # total time (include child processes' time)
-        real  = end_t - self._start_t  # real time
-        #: call benchmark._stopped() with Result object.
-        result = RESULT((self.label, user, sys, total, real))
-        if self.benchmark:
-            self.benchmark._stopped(self, result)
-        #: return None
-
-
-    def run(self, func, *args):
-        #: if label is not specified then use function desc or name as label.
-        if not getattr(self, 'label', None):
-            self.label = getattr(func, '__doc__', None) or \
-                         getattr(func, 'func_name', None) or getattr(func, '__name__', None)
-        #: simulate with-statement.
-        loop = self.benchmark.loop
-        try:
-            self.__enter__()
-            #: if loop count is specified then call function N times.
-            if loop > 1:
-                for i in xrange(loop):
-                    func(*args)
-            #: if loop count is not specified then call function one time.
-            else:
-                return func(*args)
-        finally:
-            self.__exit__(*sys.exc_info())
-
+    def __exit__(self, *args):
+        #results = self.results[:]
+        #results.sort(key=lambda x: x.real)
+        results = self.results
+        #: prints separator and ranking.
+        echo.separator()
+        echo.text(self.stats.ranking(results))
+        #: prints separator and ratio matrix.
+        echo.separator()
+        echo.text(self.stats.ratio_matrix(results))
 
     def __iter__(self):
-        #: yield benchmark block N times.
-        loop = self.benchmark.loop
-        #self.__enter__()
-        #try:
-        #    for i in xrange(loop):
-        #        yield i  # SyntaxError: 'yield' not allowed in a 'try' block with a 'finally' clause
-        #finally:
-        #    self.__exit__(*sys.exc_info())
-        self.__enter__()
-        for i in xrange(loop):
-            yield i
+        #: emulates with-statement.
+        raised = False
+        try:
+            self.__enter__()
+            yield self
+        except Exception:
+            raised = True
         self.__exit__(*sys.exc_info())
+        if raised:
+            raise
 
+    def __call__(self, label):
+        #: prints section title if called at the first time.
+        is_first = not self.results and self._current_empty_result is None
+        if is_first:
+            echo.section_title(self._section_title)
+        #: creates new Result object and saves it.
+        result = Result(label)
+        self.results.append(result)
+        #: returns Task object with Result object.
+        #: passes current empty result to task object.
+        return Task(result, loop=self.loop, _empty=self._current_empty_result)
 
-TASK = Task
-
-
-
-class Benchmark(object):
-
-
-    def __init__(self, reporter, title="Benchmark", loop=1, **kwargs):
-        self.reporter = reporter
-        self.title    = title
-        self.loop     = loop
-        self.results  = []
-        self._benchmark_started = False
-        self._empty_task = None
-        self._empty_result = None
-
-
-    def bench(self, label=None):
-        #: return new Task object.
-        return TASK(self, label=label)
-
-
-    __call__ = bench
-
-
-    def empty(self, label="(Empty)"):
-        #: create new Task object and keep it.
-        self._empty_task = task = TASK(self, label=label)
-        #: return Task object.
+    def empty(self):
+        #: creates a task for empty loop and keeps it.
+        task = self.__call__('(Empty)')
+        self._current_empty_result = task.result
+        #: created task should not be included in self.results.
+        assert self.results[-1] is task.result
+        self.results.pop()
+        #: returns a Task object.
         return task
 
+    def repeat(self, ntimes, extra=0):
+        #: replaces 'echo' object to stderr temporarily if verbose.
+        #: replaces 'echo' object to dummy I/O temporarily if not verbose.
+        global echo, echo_error
+        echo_bkup = echo
+        echo = self.verbose and echo_error or Echo.create_dummy()
+        #: invokes block for 'ntimes + 2*extra' times.
+        self.all_results = []
+        for i in xrange(ntimes + 2*extra):
+            #: resets some properties for each repetition.
+            self._setup("## (#%d)" % (i+1))
+            #: keeps all results.
+            self.all_results.append(self.results)
+            yield i+1
+        #: restores 'echo' object after block.
+        echo = echo_bkup
+        #: calculates average of results.
+        avg_results = self._calc_average_results(self.all_results, extra)
+        self.results = avg_results
+        #: prints averaged results.
+        self._echo_average_section(avg_results, extra, len(self.all_results))
 
-    def run(self, func, *args):
-        #: same as self.bench(None).run(func, *args).
-        return self.bench(None).run(func, *args)
-
-
-    def _started(self, task):
-        #: print header only once.
-        if not self._benchmark_started:
-            self._benchmark_started = True
-            self.reporter.print_header(self.title)
-        #: print label.
-        self.reporter.print_label(task.label)
-
-
-    def _stopped(self, task, result):
-        #: if task is for empty loop then keep it.
-        if task is self._empty_task:
-            self._empty_result = result
-        #: if task is for normal benchmark...
-        else:
-            #: if empty loop result exists then substitute it from current result.
-            if self._empty_result:
-                result -= self._empty_result
-            #: keep result.
-            self.results.append(result)
-        #: print benchmark result.
-        r = result
-        self.reporter.print_times(r.user, r.sys, r.total, r.real)
-
-
-BENCHMARK = Benchmark
-
-
-
-class Runner(object):
-
-
-    ## default value
-    loop = 1
-
-
-    def __init__(self, **kwargs):
-        for k in ('loop', ):
-            if k in kwargs:
-                setattr(self, k, kwargs[k])
-        self.kwargs    = kwargs
-        self.reporter  = None # REPORTER(**kwargs)
-        self.benchmark = None # BENCHMARK(self.reporter, **kwargs)
-        self.stat      = None # STAT(self, **kwargs)
-        self.results   = None
-
-
-    def _get_benchmark(self):
-        #: if self.results is None then set self.benchmark.results to it.
-        if self.results is None:
-            self.results = self.benchmark.results
-        #: return self.benchmark.
-        return self.benchmark
-
-
-    def bench(self, label=None):
-        #: same as self.benchmark.bench(label).
-        return self._get_benchmark().bench(label)
-
-
-    __call__ = bench
-
-
-    def empty(self, label="(Empty)"):
-        #: same as self.benchmark.empty(label).
-        return self._get_benchmark().empty(label)
-
-
-    def run(self, func, *args):
-        #: same as self.benchmark.run(func, *args).
-        return self._get_benchmark().run(func, *args)
-
-
-    def _minmax_values_and_indecies(self, results, key, extra):
-        #: search min and max values and indecies.
-        sorted_results = sorted(results, key=lambda ent: getattr(ent, key))
-        arr = []
-        for i in xrange(extra):
-            min_r   = sorted_results[i]
-            max_r   = sorted_results[-i-1]
-            min_idx = results.index(min_r)
-            max_idx = results.index(max_r)
-            min_val = getattr(min_r, key)
-            max_val = getattr(max_r, key)
-            arr.append((min_val, min_idx, max_val, max_idx))
-        return arr
-
-
-    def _delete_minmax_from(self, results, key, extra, fmt, label_fmt):
-        #: print min an max benchmarks.
-        arr = self._minmax_values_and_indecies(results, key, extra)
-        label = results[0].label
-        for min_val, min_idx, max_val, max_idx in arr:
-            max_pos = "#%s" % (max_idx + 1)
-            min_pos = "#%s" % (min_idx + 1)
-            self.reporter.write(label_fmt % label) \
-                         .write(fmt % min_val).write(" %9s" % min_pos) \
-                         .write(fmt % max_val).write(" %9s" % max_pos).write("\n")
-            label = ''
-            results[min_idx] = results[max_idx] = None
-        #: return results without min and max results.
-        return [ r for r in results if r ]
-
-
-    def _average_results(self, all_results, key, extra):
-        #: calculate average of results.
+    def _calc_average_results(self, all_results, extra):
+        #: prints min-max section title if extra is specified.
+        if extra:
+            #echo.section_title('## Remove min & max', 'min', '(#N)', 'max', '(#N)')
+            echo.section_title('## Remove min & max', 'min', 'repeat', 'max', 'repeat')
+        #: calculates average of results and returns it.
         avg_results = []
-        if extra > 0:
-            fmt = " " + self.reporter.fmt
-            label_fmt = "%-" + str(self.reporter.width) + "s"
-            self.reporter.print_header("Remove min & max", items=('min', 'bench#', 'max', 'bench#'))
-            for results in all_results:
-                results = self._delete_minmax_from(results, key, extra, fmt, label_fmt)
-                avg_results.append(RESULT.average(results))
-        else:
-            for results in all_results:
-                avg_results.append(RESULT.average(results))
+        if self.all_results:
+            for i in xrange(len(all_results[0])):
+                results = [ arr[i] for arr in all_results ]
+                #: prints min-max section if extra is specified.
+                if extra:
+                    results = self._remove_min_and_max(results, extra)
+                #
+                result = Result.average(results)
+                avg_results.append(result)
         return avg_results
 
+    def _echo_average_section(self, avg_results, extra, n):
+        #: prints average section title.
+        title = extra and '## Average of %s (=%s-2*%s)' % (n-2*extra, n, extra) \
+                      or  '## Average of %s' % n
+        echo.section_title(title)
+        #: prints averaged results.
+        for r in avg_results:
+            echo.task_label(r.label)
+            echo.task_times(*r.to_tuple())
 
-    def _print_results(self, results, title):
-        #: print results.
-        self.reporter.print_header(title)
-        for r in results:
-            self.reporter.print_label(r.label)
-            self.reporter.print_times(r.user, r.sys, r.total, r.real)
+    def _remove_min_and_max(self, results, extra):
+        #: removes min and max result.
+        results  = results[:]
+        id2index = dict([ (id(r), i) for i, r in enumerate(results) ])
+        sorted   = results[:]
+        sorted.sort(key=lambda r: r.real)
+        s1, s2 = format.time, format.time_label
+        fmt     = s1 + ' ' + s2 + ' ' + s1 + ' ' + s2 + '\n'
+        label   = results[0].label
+        indices = []
+        for i in xrange(extra):
+            r_min = sorted[i]
+            r_max = sorted[-i-1]
+            i_min = id2index[id(r_min)]
+            i_max = id2index[id(r_max)]
+            s_min = '(#%s)' % (i_min+1)
+            s_max = '(#%s)' % (i_max+1)
+            indices.extend((i_min, i_max))
+            #: prints removed data.
+            echo.task_label(label)
+            echo.str(fmt % (r_min.real, s_min, r_max.real, s_max))
+            label = ''
+        indices.sort(reverse=True)
+        for i in indices:
+            del results[i]
+        #: returns new results.
+        return results
 
-
-    def repeat(self, n, extra=0, key='real'):
-        self.reporter.start_verbose_mode()
-        results_list = []
-        #: repeat n + 2*extra times.
-        for i in xrange(n + 2 * extra):
-            bm = BENCHMARK(self.reporter, title="Benchmark #%s" % (i+1), loop=self.loop)
-            self.benchmark = bm
-            #: yield Benchmark object.
-            yield bm
-            results_list.append(bm.results)
-            self.reporter.print_separator()
-        #: calculate average.
-        num_results = len(results_list[0])
-        all_results = [ [] for j in xrange(num_results) ]
-        for results in results_list:
-            for j, result in enumerate(results):
-                all_results[j].append(result)
-        self.all_results = all_results
-        self.results = self._average_results(all_results, key=key, extra=extra)
-        self.reporter.print_separator()
-        self.reporter.stop_verbose_mode()
-        title = "Average of %s" % n
-        enough_width = 24
-        if extra > 0 and self.reporter.width >= enough_width:
-            title += " (=%s-2*%s)" % (n + 2 * extra, extra)
-        self._print_results(self.results, title)
-
+    def run(self, func, *args):   # **kwargs
+        #: uses func doc string or name as label.
+        label = func.__doc__ or func.__name__
+        #: same as 'self.__call__(label).run(func)'.
+        return self(label).run(func, *args)   # **kwargs
 
     @staticmethod
     def platform():
+        #: returns platform information.
         buf = []
         a = buf.append
         a("## benchmarker:       release %s (for python)\n" % (__version__, ))
@@ -435,224 +307,203 @@ class Runner(object):
         return ''.join(buf)
 
 
-    def __enter__(self):
-        #: print platform information.
-        self.reporter.write(self.platform()).write("\n")
-        #: return self.
+class Result(object):
+
+    def __init__(self, label):
+        #: takes label argument.
+        self.label = label
+        self.user = self.sys = self.total = self.real = 0.0
+
+    def _set(self, user, sys, total, real):
+        #: sets times values as attributes.
+        self.user  = user
+        self.sys   = sys
+        self.total = total
+        self.real  = real
+        #: returns self.
         return self
 
+    def __repr__(self):
+        #: returns represented string.
+        name = self.__class__.__name__
+        f = lambda x: '%.3f' % x
+        return '<%s label=%r user=%s sys=%s total=%s real=%s>' % \
+                  (name, self.label, f(self.user), f(self.sys), f(self.total), f(self.real))
+
+    def to_tuple(self):
+        #: returns a tuple with times.
+        return (self.user, self.sys, self.total, self.real)
+
+    @classmethod
+    def average(cls, results):
+        #: calculates averaged result from results.
+        if not results:
+            return None
+        label = results[0].label
+        avg = cls(label)
+        for r in results:
+            assert r.label == label
+            avg.user  += r.user
+            avg.sys   += r.sys
+            avg.total += r.total
+            avg.real  += r.real
+        n = len(results)
+        avg.user  /= n
+        avg.sys   /= n
+        avg.total /= n
+        avg.real  /= n
+        #: returns averaged result.
+        return avg
+
+
+class Task(object):
+
+    def __init__(self, result, loop=1, _empty=None):
+        #: takes a Result object, loop, and _empty result.
+        self.result = result
+        self.loop   = loop
+        self._empty = _empty
+
+    def __enter__(self):
+        #: prints task label.
+        echo.task_label(self.result.label)
+        #: starts full-GC.
+        gc.collect()
+        #: saves current timestamp.
+        self._times = _os_times()
+        self._time  = _time_time()
+        #: returns self.
+        return self
 
     def __exit__(self, *args):
-        #: print stat.all().
-        self.reporter.write(self.stat.all()).write("\n")
-        #: return None.
-
-
-    #def stats(self):
-    #    return "\n" + self.stat.all()
-
-
-    def compared_matrix(self, **kwargs):
-        """obsolete. use self.stat.ratio_matrix(compensate=-100.0) instead."""
-        return self.stat.ratio_matrix(compensate=-100.0, **kwargs)
-
-
-    def print_compared_matrix(self, **kwargs):
-        """obsolete. use print self.stat.ratio_matrix(compensate=-100.0) instead."""
-        self.reporter.write("-" * 79).write("\n")
-        self.reporter.write(self.stat.ratio_matrix(compensate=-100.0, **kwargs)).write("\n")
-
-
-RUNNER = Runner
-
-
-
-def _dummy_namespace():
-
-
-    class Statistics(object):
-
-
-        ## default values
-        key        = 'real'
-        width      = Reporter.width
-        fmt        = Reporter.fmt
-        sort       = True
-
-
-        def __init__(self, **kwargs):
-            for k in ('key', 'width', 'fmt', 'sort'):
-                if k in kwargs:
-                    setattr(self, k, kwargs[k])
-
-
-        def aggregate(self, results):
-            raise NotImplemenetedError("%s.aggregate(): not implemented yet." % self.__class__.__name__)
-
-
-        def renderer(self):
-            return self
-
-
-        def render_text(self, results):
-            raise NotImplemenetedError("%s.render_text(): not implemented yet." % self.__class__.__name__)
-
-
-        def process(self, results, format='text'):
-            data = self.aggregate(results)
-            if format == 'text':
-                return self.renderer().render_text(data)
-            if format == 'raw':
-                return data
-            return
-
-
-
-    class Ranking(Statistics):
-
-
-        def aggregate(self, results):
-            key = self.key
-            data = {'title': 'Ranking', 'key': key}
-            data['results'] = []
-            append = data['results'].append
-            base = None
-            results = results[:]
-            results.sort(key=lambda r: getattr(r, key))
-            for result in results:
-                val = getattr(result, key)
-                if base is None:
-                    base = 100.0 * val
-                ratio = base / val
-                chart = '*' * int(ratio / 5.0)
-                d = {'label': result.label, 'value': val, 'ratio': ratio, 'chart': chart}
-                append(d)
-            return data
-
-
-        def render_text(self, data):
-            width, fmt = self.width, self.fmt
-            buf = []; a = buf.append
-            format = "%-" + str(width) + "s %9s  %5s  %s\n"
-            a(format % ('## ' + data['title'], data['key'], 'ratio', 'chart'))
-            format = "%-" + str(width) + "s " + fmt + " (%5.1f) %s\n"
-            for d in data['results']:
-                a(format % (d['label'][0:width], d['value'], d['ratio'], d['chart']))
-            return ''.join(buf)
-
-
-
-    class RatioMatrix(Statistics):
-
-
-        ## default values
-        compensate = 0.0
-
-
-        def __init__(self, **kwargs):
-            Statistics.__init__(self, **kwargs)
-            for k in ('compensate', ):
-                if k in kwargs:
-                    setattr(self, k, kwargs[k])
-
-
-        def aggregate(self, results, formula=None):
-            key, sort, compensate = self.key, self.sort, self.compensate
-            if not formula:
-                formula = lambda val, other: 100.0 * other / val
-            if sort:
-                results = results[:]
-                results.sort(key=lambda r: getattr(r, key))
-            values = [ getattr(result, key) for result in results ]
-            data = {'title': 'Ratio Matrix', 'key': key, 'compensate': compensate}
-            data['results'] = []
-            append = data['results'].append
-            for i, val in enumerate(values):
-                ratios = [ formula(val, other) + compensate for other in values ]
-                append({'label': results[i].label, 'value': val, 'ratios': ratios})
-            return data
-
-
-        def render_text(self, data):
-            width, fmt = (self.width, self.fmt)
-            buf = []; a = buf.append
-            format = "%-" + str(width) + "s %9s"
-            a(format % ("## " + data['title'], data['key']))
-            width -= len("[00] ")
-            for n in xrange(1, len(data['results']) + 1):
-                a("    [%02d]" % n)
-            a("\n")
-            format = "[%02d] %-" + str(width) + "s " + fmt
-            for i, d in enumerate(data['results']):
-                a(format % (i+1, d['label'][0:width], d['value']))
-                for ratio in d['ratios']:
-                    a(" %7.1f" % ratio)
-                a("\n")
-            return "".join(buf)
-
-
-    RANKING = Ranking
-    RATIO_MATRIX = RatioMatrix
-
-
-    return locals()
-
-
-statistics = type(sys)('benchmarker.statistics')
-statistics.__dict__.update(_dummy_namespace())
-sys.modules['benchmarker.statistics'] = statistics
-
-
-
-class Stat(object):
-
-
-    def __init__(self, runner, **kwargs):
-        self.runner = runner
-        if 'width' not in kwargs:
-            kwargs['width'] = self.runner.reporter.width
-        self.kwargs = kwargs
-
-
-    @staticmethod
-    def _merge(dict1, dict2):
-        d = dict2.copy()
-        d.update(dict1)
-        return d
-
-
-    def ranking(self, **kwargs):
-        kwargs = self._merge(kwargs, self.kwargs)
-        return statistics.Ranking(**kwargs).process(self.runner.results)
-
-
-    def ratio_matrix(self, **kwargs):
-        kwargs = self._merge(kwargs, self.kwargs)
-        return statistics.RatioMatrix(**kwargs).process(self.runner.results)
-
-
-    def all(self, almost=True, sep="\n", **kwargs):
-        buf = ['']
-        buf.append(self.ranking(**kwargs))
-        buf.append(self.ratio_matrix(**kwargs))
-        return sep.join(buf)
-
-
-STAT = Stat
-
-
-
-def Benchmarker(width=None, **kwargs):
-    #: add 'width' argument into kwargs.
-    if width is not None:
-        kwargs['width'] = width
-    #: create Runner, Reporter, Benchmarker, and Stat objects.
-    runner = RUNNER(**kwargs)
-    runner.reporter  = REPORTER(**kwargs)
-    runner.benchmark = BENCHMARK(runner.reporter, **kwargs)
-    if 'width' not in kwargs:
-        kwargs = kwargs.copy()
-        kwargs['width'] = runner.reporter.width
-    runner.stat = STAT(runner, **kwargs)
-    #: return Runner object.
-    return runner
+        #: calculates user, sys, total and real times.
+        time  = _time_time()
+        times = _os_times()
+        r = self.result
+        r.user  = times[0] - self._times[0]
+        r.sys   = times[1] - self._times[1]
+        r.total = r.user + r.sys
+        r.real  = time - self._time
+        del self._times, self._time
+        #: removes empty loop data if they are specified.
+        if self._empty:
+            r.user  -= self._empty.user
+            r.sys   -= self._empty.sys
+            r.total -= self._empty.total
+            r.real  -= self._empty.real
+        #: prints times.
+        echo.task_times(*r.to_tuple())
+
+    def run(self, func, *args):   # **kwargs
+        loop = self.loop
+        #: calls __enter__() to simulate with-statement.
+        self.__enter__()
+        #: calls function with arguments.
+        try:
+            #: calls functions N times if 'loop' is specified.
+            if loop > 1:
+                for i in xrange(loop):
+                    func(*args)   # **kwargs
+            else:
+                func(*args)       # **kwargs
+        #: calls __exit__() to simulate with-statement.
+        finally:
+            self.__exit__(*sys.exc_info())
+        #: returns self.
+        return self
+
+    def __iter__(self):
+        loop = self.loop
+        raised = False
+        #: calls __enter__() to simulate with-statement.
+        self.__enter__()
+        #
+        try:
+            #: executes block for N times if 'loop' is specified.
+            if loop > 1:
+                for i in xrange(loop):
+                    yield i
+            #: executes block only once if 'loop' is not specified..
+            else:
+                yield i
+        except Exception:
+            raised = True
+        #: calls __exit__() to simulate with-statement.
+        self.__exit__(*sys.exc_info())
+        if raised:
+            raise
+
+
+class Statistics(object):
+
+    KEY        = 'real'
+    SORT       = True
+    REVERSE    = False
+    COMPENSATE = 0.0     # or -100.0
+
+    def _sorted(self, results):
+        #: not modify passed results.
+        sorted = results[:]
+        #: returns sorted results.
+        sorted.sort(key=lambda x: getattr(x, self.KEY), reverse=self.REVERSE)
+        return sorted
+
+    def ranking(self, results):
+        #: returns ranking as string.
+        buf = []; b = buf.append
+        ## header
+        b(format.label % "## Ranking")
+        b(format.time_label % "real")
+        b("\n")
+        ## body
+        key = self.KEY
+        sorted = self._sorted(results)
+        fastest = sorted[self.REVERSE and -1 or 0]
+        base = getattr(fastest, key)
+        if self.SORT:  results = sorted
+        for result in results:
+            val   = getattr(result, key)
+            ratio = 100.0 * base / val
+            chart = '*' * int(round(ratio / 4))
+            b(format.label % result.label)
+            b(format.time % val)
+            b(" (%5.1f%%) %s\n" % (ratio, chart))
+        ##
+        return ''.join(buf)
+
+    def ratio_matrix(self, results):
+        #: returns ratio matrix as string.
+        buf = []; b = buf.append
+        ## cell width
+        reals = [ result.real for result in results ]
+        reals.sort()
+        max_ratio = 100 * reals[-1] / reals[0]
+        width = len(str(int(max_ratio))) + 2
+        if width < 6: width = 6
+        ## header
+        b(format.label % "## Ratio Matrix")
+        b(format.time_label % "real")
+        fmt = "  %" + str(width) + "s"      # ex. " %7s "
+        for i in xrange(len(results)):
+            label = "[%02d]" % (i+1)
+            b(fmt % label)
+        b("\n")
+        ## matrix
+        key = self.KEY
+        if self.SORT:  results = self._sorted(results)
+        compensate = self.COMPENSATE
+        fmt = " %" + str(width) + ".1f%%"   # ex. " %7.1f%%"
+        for i, result in enumerate(results):
+            label = "[%02d] %s" % (i+1, result.label)
+            base = getattr(result, key)
+            b(format.label % label)
+            b(format.time % base)
+            for r in results:
+                ratio = 100.0 * getattr(r, key) / base + compensate
+                b(fmt % ratio)
+            b("\n")
+        ##
+        return ''.join(buf)
+
+
+STATISTICS = Statistics
