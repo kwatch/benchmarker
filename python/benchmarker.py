@@ -572,10 +572,10 @@ class CommandOption(object):
         add("-h", "--help",    dest="help",    action="store_true",     help="show help")
         add("-v", "--version", dest="version", action="store_true",     help="show version")
         add("-q", None,        dest="quiet",   action="store_true",     help="quiet (not verbose)    # same as Benchmarker(verbose=False)")
-        add("-n", None,        dest="loop",    type="int", metavar="N", help="loop each benchmark    # same as Benchmarker(loop=N)")
-        add("-r", None,        dest="repeat",  type="int", metavar="N", help="repeat all benchmarks  # same as bm.repeat(N)")
-        add("-X", None,        dest="extra",   type="int", metavar="N", help="ignore N of min/max    # same as bm.repeat(extra=N)")
-        add("-x", None,        dest="exclude", metavar="REGEXP",        help="skip benchmarks matched to REGEXP pattern")
+        add("-n", None,        dest="loop",    metavar="N", type="int", help="loop each benchmark    # same as Benchmarker(loop=N)")
+        add("-r", None,        dest="repeat",  metavar="N", type="int", help="repeat all benchmarks  # same as bm.repeat(N)")
+        add("-X", None,        dest="extra",   metavar="N", type="int", help="ignore N of min/max    # same as bm.repeat(extra=N)")
+        add("-x", None,        dest="exclude", metavar="regexp",        help="skip benchmarks matched to regexp pattern")
         return parser
 
     def _separate_user_options(self, argv):

@@ -851,7 +851,7 @@ Options:
   -n N           loop each benchmark    # same as Benchmarker(loop=N)
   -r N           repeat all benchmarks  # same as bm.repeat(N)
   -X N           ignore N of min/max    # same as bm.repeat(extra=N)
-  -x REGEXP      skip benchmarks matched to REGEXP pattern
+  -x regexp      skip benchmarks matched to regexp pattern
   --name[=val]   user-defined option
                  ex.
                      # get value of user-defined option
