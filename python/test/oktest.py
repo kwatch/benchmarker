@@ -3,8 +3,8 @@
 ###
 ### oktest.py -- new style test utility
 ###
-### $Release: 0.5.0 $
-### $Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
+### $Release: 0.6.0 $
+### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
 ### $License: MIT License $
 ###
 
@@ -160,7 +160,7 @@ class AssertionObject(object):
         diff = None
         if isinstance(msg, tuple):
             msg, diff = msg
-        if self._bool == False:
+        if self._bool is False:
             msg = 'not ' + msg
         if postfix:
             msg += postfix
@@ -428,7 +428,7 @@ class TestRunner(object):
 TEST_RUNNER = TestRunner
 
 
-TARGET_PATTERN = '.*Test(Case)?$'
+TARGET_PATTERN = '.*(Test|TestCase|_TC)$'
 
 def run(*targets):
     if len(targets) == 0:
@@ -690,7 +690,7 @@ class _Context(object):
         try:
             func(*args)
         finally:
-            self.__exit__()
+            self.__exit__(sys.exc_info())
 
 
 
@@ -701,6 +701,21 @@ class Spec(_Context):
 
     def __init__(self, desc):
         self.desc = desc
+
+    def __iter__(self):
+        self.__enter__()
+        #try:
+        #    yield self  # (Python2.4) SyntaxError: 'yield' not allowed in a 'try' block with a 'finally' clause
+        #finally:
+        #    self.__exit__(sys.exc_info())
+        ex = None
+        try:
+            yield self
+        except:
+            ex = None
+        self.__exit__(sys.exc_info())
+        if ex:
+            raise ex
 
 
 def spec(desc):
@@ -920,37 +935,61 @@ del _dummy
 ##
 def _dummy():
 
-    __all__ = ('Tracer', 'FakeObject')
+    __all__ = ('Tracer', )
 
 
     class Call(object):
 
-        def __init__(self, name=None, args=None, kwargs=None, ret=None):
+        def __init__(self, receiver=None, name=None, args=None, kwargs=None, ret=None):
+            self.receiver = receiver
             self.name   = name     # method name
             self.args   = args
             self.kwargs = kwargs
             self.ret    = ret
 
         def __repr__(self):
-            return '%s(args=%r, kwargs=%r, ret=%r)' % (self.name, self.args, self.kwargs, self.ret)
+            #return '%s(args=%r, kwargs=%r, ret=%r)' % (self.name, self.args, self.kwargs, self.ret)
+            buf = []; a = buf.append
+            a("%s(" % self.name)
+            for arg in self.args:
+                a(repr(arg))
+                a(", ")
+            for k in self.kwargs:
+                a("%s=%s" % (k, repr(self.kwargs[k])))
+                a(", ")
+            if buf[-1] == ", ":  buf.pop()
+            a(") #=> %s" % repr(self.ret))
+            return "".join(buf)
+
+        def __iter__(self):
+            yield self.receiver
+            yield self.name
+            yield self.args
+            yield self.kwargs
+            yield self.ret
+
+        def list(self):
+            return list(self)
+
+        def tuple(self):
+            return tuple(self)
+
+        def __eq__(self, other):
+            if isinstance(other, list):
+                return list(self) == other
+            elif isinstance(other, tuple):
+                return tuple(self) == other
+            elif isinstance(other, self.__class__):
+                return self.name == other.name and self.args == other.args \
+                    and self.kwargs == other.kwargs and self.ret == other.ret
+            else:
+                return False
+
+        def __ne__(self, other):
+            return not self.__eq__(other)
 
 
     class FakeObject(object):
-        """dummy object class which can be stub or mock object.
-           ex.
-              from oktest.helper import FakeObject
-              obj = FakeObject(hi="Hi", hello=lambda self, x: "Hello %s!" % x)
-              obj.hi()           #=> 'Hi'
-              obj.hello("SOS")   #=> 'Hello SOS!'
-              obj._calls[0].name    #=> 'hi'
-              obj._calls[0].args    #=> ()
-              obj._calls[0].kwargs  #=> {}
-              obj._calls[0].ret     #=> 'Hi'
-              obj._calls[1].name    #=> 'hello'
-              obj._calls[1].args    #=> ('SOS', )
-              obj._calls[1].kwargs  #=> {}
-              obj._calls[1].ret     #=> 'Hello SOS!'
-        """
 
         def __init__(self, **kwargs):
             self._calls = self.__calls = []
@@ -962,13 +1001,13 @@ def _dummy():
             if isinstance(val, types.FunctionType):
                 func = val
                 def f(self, *args, **kwargs):
-                    r = Call(name, args, kwargs, None)
+                    r = Call(fake_obj, name, args, kwargs, None)
                     fake_obj.__calls.append(r)
                     r.ret = func(self, *args, **kwargs)
                     return r.ret
             else:
                 def f(self, *args, **kwargs):
-                    r = Call(name, args, kwargs, val)
+                    r = Call(fake_obj, name, args, kwargs, val)
                     fake_obj.__calls.append(r)
                     return val
             f.func_name = f.__name__ = name
@@ -978,95 +1017,7 @@ def _dummy():
 
     class Tracer(object):
         """trace function or method call to record arguments and return value.
-
-           ex (dummy objects)
-              tr = Tracer()
-              ## create dummy object
-              obj1 = tr.dummy(hi="Hi!")
-              obj2 = tr.dummy(hello=lambda self, x: "Hello %s!" % x)
-              ## call dummy method
-              obj2.hello("SOS")  #=> 'Hello SOS!'
-              obj1.hi()          #=> 'Hi!'
-              ## check result
-              tr[0].name     #=> 'hello'
-              tr[0].args     #=> ('SOS', )
-              tr[0].kwargs   #=> {}
-              tr[0].ret      #=> 'Hello SOS!'
-              tr[1].name     #=> 'hi'
-              tr[1].args     #=> ()
-              tr[1].kwargs   #=> {}
-              tr[1].ret      #=> 'Hi!'
-
-           ex (trace function).
-               def f(x):
-                   return x*2
-               def g(x, y=0):
-                   return f(x+1) + y
-               #
-               tr = Tracer()
-               f = tr.trace(f)
-               g = tr.trace(g)
-               #
-               print(g(3, y=5))       #=> 13
-               #
-               print(tr[0].name)    #=> g
-               print(tr[0].args)    #=> (3,)
-               print(tr[0].kwargs)  #=> {'y': 5}
-               print(tr[0].ret)     #=> 11
-               #
-               print(tr[1].name)    #=> f
-               print(tr[1].args)    #=> (4,)
-               print(tr[1].kwargs)  #=> {}
-               print(tr[1].ret)     #=> 8
-               #
-               print(repr(tr[0]))   #=> g(args=(3,), kwargs={'y': 5}, ret=13)
-               print(repr(tr[1]))   #=> f(args=(4,), kwargs={}, ret=8)
-
-           ex (trace method).
-               class Foo(object):
-                   def f1(self, x):
-                       return self.f2(x, 3) + 1
-                   def f2(self, x, y):
-                       return x + y
-               #
-               tr = Tracer()
-               obj = Foo()
-               tr.trace(obj, 'f1', 'f2')
-               #
-               print(obj.f1(5))      #=> 9
-               print(tr[0].name)     #=> f1
-               print(tr[0].args)     #=> (5,)
-               print(tr[0].kwargs)   #=> {}
-               print(tr[0].ret)      #=> 9
-               #
-               print(repr(tr[0]))    #=> f1(args=(5,), kwargs={}, ret=9)
-               print(repr(tr[1]))    #=> f2(args=(5, 3), kwargs={}, ret=8)
-
-           ex (dummy function).
-               def f(x):
-                   return x*2
-               def block(original_func, x):
-                   #return original_func(x)
-                   return 'x=%s' % repr(x)
-               tr = Tracer()
-               f = tr.trace(f, block)
-               print(f(3))             #=> x=3
-               print(repr(tr[0]))      #=> f(args=(3,), kwargs={}, ret='x=3')
-
-           ex (dummy method).
-               class Hello(object):
-                   def hello(self, name):
-                       return 'Hello %s!' % name
-               #
-               obj = Hello()
-               tr = Tracer()
-               def block(original_func, name):
-                   v = original_func(name)
-                   return 'message: %s' % v
-               tr.trace(obj, hello=block)   # or tr.trace(obj, 'meth1', 'meth2', meth3=lambda, meth4=lambda)
-               #
-               print(obj.hello('Haruhi'))   #=> message: Hello Haruhi!
-               print(repr(tr[0]))           #=> hello(args=('Haruhi',), kwargs={}, ret='message: Hello Haruhi!')
+           see README.txt for details.
         """
 
         def __init__(self):
@@ -1074,20 +1025,6 @@ def _dummy():
 
         def __getitem__(self, index):
             return self.calls[index]
-
-        def called(self):
-            return len(self.calls) > 0
-
-        def _attr(name):
-            def f(self):
-                if len(self.calls) == 0: return None
-                return getattr(self.calls[0], name, None)
-            return f
-
-        name   = property(_attr('name'))
-        args   = property(_attr('args'))
-        kwargs = property(_attr('kwargs'))
-        ret    = property(_attr('ret'))
 
         def __len__(self):
             return len(self.calls)
@@ -1101,10 +1038,10 @@ def _dummy():
                     setattr(newfunc, k, getattr(func, k))
 
         def _wrap_func(self, func, block):
-            intr = self
+            tr = self
             def newfunc(*args, **kwargs):                # no 'self'
-                call = Call(_func_name(func), args, kwargs, None)
-                intr.calls.append(call)
+                call = Call(None, _func_name(func), args, kwargs, None)
+                tr.calls.append(call)
                 if block:
                     ret = block(func, *args, **kwargs)
                 else:
@@ -1115,11 +1052,12 @@ def _dummy():
             self._copy_attrs(func, newfunc)
             return newfunc
 
-        def _wrap_method(self, func, block):
-            intr = self
+        def _wrap_method(self, method_obj, block):
+            func = method_obj
+            tr = self
             def newfunc(self, *args, **kwargs):          # has 'self'
-                call = Call(_func_name(func), args, kwargs, None)
-                intr.calls.append(call)
+                call = Call(self, _func_name(func), args, kwargs, None)
+                tr.calls.append(call)
                 if _is_unbound(func): args = (self, ) + args   # call with 'self' if unbound method
                 if block:
                     ret = block(func, *args, **kwargs)
@@ -1141,18 +1079,31 @@ def _dummy():
 
         def trace_method(self, obj, *method_names):
             for method_name in method_names:
-                if not hasattr(obj, method_name):
+                method_obj = getattr(obj, method_name, None)
+                if method_obj is None:
                     raise ValueError("%s: no method found on %r." % (method_name, obj))
-                method_obj = getattr(obj, method_name)
                 setattr(obj, method_name, self._wrap_method(method_obj, None))
             return None
 
         def fake_method(self, obj, **kwargs):
+            def _new_block(ret_val):
+                def _block(*args, **kwargs):
+                    return ret_val
+                return _block
+            def _dummy_method(obj, name):
+                fn = lambda *args, **kwargs: None
+                fn.__name__ = name
+                if python2: fn.func_name = name
+                if python2: return types.MethodType(fn, obj, type(obj))
+                if python3: return types.MethodType(fn, obj)
             for method_name in kwargs:
-                #if not hasattr(obj, method_name):
-                #    raise ValueError("%s: no method found on %r." % (method_name, obj))
                 method_obj = getattr(obj, method_name, None)
-                setattr(obj, method_name, self._wrap_method(method_obj, kwargs[method_name]))
+                if method_obj is None:
+                    method_obj = _dummy_method(obj, method_name)
+                block = kwargs[method_name]
+                if not isinstance(block, types.FunctionType):
+                    block = _new_block(block)
+                setattr(obj, method_name, self._wrap_method(method_obj, block))
             return None
 
         def trace(self, target, *args):
