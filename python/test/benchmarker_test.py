@@ -16,9 +16,10 @@ except ImportError:
 
 from oktest import ok, not_ok, run, spec
 from oktest.tracer import Tracer
+from oktest.helper import dummy_io
 
 import benchmarker
-from benchmarker import Format, Echo, Benchmarker, Result, Task, Statistics
+from benchmarker import Format, Echo, Benchmarker, Result, Task, Statistics, CommandOption
 
 
 def _set_output():
@@ -700,6 +701,186 @@ Mikuru                           4.7500 ( 84.2%) *********************
         with spec("returns ratio matrix as string."):
             ret = self.stats.ratio_matrix(self.results)
             ok (ret) == expected
+
+
+class CommandOption_TC(object):
+
+    def before(self):
+        cmdopt = CommandOption()
+        cmdopt._user_option_dict['haruhi'] = 'Haruhi Suzumiya'
+        cmdopt._user_option_dict['mikuru'] = 'Mikuru Asahina'
+        cmdopt._user_option_dict['yuki']   = 'Nagato Yuki'
+        self.cmdopt = cmdopt
+
+    def test___getitem__(self):
+        cmdopt = self.cmdopt
+        with spec("returns user option value if exists."):
+            ok (cmdopt['haruhi']) == 'Haruhi Suzumiya'
+        with spec("returns None if not exist."):
+            ok (cmdopt['kyon']) == None
+
+    def test___setitem__(self):
+        cmdopt = self.cmdopt
+        with spec("sets user option value."):
+            k, v = 'itsuki', 'Itsuki Koizumi'
+            cmdopt[k] = v
+            ok (cmdopt[k]) == v
+
+    def test_get(self):
+        cmdopt = self.cmdopt
+        with spec("returns user option value if exists."):
+            ok (cmdopt.get('mikuru')) == 'Mikuru Asahina'
+        with spec("returns default value if not exist."):
+            ok (cmdopt.get('itsuki')) == None
+            ok (cmdopt.get('itsuki', 'Koizumi')) == 'Koizumi'
+
+    def test__new_option_parser(self):
+        cmdopt = self.cmdopt
+        with spec("returns an OptionParser object."):
+            import optparse
+            parser = cmdopt._new_option_parser()
+            ok (parser).is_a(optparse.OptionParser)
+
+    def test__separate_user_options(self):
+        cmdopt = self.cmdopt
+        with spec("separates args which starts with '--' from argv."):
+            argv = ['foo.py', '-h', '--k', 'arg1', '--k=v']
+            new_argv, user_options = cmdopt._separate_user_options(argv)
+            ok (new_argv) == ['foo.py', '-h', 'arg1']
+            ok (user_options) == ['--k', '--k=v']
+
+    def test__populate_opts(self):
+        cmdopt = self.cmdopt
+        opts = Tracer().fake_obj()
+        opts.__dict__.update(dict(quiet=True, loop=3, repeat=5, extra=1, exclude=True))
+        with spec("sets attributes according to options."):
+            cmdopt._populate_opts(opts)
+            ok (cmdopt.verbose) == False
+            ok (cmdopt.loop)    == 3
+            ok (cmdopt.repeat)  == 5
+            ok (cmdopt.extra)   == 1
+            ok (cmdopt.exclude) == True
+
+    def test__parse_user_options(self):
+        cmdopt = self.cmdopt
+        with spec("raises ValueError if user option is invalid format."):
+            def f(): cmdopt._parse_user_options(['--sos[]'])
+            ok (f).raises(ValueError, "--sos[]: invalid format user option.")
+        with spec("if value is not specified then uses True instead."):
+            d = cmdopt._parse_user_options(['--sos'])
+            ok (d) == {'sos': True}
+        with spec("returns a dictionary object."):
+            d = cmdopt._parse_user_options(['--sos', '--h=haruhi', '--kyon='])
+            ok (d) == {'sos': True, 'h': 'haruhi', 'kyon': ''}
+
+    def test__help_message(self):
+        cmdopt = self.cmdopt
+        expected = r'''
+Usage: benchmarker_test.py [options] [labels...]
+
+Options:
+  -h, --help     show help
+  -v, --version  show version
+  -q             quiet (not verbose)    # same as Benchmarker(verbose=False)
+  -n N           loop each benchmark    # same as Benchmarker(loop=N)
+  -r N           repeat all benchmarks  # same as bm.repeat(N)
+  -e N           ignore N of min/max    # same as bm.repeat(extra=N)
+  -x             do all benchmarks except benchmarks specified by args
+  --name[=val]   user-defined option
+                 ex.
+                     # get value of user-defined option
+                     from benchmarker import cmdopt
+                     print(repr(cmdopt['name']))  #=> 'val'
+'''[1:]
+        with spec("returns help message."):
+            parser = cmdopt._new_option_parser()
+            ok (cmdopt._help_message(parser)) == expected
+
+    def test_parse(self):
+        with spec("uses sys.argv when argv is not specified."):
+            pass
+        with spec("parses command line options and sets attributes."):
+            cmdopt = CommandOption()
+            cmdopt.parse(['foo.py', '-qn100', '-r', '9', '--k1', '--k2=v2', '--k3=', 'foo', 'b*'])
+            ok (cmdopt.verbose) == False
+            ok (cmdopt.loop) == 100
+            ok (cmdopt.repeat) == 9
+            ok (cmdopt.exclude) == None
+            ok (cmdopt['k1']) == True
+            ok (cmdopt['k2']) == 'v2'
+            ok (cmdopt['k3']) == ''
+            #
+            ok (cmdopt.should_skip('foo')) == False
+            ok (cmdopt.should_skip('bar')) == False
+            ok (cmdopt.should_skip('goo')) == True
+            #
+            cmdopt = CommandOption()
+            cmdopt.parse(['foo.py', '-x', 'foo', 'b*'])
+            ok (cmdopt.should_skip('foo')) == True
+            ok (cmdopt.should_skip('bar')) == True
+            ok (cmdopt.should_skip('goo')) == False
+        with spec("if '-h' or '--help' specified then print help message and exit."):
+            cmdopt = CommandOption()
+            expected = cmdopt._help_message() + "\n"
+            with dummy_io():
+                def f(): CommandOption().parse(['foo.py', '-h'])
+                ok (f).raises(SystemExit)
+                ok (sys.stdout.getvalue()) == expected
+            with dummy_io():
+                def f(): CommandOption().parse(['foo.py', '--help'])
+                ok (f).raises(SystemExit)
+                ok (sys.stdout.getvalue()) == expected
+        with spec("if '-v' or '--version' specified then print version and exit."):
+            expected = benchmarker.__version__ + "\n"
+            with dummy_io():
+                def f(): CommandOption().parse(['foo.py', '-v'])
+                ok (f).raises(SystemExit)
+                ok (sys.stdout.getvalue()) == expected
+            with dummy_io():
+                def f(): CommandOption().parse(['foo.py', '--version'])
+                ok (f).raises(SystemExit)
+                ok (sys.stdout.getvalue()) == expected
+
+    def test_should_skip(self):
+        cmdopt = self.cmdopt
+        with spec("returns False if no labels specified in command-line."):
+            c = CommandOption()
+            c.parse(['foo.py',])
+            ok (c.should_skip('sos')) == False
+        with spec("returns False if task is for empty loop."):
+            c = CommandOption()
+            c.parse(['foo.py', '(Empty)'])
+            ok (c.should_skip('(Empty)')) == False
+        with spec("when '-x' specified in command-line..."):
+            c = CommandOption()
+            c.parse(['foo.py', '-x', 'sasaki',])
+            with spec("returns True (should skip) if label found in command-line."):
+                ok (c.should_skip('sasaki')) == True
+            with spec("returns False (should not skip) if label not found in command-line."):
+                ok (c.should_skip('kyon')) == False
+        with spec("when '-x' not specified in command-line..."):
+            c = CommandOption()
+            c.parse(['foo.py', 'sasaki',])
+            with spec("returns False (should not skip) if label found in command-line."):
+                ok (c.should_skip('sasaki')) == False
+            with spec("returns True (should skip) if label not found in command-line."):
+                ok (c.should_skip('kyon')) == True
+
+
+class GlobalFunctions_TC(object):
+
+    def test__meta2rexp(self):
+        _meta2rexp = benchmarker._meta2rexp
+        with spec("converts a string containing metacharacters into regexp."):
+            ok (_meta2rexp('sos')) == r'^sos$'
+        with spec("converts '*' into '.*'."):
+            ok (_meta2rexp('sos*')) == r'^sos.*$'
+        with spec("converts '?' into '.'."):
+            ok (_meta2rexp('sos?')) == r'^sos.$'
+        with spec("converts '{aa,bb,(cc)}' into '(aa|bb|\(cc\))'."):
+            ok (_meta2rexp('sos{aa,bb,(cc)}')) == r'^sos(aa|bb|\(cc\))$'
+        with spec("escapes characters with re.escape()."):
+            ok (_meta2rexp('.+-()[]')) == r'^\.\+\-\(\)\[\]$'
 
 
 

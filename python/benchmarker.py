@@ -507,3 +507,178 @@ class Statistics(object):
 
 
 STATISTICS = Statistics
+
+
+class CommandOption(object):
+
+    def __init__(self):
+        self.verbose = None
+        self.loop    = None
+        self.repeat  = None
+        self.extra   = None
+        self.exclude = None
+        self._label_rexps = ()
+        self._user_option_dict = {}
+
+    def __getitem__(self, name):
+        #: returns user option value if exists.
+        #: returns None if not exist.
+        return self._user_option_dict.get(name, None)
+
+    def __setitem__(self, name, value):
+        #: sets user option value.
+        self._user_option_dict[name] = value
+
+    def get(self, name, default=None):
+        #: returns user option value if exists.
+        #: returns default value if not exist.
+        return self._user_option_dict.get(name, default)
+
+    def _new_option_parser(self):
+        #: returns an OptionParser object.
+        import optparse
+        usage = 'Usage: %prog [options] [labels...]'
+        parser = optparse.OptionParser(usage=usage, version=__version__, conflict_handler="resolve")
+        add = parser.add_option
+        add("-h", "--help",    dest="help",    action="store_true",     help="show help")
+        add("-v", "--version", dest="version", action="store_true",     help="show version")
+        add("-q", None,        dest="quiet",   action="store_true",     help="quiet (not verbose)    # same as Benchmarker(verbose=False)")
+        add("-n", None,        dest="loop",    type="int", metavar="N", help="loop each benchmark    # same as Benchmarker(loop=N)")
+        add("-r", None,        dest="repeat",  type="int", metavar="N", help="repeat all benchmarks  # same as bm.repeat(N)")
+        add("-e", None,        dest="extra",   type="int", metavar="N", help="ignore N of min/max    # same as bm.repeat(extra=N)")
+        add("-x", None,        dest="exclude", action="store_true",     help="do all benchmarks except benchmarks specified by args")
+        return parser
+
+    def _separate_user_options(self, argv):
+        #: separates args which starts with '--' from argv.
+        new_argv = []
+        user_options = []
+        for arg in argv:
+            if arg.startswith("--") and arg not in ("--help", "--version"):
+                user_options.append(arg)
+            else:
+                new_argv.append(arg)
+        return new_argv, user_options
+
+    def _populate_opts(self, opts):
+        #: sets attributes according to options.
+        if opts.quiet   is not None:  self.verbose = False
+        if opts.loop    is not None:  self.loop    = int(opts.loop)
+        if opts.repeat  is not None:  self.repeat  = int(opts.repeat)
+        if opts.extra   is not None:  self.extra   = int(opts.extra)
+        if opts.exclude is not None:  self.exclude = True
+
+    def _parse_user_options(self, user_options):
+        d = {}
+        for option in user_options:
+            #: raises ValueError if user option is invalid format.
+            m = re.match('^--([-\w]+)(=.*)?$', option)
+            if not m:
+                raise ValueError("%s: invalid format user option." % option)
+            name  = m.group(1)
+            #: if value is not specified then uses True instead.
+            value = not m.group(2) and True or m.group(2)[1:]
+            d[name] = value
+        #: returns a dictionary object.
+        return d
+
+    def _help_message(self, parser=None):
+        #: returns help message.
+        if parser is None:  parser = self._new_option_parser()
+        msg = parser.format_help()
+        msg += ("  --name[=val]   user-defined option\n"
+                "                 ex.\n"
+                "                     # get value of user-defined option\n"
+                "                     from benchmarker import cmdopt\n"
+                "                     print(repr(cmdopt['name']))  #=> 'val'\n")
+        return msg
+
+    def parse(self, argv=None):
+        #: uses sys.argv when argv is not specified.
+        if argv is None: argv = sys.argv
+        #: parses command line options and sets attributes.
+        argv, user_options = self._separate_user_options(argv)
+        parser = self._new_option_parser()
+        opts, args = parser.parse_args(argv)
+        self._populate_opts(opts)
+        self._label_rexps = [ re.compile(_meta2rexp(arg)) for arg in args[1:] ]
+        self._user_option_dict = self._parse_user_options(user_options)
+        #
+        #sys.stderr.write("\033[0;31m*** debug: opts=%r\033[0m\n" % (opts, ))
+        #sys.stderr.write("\033[0;31m*** debug: args=%r\033[0m\n" % (args, ))
+        #sys.stderr.write("\033[0;31m*** debug: user_options=%r\033[0m\n" % (user_options, ))
+        #sys.stderr.write("\033[0;31m*** debug: self._user_option_dict=%r\033[0m\n" % (self._user_option_dict, ))
+        #: if '-h' or '--help' specified then print help message and exit.
+        if opts.help:
+            print(self._help_message(parser))
+            sys.exit()
+        #: if '-v' or '--version' specified then print version and exit.
+        if opts.version:
+            print(__version__)
+            sys.exit()
+
+    def should_skip(self, task_label):
+        #: returns False if no labels specified in command-line.
+        if not self._label_rexps:
+            return False
+        #: returns False if task is for empty loop.
+        if task_label == '(Empty)':
+            return False
+        #
+        found = False
+        for rexp in self._label_rexps:
+            if rexp.match(task_label):
+                found = True
+                break
+        #: when '-x' specified in command-line...
+        if self.exclude:
+            #: returns True (should skip) if label found in command-line.
+            #: returns False (should not skip) if label not found in command-line.
+            return found
+        #: when '-x' not specified in command-line...
+        else:
+            #: returns False (should not skip) if label found in command-line.
+            #: returns True (should skip) if label not found in command-line.
+            return not found
+
+
+cmdopt = CommandOption()
+
+
+def _meta2rexp(metastr):
+    #: converts a string containing metacharacters into regexp string.
+    buf = []; b = buf.append
+    b('^')
+    i = 0
+    n = len(metastr)
+    while i < n:
+        ch = metastr[i]
+        #: converts '*' into '.*'.
+        if ch == '*':
+            b('.*')
+        #: converts '?' into '.'.
+        elif ch == '?':
+            b('.')
+        #: converts '{aa,bb,(cc)}' into '(aa|bb|\(cc\))'.
+        elif ch == '{':
+            j = i + 1
+            while j < n and metastr[j] != '}':
+                j += 1
+            if j == n:
+                raise ValueError("%s: '{' is not closed by '}'." % metastr)
+            assert metastr[j] == '}'
+            s = '('
+            for word in metastr[i+1:j].split(','):
+                b(s)
+                b(re.escape(word))
+                s = '|'
+            if s == '(':
+                raise ValueError("%s: '{}' is empty.")
+            b(')')
+            i = j
+        #: escapes characters with re.escape().
+        else:
+            b(re.escape(ch))
+        i += 1
+    b('$')
+    return ''.join(buf)
