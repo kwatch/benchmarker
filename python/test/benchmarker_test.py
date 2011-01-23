@@ -1,697 +1,705 @@
+# -*- coding: utf-8 -*-
+
 ###
 ### $Release: $
-### $Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
+### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###
 
 from __future__ import with_statement
 
-import sys, os, re
-_ = os.path.dirname
-sys.path.append(_(_(__file__)))
-
-from oktest import ok, not_ok, run, spec
-from oktest.helper import dummy_io, Tracer, FakeObject
-import benchmarker
-from benchmarker import Reporter, Result, Task, Benchmark, Runner, Stat, Benchmarker
-
-python2 = sys.version_info[0] == 2
-python3 = sys.version_info[0] == 3
-if python2:
-    from cStringIO import StringIO
-if python3:
-    xrange = range
+import sys
+try:
+    from StringIO import StringIO
+except ImportError:
     from io import StringIO
 
+from oktest import ok, not_ok, run, spec
+from oktest.tracer import Tracer
+
+import benchmarker
+from benchmarker import Format, Echo, Benchmarker, Result, Task, Statistics
 
 
-class ReporterTest(object):
+def _set_output():
+    sio = StringIO()
+    benchmarker.echo._out = sio
+    return sio
 
+def _get_output():
+    return benchmarker.echo._out.getvalue()
+
+
+class Format_TC(object):
+
+    def before(self):
+        self.fmt = Format()
 
     def test___init__(self):
-        with spec("if verbose mode is off then use dummy io for verbose output."):
-            r = Reporter()
-            ok (r.vout) == sys.stderr
-            r = Reporter(verbose=False)
-            ok (r.vout).is_a(type(StringIO()))
+        fmt = self.fmt
+        with spec("sets 'label_width' property."):
+            spec (fmt.label_width) == 30
+        with spec("sets 'time' property."):
+            spec (fmt.time) == '%9.4f'
+
+    def test__get_label_width(self):
+        fmt = self.fmt
+        with spec("returns '__label_with' attribute."):
+            spec (fmt.label_width) == fmt._Format__label_width
+
+    def test__set_label_width(self):
+        fmt = self.fmt
+        with spec("sets both '__label_width' and 'label' attributes."):
+            fmt.label_width = 25
+            spec (fmt.label_width) == 25
+
+    def test_get_time(self):
+        fmt = self.fmt
+        with spec("returns '__time' attribute."):
+            ok (fmt.time) == fmt._Format__time
+
+    def test_set_time(self):
+        fmt = self.fmt
+        with spec("sets '__time', 'time_label', 'times' and 'times_label' attrs."):
+            fmt.time = '%7.3f'
+            ok (fmt.time)        == '%7.3f'
+            ok (fmt.time_label)  == '%7s'
+            ok (fmt.times)       == '%7.3f %7.3f %7.3f %7.3f'
+            ok (fmt.times_label) == '%7s %7s %7s %7s'
 
 
-    def test_start_verbose_mode(self):
-        with spec("switch output stream for verbose mode."):
-            r = Reporter()
-            out, vout = r.out, r.vout
-            r.start_verbose_mode()
-            ok (r.out).is_(r.vout)
+class Echo_TC(object):
 
-
-    def test_stop_verbose_mode(self):
-        with spec("switch back output stream for normal mode."):
-            r = Reporter()
-            out, vout = r.out, r.vout
-            r.start_verbose_mode()
-            assert r.out is vout
-            r.stop_verbose_mode()
-            ok (r.out).is_(out)
-
-
-    def test_write(self):
-        sout, serr = StringIO(), StringIO()
-        r = Reporter(out=sout, vout=serr)
-        r.prev_is_separator = True
-        ret = r.write("Nyoroon")
-        with spec("write argument into output stream."):
-            ok (sout.getvalue()) == "Nyoroon"
-            ok (serr.getvalue()) == ""
-        with spec("clear prev_is_separator flag."):
-            # falldown
-            ok (r.prev_is_separator) == False
-        with spec("return self."):
-            # falldown
-            ok (ret).is_(r)
-
+    def test_create_dummy(self):
+        with spec("returns Echo object with dummy I/O."):
+            ret = Echo.create_dummy()
+            ok (ret).is_a(Echo)
+            ok (ret._out).is_a(benchmarker.StringIO)
 
     def test_flush(self):
-        with spec("if output stream can respond to 'flush()' then call it."):
-            sout = FakeObject()
-            r = Reporter(out=sout)
-            not_ok (lambda: r.flush()).raises(Exception)
-            arr = [False]
-            def f():
-                arr[0] = True
-            sout.flush = f
-            r.flush()
-            ok (arr[0]) == True
+        with spec("calls _out.flush() only if _out has 'flush' method."):
+            tr = Tracer()
+            echo = Echo(tr.fake_obj())
+            echo.flush()
+            ok (len(tr)) == 0
+            echo = Echo(tr.fake_obj(flush=None))
+            echo.flush()
+            ok (len(tr)) == 1
+            ok (tr[0].name) == 'flush'
+
+    def test_str(self):
+        sio = StringIO()
+        echo = Echo(sio)
+        with spec("does nothing if argument is empty."):
+            echo.prev = False
+            echo.str('')
+            ok (sio.getvalue()) == ''
+            ok (echo.prev) == False
+        with spec("writes argument and keep it to prev attribute."):
+            echo.str('SOS')
+            ok (sio.getvalue()) == 'SOS'
+            ok (echo.prev) == 'SOS'
+
+    def test_text(self):
+        sio, sio2 = StringIO(), StringIO()
+        echo, echo2 = Echo(sio), Echo(sio2)
+        with spec("does nothing if argument is empty."):
+            echo.prev = False
+            echo.text('')
+            ok (sio.getvalue()) == ''
+            ok (echo.prev) == False
+        with spec("adds '\n' at the end of argument if it doesn't end with '\n'."):
+            echo.text("SOS")
+            ok (sio.getvalue()) == "SOS\n"
+            echo2.text("TPDD\n")
+            ok (sio2.getvalue()) == "TPDD\n"
+        with spec("writes argument and keep it to prev attribute."):
+            ok (echo.prev) == "SOS\n"
+            ok (echo2.prev) == "TPDD\n"
+
+    def test_task_label(self):
+        sio = StringIO()
+        echo = Echo(sio)
+        tr = Tracer()
+        tr.trace_method(sio, 'flush')
+        with spec("shrinks too long label."):
+            echo.task_label("123456789|123456789|123456789|123456789")
+            ok (sio.getvalue()) == "123456789|123456789|1234567..."
+            ok (len(sio.getvalue())) == benchmarker.format.label_width
+        with spec("prints label."):
+            ok (sio.getvalue()) == "123456789|123456789|1234567..."
+        with spec("flushes output."):
+            ok (len(tr)) == 1
+            ok (tr[0].name) == 'flush'
+
+    def test_task_times(self):
+        sio = StringIO()
+        echo = Echo(sio)
+        with spec("prints times."):
+            echo.task_times(1.5, 2.5, 3.5, 4.5)
+            ok (sio.getvalue()) == "   1.5000    2.5000    3.5000    4.5000\n"
 
 
-    def test_print_header(self):
-        with spec("print header title and items."):
-            r = Reporter(out=StringIO())
-            r.print_header('SOS')
-            ok (r.out.getvalue()) == "## SOS                              user       sys     total      real\n"
-
-
-    def test_print_label(self):
-        buf = []
-        def write(self, x):
-            buf.append(x)
-        arr = [False]
-        def flush(self, ):
-            arr[0] = True
-        out = FakeObject(write=write, flush=flush)
-        with spec("print benchmark label."):
-            r = Reporter(out=out)
-            r.print_label('sos')
-            ok (buf) == ["%-30s" % "sos"]
-        with spec("flush output stream."):
-            # falldown
-            ok (arr[0]) == True
-
-
-    def test_print_times(self):
-        with spec("print benchmark times."):
-            pass
-        with spec("print separator if prev is not separator."):
-            pass
-
-
-
-class ResultTest(object):
-
-
-    def test___iadd__(self):
-        with spec("add values."):
-            r1 = Result(('foo', 10.0, 20.0, 30.0, 40.0))
-            r2 = Result(('bar', 1.0, 2.0, 3.0, 4.0))
-            bkup = r1
-            r1 += r2
-            ok ([r1.label, r1.user, r1.sys, r1.total, r1.real]) == ['foo', 11.0, 22.0, 33.0, 44.0]
-            ok ([r2.label, r2.user, r2.sys, r2.total, r2.real]) == ['bar', 1.0, 2.0, 3.0, 4.0]
-        with spec("return new Result object."):
-            # falldown
-            not_ok (r1).is_(bkup)
-
-
-    def test___isub__(self):
-        with spec("subtract values."):
-            r1 = Result(('foo', 10.0, 20.0, 30.0, 40.0))
-            r2 = Result(('bar', 1.0, 2.0, 3.0, 4.0))
-            bkup = r1
-            r1 -= r2
-            ok ([r1.label, r1.user, r1.sys, r1.total, r1.real]) == ['foo', 9.0, 18.0, 27.0, 36.0]
-            ok ([r2.label, r2.user, r2.sys, r2.total, r2.real]) == ['bar', 1.0, 2.0, 3.0, 4.0]
-        with spec("return new Result object."):
-            # falldown
-            not_ok (r1).is_(bkup)
-
-
-    def test_average(self):
-        r1 = Result(('foo', 1.0, 2.0, 3.0, 4.0))
-        r2 = Result(('foo', 2.0, 3.0, 4.0, 5.0))
-        r3 = Result(('foo', 3.0, 4.0, 5.0, 6.0))
-        r4 = Result(('foo', 4.0, 5.0, 6.0, 7.0))
-        r5 = Result(('foo', 5.0, 6.0, 7.0, 8.0))
-        r = Result.average([r1, r2, r3, r4, r5])
-        with spec("return new Result object."):
-            ok (r).is_a(Result)
-        with spec("calculate average of results."):
-            ok (r.label) == 'foo'
-            ok (r.user)  == 3.0
-            ok (r.sys)   == 4.0
-            ok (r.total) == 5.0
-            ok (r.real)  == 6.0
-
-
-
-class TaskTest(object):
-
+class Benchmarker_TC(object):
 
     def before(self):
-        self.tracer = Tracer()
-        self.benchmark = self.tracer.fake_obj(_started=None, _stopped=None)
-        self.benchmark.loop = 1
-        self.task = Task(self.benchmark, "hello")
-        return self.task
+        self.bm = Benchmarker()
+        self._echo_bkup = benchmarker.echo
+        benchmarker.echo = Echo.create_dummy()
 
+    def after(self):
+        benchmarker.echo = self._echo_bkup
+
+    def test___init__(self):
+        with spec("sets format.label_with if 'wdith' option is specified."):
+            try:
+                bkup = benchmarker.format.label_width
+                assert bkup == 30
+                bm = Benchmarker(width=20)
+                ok (benchmarker.format.label_width) == 20
+            finally:
+                benchmarker.format.label_width = bkup
+        bm = self.bm
+        with spec("sets 'loop' attribute."):
+            ok (bm.loop) == 1
+            bm2 = Benchmarker(loop=100)
+            ok (bm2.loop) == 100
+        with spec("sets 'verbose' attribute if its option is specified."):
+            ok (bm.verbose) == True
+            bm2 = Benchmarker(verbose=False)
+            ok (bm2.verbose) == False
+        with spec("creates Statistics object using STATISTICS variable."):
+            ok (bm.stats).is_a(benchmarker.Statistics)
+            try:
+                bkup = benchmarker.STATISTICS
+                bases = (benchmarker.Statistics, )
+                def _init(self, *args, **kwargs):
+                    self._args = args
+                    self._kwargs = kwargs
+                dummy_class = type('DummyStatistics', bases, {'__init__': _init})
+                benchmarker.STATISTICS = dummy_class
+                bm2 = Benchmarker()
+                ok (bm2.stats).is_a(dummy_class)
+                ok (bm2.stats._args) == ()
+                ok (bm2.stats._kwargs) == {}
+            finally:
+                benchmarker.STATISTICS = bkup
+
+    def test__setup(self):
+        pass
 
     def test___enter__(self):
-        task = self.task
-        tr = Tracer()
-        tr.fake_method(self.benchmark, _started=lambda self, x: x)
-        ret = task.__enter__()
-        with spec("call benchmark._started()."):
-            ok (tr[0].name) == '_started'
-            ok (tr[0].args) == (task, )
-        with spec("start to record times."):
-            ok (task._start_t).is_a(float)
-            ok (task._t1).is_a(tuple)
-        with spec("return self."):
-            ok (ret).is_(task)
-
+        bm = self.bm
+        ret = bm.__enter__()
+        with spec("prints platform information."):
+            s = _get_output()
+            lines = s.splitlines()
+            ok (lines[0]).matches(r'## benchmarker:')
+            ok (lines[1]).matches(r'## python platform:')
+            ok (lines[2]).matches(r'## python version:')
+            ok (lines[3]).matches(r'## python executable:')
+        with spec("returns self."):
+            ok (ret).is_(bm)
 
     def test___exit__(self):
-        task = self.task
-        task.__enter__()
-        ret = task.__exit__(*sys.exc_info())
-        tr = self.tracer
-        with spec("call benchmark._stopped() with Result object."):
-            ok (len(tr)) == 2
-            ok (tr[0].name) == '_started'
-            ok (tr[1].name) == '_stopped'
-            ok (tr[1].args[0]) == task
-            ok (tr[1].args[1]).is_a(Result)
-        with spec("record end times."):
-            result = tr[1].args[1]
-            ok (result.label) == "hello"
-            ok (result.user ).is_a(float)
-            ok (result.sys  ).is_a(float)
-            ok (result.total).is_a(float)
-            ok (result.real ).is_a(float)
-        with spec("return None"):
-            ok (ret) == None
+        bm = self.bm
+        bm.results = [
+            Result('Haruhi')._set(1.50, 2.50, 3.50, 4.50),
+            Result('Mikuru')._set(1.75, 2.75, 3.75, 4.75),
+            Result('Yuki'  )._set(1.25, 2.25, 3.25, 4.25),
+        ]
+        bm.__exit__()
+        s = _get_output()
+        with spec("prints separator and ranking."):
+            expected = r"""
+## Ranking                         real
+Yuki                             4.2500 (100.0%) *************************
+Haruhi                           4.5000 ( 94.4%) ************************
+Mikuru                           4.7500 ( 89.5%) **********************
+"""
+            ok (s.startswith(expected)) == True
+        with spec("prints separator and ratio matrix."):
+            expected = r"""
 
-
-    def test_run(self):
-        with spec("if label is not specified then use function desc or name as label."):
-            task = self.before()
-            task.label = None
-            def f1():
-                """hello1"""
-                pass
-            task.run(f1)
-            ok (task.label) == "hello1"
-            #
-            task = self.before()
-            task.label = None
-            def f2():
-                pass
-            task.run(f2)
-            ok (task.label) == "f2"
-        with spec("simulate with-statement."):
-            task = self.task
-            tr = Tracer()
-            tr.trace_method(task, '__enter__', '__exit__')
-            args = []
-            def hello(arg1, arg2):
-                """hello benchmark"""
-                args.append(arg1)
-                args.append(arg2)
-                return 'sos'
-            ret = task.run(hello, "foo", 123)
-            ok (args) == ["foo", 123]
-            ok (tr[0].name) == '__enter__'
-            ok (tr[1].name) == '__exit__'
-        with spec("return the return value of func."):
-            # falldown
-            ok (ret) == 'sos'
-        with spec("if loop count is specified then call function N times."):
-            task = self.before()
-            task.benchmark.loop = 3
-            cnt = [0]
-            def f3(arg):
-                cnt[0] += 1
-            task.run(f3, 999)
-            ok (cnt[0]) == 3
-        with spec("if loop count is not specified then call function one time."):
-            task = self.before()
-            cnt = [0]
-            def f3(arg):
-                cnt[0] += 1
-            task.run(f3, 999)
-            ok (cnt[0]) == 1
-
+## Ratio Matrix                    real    [01]    [02]    [03]
+[01] Yuki                        4.2500  100.0%  105.9%  111.8%
+[02] Haruhi                      4.5000   94.4%  100.0%  105.6%
+[03] Mikuru                      4.7500   89.5%   94.7%  100.0%
+"""
+            ok (s.endswith(expected)) == True
 
     def test___iter__(self):
-        task = self.task
-        task.benchmark.loop = 5
-        i = 0
-        for j in task:
-            i += 1
-            ok (j) == i - 1
-        ok (i) == 5
-
-
-
-class BenchmarkTest(object):
-
-
-    def before(self):
-        self.tracer = Tracer()
-        reporter = self.tracer.fake_obj(write=None, print_header=None, print_label=None, print_times=None)
-        self.benchmark = Benchmark(reporter)
-
-
-    def test_bench(self):
-        with spec("return new Task object."):
-            ret = self.benchmark.bench("sos")
-            ok (ret).is_a(Task)
-            ok (ret.benchmark).is_(self.benchmark)
-            ok (ret.label) == "sos"
-
-
-    def test__call__(self):
-        with spec("return new Task object."):
-            ret = self.benchmark("sos")
-            ok (ret).is_a(Task)
-            ok (ret.benchmark).is_(self.benchmark)
-            ok (ret.label) == "sos"
-
-
-    def test_empty(self):
-        obj = self.benchmark.empty()
-        with spec("create new Task object and keep it."):
-            ok (self.benchmark._empty_task).is_(obj)
-        with spec("return Task object."):
-            ok (obj).is_a(Task)
-            ok (obj.label) == "(Empty)"
-
-
-    def test_run(self):
-        args = []
-        def hello(*args_):
-            args.extend(args_)
-            return "!"
-        with spec("same as self.bench(None).run(func, *args)."):
-            ret = self.benchmark.run(hello, "sos", 123)
-            ok (args) == ["sos", 123]
-            ok (ret) == "!"
-
-
-    def test__started(self):
-        b = self.benchmark
-        task1 = FakeObject()
-        task1.label = "SOS"
-        b._started(task1)
-        task2 = FakeObject()
-        task2.label = "SasakiDan"
-        b._started(task2)
-        tr = self.tracer
-        with spec("print header only once."):
-            ok (len(tr)) == 3
-            ok (tr[0].name) == 'print_header'
-            ok (tr[1].name) == 'print_label'
-            ok (tr[2].name) == 'print_label'
-        with spec("print label."):
-            ok (tr[1].args) == ("SOS", )
-            ok (tr[2].args) == ("SasakiDan", )
-
-
-    def test__stopped(self):
-        b = self.benchmark
-        result = Result(("(Empty)", 1.0, 2.0, 3.0, 4.0))
-        with spec("if task is for empty loop then keep it."):
-            task = b.empty()
-            assert b._empty_task is task
-            assert b._empty_result is None
-            b._stopped(task, result)
-            ok (b._empty_result).is_(result)
-        with spec("if task is for normal benchmark..."):
-            assert len(b.results) == 0
-            task = b.bench("label1")
-            result = Result(("label1", 10.0, 20.0, 30.0, 40.0))
-            b._stopped(task, result)
-            with spec("keep result."):
-                ok (len(b.results)) == 1
-                ok (b.results[0]).is_a(Result)
-            with spec("if empty loop result exists then substitute it from current result."):
-                ok (b.results[0].user)  ==  9.0
-                ok (b.results[0].sys)   == 18.0
-                ok (b.results[0].total) == 27.0
-                ok (b.results[0].real)  == 36.0
-        with spec("print benchmark result."):
-            results = b.reporter._calls
-            ok (results[0].name) == 'print_times'
-            ok (results[0].args) == (1.0, 2.0, 3.0, 4.0)
-            ok (results[1].name) == 'print_times'
-            ok (results[1].args) == (9.0, 18.0, 27.0, 36.0)
-
-
-
-class RunnerTest(object):
-
-
-    def before(self):
-        def write(self, arg):
-            self.out.write(arg)
-            return self
-        self.tracer = Tracer()
-        reporter = self.tracer.fake_obj(write=write, print_header=None, print_label=None, print_times=None)
-        reporter.out = StringIO()
-        reporter.fmt = "%9.4f"
-        reporter.width = 30
-        self.runner = Runner()
-        self.runner.reporter = reporter
-        self.runner.benchmark = Benchmark(reporter)
-
-
-    def test__get_benchmark(self):
-        runner = self.runner
-        assert runner.results is None
-        ret = runner._get_benchmark()
-        with spec("return self.benchmark."):
-            ok (ret).is_(runner.benchmark)
-        with spec("if self.results is None then set self.benchmark.results to it."):
-            # falldown
-            ok (runner.results).is_(runner.benchmark.results)
-
-
-    def test_bench(self):
-        runner = self.runner
-        with spec("same as self.benchmark.bench(label)."):
-            ret = runner.bench("Haruhi")
-            ok (ret).is_a(Task)
-            ok (ret.label) == "Haruhi"
-
+        bm = self.bm
+        bm.results = [ Result('')._set(0.0, 0.0, 0.0, 0.1) ]
+        with spec("emulates with-statement."):
+            tr = Tracer()
+            tr.trace_method(bm, '__enter__', '__exit__')
+            for x in bm:
+                ok (len(tr)) == 1
+                ok (tr[0]) == [bm, '__enter__', (), {}, bm]
+            ok (len(tr)) == 2
+            ok (tr[1]) == [bm, '__exit__', (None, None, None), {}, None]
+            ok (x).is_(bm)
 
     def test___call__(self):
-        runner = self.runner
-        with spec("same as self.benchmark.bench(label)."):
-            ret = runner("Haruhi")
+        bm = Benchmarker(loop=10)
+        assert bm.results == []
+        ret = bm('SOS')
+        with spec("prints section title if called at the first time."):
+            s = _get_output()
+            ok (s) == '\n##                                 user       sys     total      real\n'
+        with spec("creates new Result object and saves it."):
+            ok (len(bm.results)) == 1
+            ok (bm.results[0]).is_a(Result)
+            ok (bm.results[0].label) == "SOS"
+        with spec("returns Task object with Result object."):
             ok (ret).is_a(Task)
-            ok (ret.label) == "Haruhi"
-
+            ok (ret.result).is_(bm.results[0])
+            ok (ret.loop) == 10
+            ok (ret._empty) == None
+        with spec("passes current empty result to task object."):
+            dummy = Result('dummy')
+            bm._current_empty_result = dummy
+            task = bm('TPDD')
+            ok (task._empty).is_(dummy)
 
     def test_empty(self):
-        runner = self.runner
-        with spec("same as self.benchmark.empty(label)."):
-            ret = runner.empty("Mikuru")
+        bm = self.bm
+        assert bm._current_empty_result == None
+        ret = bm.empty()
+        with spec("returns a Task object."):
             ok (ret).is_a(Task)
-            ok (ret.label) == "Mikuru"
-            ok (runner.benchmark._empty_task).is_(ret)
-
-
-    def test_run(self):
-        tr = self.tracer
-        runner = self.runner
-        tr.trace_method(runner.benchmark, 'run')
-        def hello(*args):
-            pass
-        with spec("same as self.benchmark.run(func, *args)."):
-            runner.run(hello, 999, None)
-            ok (tr[0].name) == 'run'
-            ok (tr[0].args) == (hello, 999, None)
-
-
-    def _results_fixture(self):
-        return [
-            Result(("SOS", 1.0, 5.1, 3.2, 3.3)),
-            Result(("SOS", 2.0, 4.1, 3.2, 4.3)),
-            Result(("SOS", 3.0, 3.1, 3.2, 2.3)),
-            Result(("SOS", 4.0, 2.1, 3.2, 1.3)),
-            Result(("SOS", 5.0, 1.1, 3.2, 5.3)),
-        ]
-
-
-    def test__minmax_values_and_indecies(self):
-        with spec("search min and max values and indecies."):
-            results = self._results_fixture()
-            arr = self.runner._minmax_values_and_indecies(results, 'real', 2)
-            ok (arr[0]) == (1.3, 3, 5.3, 4)
-            ok (arr[1]) == (2.3, 2, 4.3, 1)
-
-
-    def test__delete_minmax_from(self):
-        with spec("return results without min and max results."):
-            results = self._results_fixture()
-            ret = self.runner._delete_minmax_from(results, 'real', 2, '%9.4f', '%-30s')
-            ok (len(ret)) == 1
-            ok (ret[0].real) == 3.3
-        with spec("print min an max benchmarks."):
-            # falldown
-            ok (self.runner.reporter.out.getvalue()) == """
-SOS                              1.3000        #4   5.3000        #5
-                                 2.3000        #3   4.3000        #2
-"""[1:]
-
-
-    def test__average_results(self):
-        with spec("calculate average of results."):
-            #results = self._results_fixture()
-            results = [
-                Result(("SOS", 1.0, 5.1, 3.2, 3.0)),
-                Result(("SOS", 2.0, 4.1, 3.2, 4.3)),
-                Result(("SOS", 3.0, 3.1, 3.2, 2.6)),
-                Result(("SOS", 4.0, 2.1, 3.2, 1.3)),
-                Result(("SOS", 5.0, 1.1, 3.2, 5.3)),
-            ]
-            ret = self.runner._average_results([results], 'real', 1)
-            ok (ret).is_a(list)
-            ok (ret[0]).is_a(Result)
-            ok (ret[0].user ).in_delta(2.0, 0.0001)
-            ok (ret[0].sys  ).in_delta(4.1, 0.0001)
-            ok (ret[0].total).in_delta(3.2, 0.0001)
-            ok (ret[0].real ).in_delta(3.3, 0.0001)
-            #
-            _calls = self.runner.reporter._calls
-            ok (_calls[0].name) == 'print_header'
-            ok (_calls[0].args) == ('Remove min & max', )
-            ok (self.runner.reporter.out.getvalue()) == """
-SOS                               1.3000        #4    5.3000        #5
-"""[1:]
-
-
-    def test__print_results(self):
-        results = [
-            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
-            Result(("Mikuru", 1.1, 2.1, 3.1, 4.1)),
-            Result(("Yuki",   1.2, 2.2, 3.2, 4.2)),
-        ]
-        reporter = Reporter(out=StringIO())
-        runner = Runner()
-        runner.reporter = reporter
-        with spec("print results."):
-            runner._print_results(results, "SOS")
-            ok (runner.reporter.out.getvalue()) == """
-## SOS                              user       sys     total      real
-Haruhi                            1.0000    2.0000    3.0000    4.0000
-Mikuru                            1.1000    2.1000    3.1000    4.1000
-Yuki                              1.2000    2.2000    3.2000    4.2000
-"""[1:]
-
-
+        with spec("creates a task for empty loop and keeps it."):
+            ok (ret.result.label) == '(Empty)'
+            ok (bm._current_empty_result).is_(ret.result)
+        with spec("created task should not be included in self.results."):
+            not_ok (ret.result).in_(bm.results)
 
     def test_repeat(self):
-        reporter = Reporter(out=StringIO(), vout=StringIO())
-        runner = Runner()
-        runner.reporter = reporter
-        i = 0
-        for b in runner.repeat(5, extra=1, key='real'):
-            i += 1
-            with spec("yield Benchmark object."):
-                ok (b).is_a(Benchmark)
-            with b.empty():
+        bm = self.bm
+        echo = benchmarker.echo
+        assert echo != benchmarker.echo_error
+        with spec("replaces 'echo' object to stderr temporarily if verbose."):
+            bm.verbose = True
+            for _ in bm.repeat(1):
+                not_ok (benchmarker.echo).is_(echo)
+                ok (benchmarker.echo).is_(benchmarker.echo_error)
+            ok (benchmarker.echo).is_(echo)
+        with spec("replaces 'echo' object to dummy I/O temporarily if not verbose."):
+            bm.verbose = False
+            for _ in bm.repeat(1):
+                not_ok (benchmarker.echo).is_(echo)
+                not_ok (benchmarker.echo).is_(benchmarker.echo_error)
+                ok (benchmarker.echo).is_a(Echo)
+            ok (benchmarker.echo).is_(echo)
+        with spec("invokes block for 'ntimes + 2*extra' times."):
+            i = 0
+            for _ in bm.repeat(5, 2):
+                i += 1
+                ok (_) == i
+            ok (i) == 5 + 2*2
+        with spec("resets some properties for each repetition."):
+            tr = Tracer()
+            tr.trace_method(bm, '_setup')
+            for _ in bm.repeat(3):
                 pass
-            with b('1+1'):
-                x = 1 + 1
-            with b('2+2'):
-                x = 2 + 2
-        with spec("repeat n + 2*extra times."):
-            ok (i) == 5 + 2*1
-            serr = reporter.vout.getvalue().replace('-0.', ' 0.')
-            serr = re.sub(r'    #\d', '    #9', serr)
-            serr = re.sub(r'0\.00\d\d', '0.0000', serr)
-            s = """
-## Benchmark #%s                     user       sys     total      real
-(Empty)                           0.0000    0.0000    0.0000    0.0000
-1+1                               0.0000    0.0000    0.0000    0.0000
-2+2                               0.0000    0.0000    0.0000    0.0000
+            ok (tr[0]) == [bm, '_setup', ("## (#1)",), {}, None]
+            ok (tr[1]) == [bm, '_setup', ("## (#2)",), {}, None]
+            ok (tr[2]) == [bm, '_setup', ("## (#3)",), {}, None]
+        with spec("keeps all results."):
+            bm2 = Benchmarker(verbose=False)
+            for _ in bm2.repeat(3):
+                bm2('SOS')
+            ok (len(bm2.all_results)) == 3
+            for results in bm2.all_results:
+                ok (results).is_a(list)
+                ok (len(results)) == 1
+                ok (results[0]).is_a(Result)
+        with spec("restores 'echo' object after block."):
+            tmp = benchmarker.echo
+            for _ in bm.repeat(1):
+                ok (benchmarker.echo) != tmp
+            ok (benchmarker.echo) == tmp
+        #
+        bm2 = Benchmarker()
+        tr = Tracer()
+        tr.trace_method(bm2, '_calc_average_results', '_echo_average_section')
+        extra = 5
+        for _ in bm2.repeat(100, extra):
+            pass
+        with spec("calculates average of results."):
+            ok (tr[0].list()) == [bm2, '_calc_average_results', (bm2.all_results, extra), {}, []]
+        with spec("prints averaged results."):
+            ok (tr[1]) == [bm2, '_echo_average_section', (bm2.results, extra, len(bm2.all_results)), {}, None]
 
-"""[1:]
-            expected = ''.join([ s % i for i in xrange(1, 5+2*1+1) ])
-            expected += """
-## Remove min & max                  min    bench#       max    bench#
-1+1                               0.0000        #9    0.0000        #9
-2+2                               0.0000        #9    0.0000        #9
+    def test__calc_average_results(self):
+        bm = self.bm
+        all_results = [
+            [Result('Haruhi')._set(1.50, 2.50, 3.50, 4.50),
+             Result('Sasaki')._set(1.25, 2.25, 3.25, 4.25),],
+            [Result('Haruhi')._set(1.25, 2.25, 3.25, 4.25),
+             Result('Sasaki')._set(1.75, 2.75, 3.75, 4.75),],
+        ]
+        bm.all_results = all_results
+        #
+        tr = Tracer()
+        tr.trace_method(bm, '_remove_min_and_max')
+        #
+        extra = 0
+        avg_results0 = bm._calc_average_results(all_results, extra)
+        output0 = _get_output()
+        tr_len0 = len(tr)
+        extra = 1
+        avg_results1 = bm._calc_average_results(all_results, extra)
+        output1 = _get_output()
+        tr_len1 = len(tr)
+        #
+        with spec("prints min-max section title if extra is specified."):
+            expected = r"^\n## Remove min & max *min *repeat *max *repeat\n"
+            ok (output0) == ""             # when extra == 0
+            ok (output1).matches(expected) # when extra != 1
+        with spec("calculates average of results and returns it."):
+            ok (repr(avg_results0[0])) == "<Result label='Haruhi' user=1.375 sys=2.375 total=3.375 real=4.375>"
+            ok (repr(avg_results0[1])) == "<Result label='Sasaki' user=1.500 sys=2.500 total=3.500 real=4.500>"
+        with spec("prints min-max section if extra is specified."):
+            ok (tr_len0) == 0   # not called when extra == 0
+            ok (tr_len1) == 2   # called when extra == 1
+            ok (tr[0].name) == '_remove_min_and_max'
+            ok (tr[1].name) == '_remove_min_and_max'
 
-"""[1:]
-            ok (serr) == expected
-        with spec("calculate average."):
-            sout = reporter.out.getvalue().replace('-0.', ' 0.')
-            ok (sout) == """
-## Average of 5 (=7-2*1)            user       sys     total      real
-1+1                               0.0000    0.0000    0.0000    0.0000
-2+2                               0.0000    0.0000    0.0000    0.0000
-"""[1:]
+    def test__echo_average_section(self):
+        bm = Benchmarker()
+        avg_results = [
+            Result('Haruhi')._set(1.50, 2.50, 3.50, 4.50),
+            Result('Mikuru')._set(1.25, 2.25, 3.25, 4.25),
+            Result('Yuki')  ._set(1.00, 2.00, 3.00, 4.00),
+        ]
+        def f(bm, *args):
+            sio = _set_output()
+            bm._echo_average_section(*args)
+            return sio.getvalue()
+        with spec("prints average section title."):
+            extra = 0
+            output = f(bm, avg_results, extra, 5)
+            ok (output).matches(r'\n## Average of 5 *user *sys *total *real\n')
+            extra = 2
+            output = f(bm, avg_results, extra, 5)
+            ok (output).matches(r'\n## Average of 1 \(=5-2\*2\) *user *sys *total *real\n')
+        with spec("prints averaged results."):
+            extra = 0
+            output = f(bm, avg_results, extra, 5)
+            ok (output) == r"""
+## Average of 5                    user       sys     total      real
+Haruhi                           1.5000    2.5000    3.5000    4.5000
+Mikuru                           1.2500    2.2500    3.2500    4.2500
+Yuki                             1.0000    2.0000    3.0000    4.0000
+"""
+            extra = 2
+            output = f(bm, avg_results, extra, 5)
+            ok (output) == r"""
+## Average of 1 (=5-2*2)           user       sys     total      real
+Haruhi                           1.5000    2.5000    3.5000    4.5000
+Mikuru                           1.2500    2.2500    3.2500    4.2500
+Yuki                             1.0000    2.0000    3.0000    4.0000
+"""
 
+    def test__remove_min_and_max(self):
+        bm = Benchmarker()
+        r1 = Result('SOS')._set(1.00, 2.00, 3.00, 4.00)   # min2
+        r2 = Result('SOS')._set(1.25, 2.25, 3.25, 4.25)
+        r3 = Result('SOS')._set(1.75, 2.75, 3.75, 4.75)   # max2
+        r4 = Result('SOS')._set(1.50, 2.50, 3.50, 3.99)   # min1
+        r5 = Result('SOS')._set(1.50, 2.50, 3.50, 4.50)
+        r6 = Result('SOS')._set(1.50, 2.50, 3.50, 4.99)   # max1
+        result_list = [r1, r2, r3, r4, r5, r6]
+        # extra == 1
+        def f(extra):
+            sio = _set_output()
+            results = bm._remove_min_and_max(result_list, extra)
+            return results, sio.getvalue()
+        results1, output1 = f(1)
+        results2, output2 = f(2)
+        with spec("removes min and max result."):
+            ok (results1) == [r1, r2, r3, r5]
+            ok (results2) == [r2, r5]
+        with spec("prints removed data."):
+            ok (output1) == "SOS                              3.9900      (#4)    4.9900      (#6)\n"
+            ok (output2) == "SOS                              3.9900      (#4)    4.9900      (#6)\n" \
+                          + "                                 4.0000      (#1)    4.7500      (#3)\n"
+        with spec("returns new results."):
+            ok (results1) != result_list
+            ok (results2) != result_list
+
+    def test_run(self):
+        bm = Benchmarker()
+        def foo(n):
+            """an example"""
+            n = n + 1
+        def bar(n):
+            n = n + 1
+        with spec("uses func doc string or name as label."):
+            task = bm.run(foo, 123)
+            ok (task.result.label) == "an example"
+            task = bm.run(bar, 123)
+            ok (task.result.label) == 'bar'
+        with spec("same as 'self.__call__(label).run(func)'."):
+            pass
 
     def test_platform(self):
-        lines = self.runner.platform().splitlines(True)
-        ok (lines[0].startswith('## benchmarker: '))       == True
-        ok (lines[1].startswith('## python platform: '))   == True
-        ok (lines[2].startswith('## python version: '))    == True
-        ok (lines[3].startswith('## python executable: ')) == True
+        bm = Benchmarker()
+        with spec("returns platform information."):
+            lines = bm.platform().splitlines()
+            ok (lines[0]).matches(r'## benchmarker:       ')
+            ok (lines[1]).matches(r'## python platform:   ')
+            ok (lines[2]).matches(r'## python version:    ')
+            ok (lines[3]).matches(r'## python executable: ')
+        #
+        ok (bm.platform()) == Benchmarker.platform()
 
+    def test_FUNC_with_statement(self):
+        expected1 = r"""
+## benchmarker:       release \d\.\d\.\d \(for python\)
+## python platform:   .*
+## python version:    .*
+## python executable: .*
 
-    def test___enter__(self):
-        ret = self.runner.__enter__()
-        with spec("print platform information."):
-            s = self.runner.reporter.out.getvalue()
-            lines = s.splitlines(True)
-            ok (lines[0].startswith('## benchmarker: '))       == True
-            ok (lines[1].startswith('## python platform: '))   == True
-            ok (lines[2].startswith('## python version: '))    == True
-            ok (lines[3].startswith('## python executable: ')) == True
-        with spec("return self."):
-            ok (ret).is_(self.runner)
+##                                 user       sys     total      real
+bench\d                           0\.000\d    0\.000\d    0\.000\d    0\.000\d
+bench\d                           0\.000\d    0\.000\d    0\.000\d    0\.000\d
 
+## Ranking                         real
+bench\d                           0\.00\d\d \(100.0%\) \*+
+bench\d                           0\.00\d\d \( *\d+.\d+%\) \*+
 
-    def test__exit__(self):
-        self.runner.stat = Stat(self.runner)
-        self.runner.results = [
-            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
-        ]
-        ret = self.runner.__exit__(*sys.exc_info())
-        with spec("print stat.all()."):
-            s = self.runner.reporter.out.getvalue()
-            ok (s).matches(r'## Ranking')
-            ok (s).matches(r'## Ratio Matrix')
-        with spec("return None."):
-            ok (ret) == None
-
-
-    def test_compared_matrix(self):
-        runner = Benchmarker()
-        runner.results = [
-            Result(("Mikuru", 1.1, 2.1, 3.1, 6.0)),
-            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
-            Result(("Yuki",   1.2, 2.2, 3.2, 5.0)),
-        ]
-        ok (runner.compared_matrix()) == """
-## Ratio Matrix                     real    [01]    [02]    [03]
-[01] Haruhi                       4.0000     0.0    25.0    50.0
-[02] Yuki                         5.0000   -20.0     0.0    20.0
-[03] Mikuru                       6.0000   -33.3   -16.7     0.0
+## Ratio Matrix                    real    \[01\]    \[02\]
+\[01\] bench\d                      0\.00\d\d  100\.0%  *\d+\.\d%
+\[02\] bench\d                      0\.00\d\d  *\d+\.\d%  100\.0%
 """[1:]
+        with spec(""):
+            with Benchmarker() as bm:
+                with bm('bench8'):
+                    x = 1
+                with bm('bench9'):
+                    x = 2
+            actual = _get_output()
+            ok (actual).matches(expected1)
 
 
-    def test_print_compared_matrix(self):
-        runner = Benchmarker(out=StringIO())
-        runner.results = [
-            Result(("Mikuru", 1.1, 2.1, 3.1, 6.0)),
-            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
-            Result(("Yuki",   1.2, 2.2, 3.2, 5.0)),
-        ]
-        runner.print_compared_matrix()
-        ok (runner.reporter.out.getvalue()) == """
--------------------------------------------------------------------------------
-## Ratio Matrix                     real    [01]    [02]    [03]
-[01] Haruhi                       4.0000     0.0    25.0    50.0
-[02] Yuki                         5.0000   -20.0     0.0    20.0
-[03] Mikuru                       6.0000   -33.3   -16.7     0.0
-
-"""[1:]
-
-
-
-class StatTest(object):
-
+class Result_TC(object):
 
     def before(self):
-        self.bm = Benchmarker(out=StringIO())
-        self.bm.results = [
-            Result(("Mikuru", 1.1, 2.1, 3.1, 6.0)),
-            Result(("Haruhi", 1.0, 2.0, 3.0, 4.0)),
-            Result(("Yuki",   1.2, 2.2, 3.2, 5.0)),
-        ]
+        self.result = Result("SOS")
+        self.result._set(1.5, 2.5, 3.5, 4.5)
 
+    def test___init__(self):
+        with spec("takes label argument."):
+            r = Result("SOS")
+            ok (r.label) == "SOS"
+
+    def test__set(self):
+        r = Result("SOS")
+        with spec("sets times values as attributes."):
+            r._set(1.5, 2.5, 3.5, 4.5)
+            ok (r.user)  == 1.5
+            ok (r.sys)   == 2.5
+            ok (r.total) == 3.5
+            ok (r.real)  == 4.5
+        with spec("returns self."):
+            ret = r._set(1.5, 2.5, 3.5, 4.5)
+            ok (ret).is_(r)
+
+    def test___repr__(self):
+        r = self.result
+        with spec("returns represented string."):
+            ok (repr(r)) == "<Result label='SOS' user=1.500 sys=2.500 total=3.500 real=4.500>"
+
+    def test_to_tuple(self):
+        r = self.result
+        with spec("returns a tuple with times."):
+            ok (r.to_tuple()) == (1.5, 2.5, 3.5, 4.5)
+
+    def test_average(self):
+        results = [
+            Result('SOS')._set(1.00, 2.00, 3.00, 4.00),
+            Result('SOS')._set(1.25, 2.25, 3.25, 4.25),
+            Result('SOS')._set(1.75, 2.75, 3.75, 4.75),
+            Result('SOS')._set(1.50, 2.50, 3.50, 4.50),
+        ]
+        avg = Result.average(results)
+        with spec("returns averaged result."):
+            ok (avg).is_a(Result)
+        with spec("calculates averaged result from results."):
+            ok (avg.user)  == 1.375
+            ok (avg.sys)   == 2.375
+            ok (avg.total) == 3.375
+            ok (avg.real)  == 4.375
+
+
+class Task_TC(object):
+
+    def before(self):
+        self._echo_bkup = benchmarker.echo
+        benchmarker.echo = Echo.create_dummy()
+
+    def after(self):
+        benchmarker.echo = self._echo_bkup
+
+    def test___init__(self):
+        with spec("takes a Result object, loop, and _empty result."):
+            result = Result("SOS")
+            loop = 10
+            _empty = Result("(Empty)")
+            t = Task(result, loop, _empty)
+            ok (t.result) == result
+            ok (t.loop)   == loop
+            ok (t._empty) == _empty
+
+    def _new_task(self, label="SOS", loop=1, require_empty=False):
+        result = Result(label)
+        _empty = require_empty and Result("(Empty)") or None
+        return Task(result, loop, _empty)
+
+    def test___enter__(self):
+        t = self._new_task("SOS")
+        try:
+            tr = Tracer()
+            fake = tr.fake_obj(collect=None)
+            gc = benchmarker.gc
+            benchmarker.gc = fake
+            ret = t.__enter__()
+        finally:
+            benchmarker.gc = gc
+        with spec("prints task label."):
+            s = _get_output()
+            ok (s) == "SOS                           "
+        with spec("starts full-GC."):
+            ok (tr[0]) == [fake, 'collect', (), {}, None]
+        with spec("saves current timestamp."):
+            ok (t._times).is_a(tuple)
+            ok (t._time).is_a(float)
+        with spec("returns self."):
+            ok (ret).is_(t)
+
+    def test___exit__(self):
+        def f(task):
+            try:
+                _time_time = benchmarker._time_time
+                _os_times  = benchmarker._os_times
+                benchmarker._time_time = lambda: 1.75
+                benchmarker._os_times  = lambda: (1.25, 2.25, )
+                task._time  = 1.00
+                task._times = (1.00, 1.50, )
+                task.__exit__(*sys.exc_info())
+            finally:
+                benchmarker._time_time = _time_time
+                benchmarker._os_times  = _os_times
+        with spec("calculates user, sys, total and real times."):
+            task = self._new_task("SOS")
+            f(task)
+            r = task.result
+            ok (r.user)  == 1.25 - 1.00
+            ok (r.sys)   == 2.25 - 1.50
+            ok (r.total) == r.user + r.sys
+            ok (r.real)  == 1.75 - 1.00
+        with spec("removes empty loop data if they are specified."):
+            task = self._new_task("SOS")
+            task._empty = Result("(Empty)")._set(0.25, 0.25, 0.50, 0.25)
+            f(task)
+            r = task.result
+            ok (r.user)  == 1.25 - 1.00     - 0.25
+            ok (r.sys)   == 2.25 - 1.50     - 0.25
+            ok (r.total) == (1.25 - 1.00) + (2.25 - 1.50) - 0.50
+            ok (r.real)  == 1.75 - 1.00     - 0.25
+        with spec("prints times."):
+            expected = r"""
+   0.2500    0.7500    1.0000    0.7500
+   0.0000    0.5000    0.5000    0.5000
+"""[1:]
+            s = _get_output()
+            ok (s) == expected
+
+    def test_run(self):
+        loop = 3
+        task = self._new_task("SOS", 3)
+        tr = Tracer()
+        tr.trace_method(task, '__enter__', '__exit__')
+        count = [0]
+        args  = [None]
+        def foo(*a):
+            args[0] = a
+            count[0] += 1
+        ret = task.run(foo, 123, 456)
+        with spec("calls __enter__() to simulate with-statement."):
+            ok (tr[0]) == [task, '__enter__', (), {}, task]
+        with spec("calls function with arguments."):
+            ok (args[0]) == (123, 456)
+        with spec("calls functions N times if 'loop' is specified."):
+            ok (count[0]) == loop
+        with spec("calls __exit__() to simulate with-statement."):
+            ok (tr[1]) == [task, '__exit__', (None, None, None), {}, None]
+        with spec("returns self."):
+            ok (ret).is_(task)
+
+    def test___iter__(self):
+        loop = 3
+        task = self._new_task("SOS", 3)
+        tr = Tracer()
+        tr.trace_method(task, '__enter__', '__exit__')
+        count = 0
+        for _ in task:
+            count += 1
+            ok (_) == count - 1
+        with spec("calls __enter__() to simulate with-statement."):
+            ok (tr[0]) == [task, '__enter__', (), {}, task]
+        with spec("executes block for N times if 'loop' is specified."):
+            ok (count) == 3
+        with spec("executes block only once if 'loop' is not specified.."):
+            pass
+        with spec("calls __exit__() to simulate with-statement."):
+            ok (tr[1]) == [task, '__exit__', (None, None, None), {}, None]
+
+
+class Statistics_TC(object):
+
+    r1 = Result('Haruhi' )._set(1.25, 2.25, 3.25, 4.25)
+    r2 = Result('Mikuru' )._set(1.75, 2.75, 3.75, 4.75)
+    r3 = Result('Yuki'   )._set(1.00, 2.00, 3.00, 4.00)
+    r4 = Result('Tsuruya')._set(1.50, 2.50, 3.50, 4.50)
+    results = [r1, r2, r3, r4]
+
+    def before(self):
+        self.stats = Statistics()
+
+    def test__sorted(self):
+        ret = self.stats._sorted(self.results)
+        with spec("not modify passed results."):
+            ok (ret) != self.results
+        with spec("returns sorted results."):
+            ok (ret) == [self.r3, self.r1, self.r4, self.r2]
 
     def test_ranking(self):
-        ok (self.bm.stat.ranking()) == """
-## Ranking                          real  ratio  chart
-Haruhi                            4.0000 (100.0) ********************
-Yuki                              5.0000 ( 80.0) ****************
-Mikuru                            6.0000 ( 66.7) *************
+        expected = r"""
+## Ranking                         real
+Yuki                             4.0000 (100.0%) *************************
+Haruhi                           4.2500 ( 94.1%) ************************
+Tsuruya                          4.5000 ( 88.9%) **********************
+Mikuru                           4.7500 ( 84.2%) *********************
 """[1:]
-
+        with spec("returns ranking as string."):
+            ret = self.stats.ranking(self.results)
+            ok (ret) == expected
 
     def test_ratio_matrix(self):
-        ok (self.bm.stat.ratio_matrix()) == """
-## Ratio Matrix                     real    [01]    [02]    [03]
-[01] Haruhi                       4.0000   100.0   125.0   150.0
-[02] Yuki                         5.0000    80.0   100.0   120.0
-[03] Mikuru                       6.0000    66.7    83.3   100.0
+        expected = r"""
+## Ratio Matrix                    real    [01]    [02]    [03]    [04]
+[01] Yuki                        4.0000  100.0%  106.2%  112.5%  118.8%
+[02] Haruhi                      4.2500   94.1%  100.0%  105.9%  111.8%
+[03] Tsuruya                     4.5000   88.9%   94.4%  100.0%  105.6%
+[04] Mikuru                      4.7500   84.2%   89.5%   94.7%  100.0%
 """[1:]
-        ok (self.bm.stat.ratio_matrix(compensate=-100.0)) == """
-## Ratio Matrix                     real    [01]    [02]    [03]
-[01] Haruhi                       4.0000     0.0    25.0    50.0
-[02] Yuki                         5.0000   -20.0     0.0    20.0
-[03] Mikuru                       6.0000   -33.3   -16.7     0.0
-"""[1:]
-
-
-    def test_all(self):
-        ok (self.bm.stat.all()) == """
-
-## Ranking                          real  ratio  chart
-Haruhi                            4.0000 (100.0) ********************
-Yuki                              5.0000 ( 80.0) ****************
-Mikuru                            6.0000 ( 66.7) *************
-
-## Ratio Matrix                     real    [01]    [02]    [03]
-[01] Haruhi                       4.0000   100.0   125.0   150.0
-[02] Yuki                         5.0000    80.0   100.0   120.0
-[03] Mikuru                       6.0000    66.7    83.3   100.0
-"""[1:]
-
-
-
-class BenchmarkerTest(object):
-
-
-    def test_Benchmarker(self):
-        with spec("return Runner object."):
-            bm = Benchmarker()
-            ok (bm).is_a(Runner)
-        with spec("create Runner, Reporter, Benchmarker, and Stat objects."):
-            bm = Benchmarker(loop=5)
-            ok (bm.reporter).is_a(Reporter)
-            ok (bm.benchmark).is_a(Benchmark)
-            ok (bm.benchmark.reporter).is_(bm.reporter)
-            ok (bm.stat).is_a(Stat)
-            ok (bm.stat.runner).is_(bm)
-            ok (bm.benchmark.loop) == 5
-        with spec("add 'width' argument into kwargs."):
-            bm = Benchmarker(25)
-            ok (bm.reporter.width) == 25
+        with spec("returns ratio matrix as string."):
+            ret = self.stats.ratio_matrix(self.results)
+            ok (ret) == expected
 
 
 
