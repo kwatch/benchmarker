@@ -1,4 +1,4 @@
-include README.txt MANIFEST CHANGES.txt setup.py
+include README.html MANIFEST CHANGES.txt setup.py docstyle.css
 include benchmarker.py
 include test/*.py
 include Kookbook.py
