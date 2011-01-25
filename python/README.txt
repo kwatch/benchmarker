@@ -244,16 +244,15 @@ format                 0.7440 ( 76.1%) *******************
 from benchmarker import Benchmarker
 
 s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-with Benchmarker(width=25, loop=1000*1000) as bm:
-    {{*for _ in bm.repeat(3, extra=1):*}}
-        for _ in bm.empty():
-            pass
-        for _ in bm('join'):
-            sos = ''.join((s1, s2, s3, s4, s5))
-        for _ in bm('concat'):
-            sos = s1 + s2 + s3 + s4 + s5
-        for _ in bm('format'):
-            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+{{*for bm in*}} Benchmarker(width=25, loop=1000*1000, {{*repeat=3, extra=1*}}):
+    for _ in bm.empty():
+        pass
+    for _ in bm('join'):
+        sos = ''.join((s1, s2, s3, s4, s5))
+    for _ in bm('concat'):
+        sos = s1 + s2 + s3 + s4 + s5
+    for _ in bm('format'):
+        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 .--------------------
 
 .? Output Example
@@ -318,7 +317,7 @@ format                      0.7533 ( 74.4%) *******************
 If you prefer to print only averaged data, pass {{,verbose=False,}} to {{,Benchmark(),}}.
 
 .--------------------
-with Benchmark(loop=1000*1000, {{*verbose=False*}}) as bm:
+for bm in Benchmark(loop=1000*1000, repeat=3, extra=1, {{*verbose=False*}}):
     ....
 .--------------------
 
@@ -353,11 +352,10 @@ def f3(n):
         sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 
 loop = 1000 * 1000
-with Benchmarker(width=20) as bm:
-    for _ in bm.repeat(3, extra=1):
-        {{*bm.run(f1, loop)   # or bm('join').run(f1, loop)*}}
-        {{*bm.run(f2, loop)   # or bm('concat').run(f2, loop)*}}
-        {{*bm.run(f3, loop)   # or bm('format').run(f3, loop)*}}
+for bm in Benchmarker(width=20, repeat=3, extra=1):
+    {{*bm.run(f1, loop)   # or bm('join').run(f1, loop)*}}
+    {{*bm.run(f2, loop)   # or bm('concat').run(f2, loop)*}}
+    {{*bm.run(f3, loop)   # or bm('format').run(f3, loop)*}}
 .--------------------
 
 Benchmarker uses document string of function as a label of benchmark.
@@ -456,24 +454,24 @@ for result in bm.results:
 
 .$$ Python 2.4 support
 
-With-statement is not available in Python 2.4.
+As you know, with-statement is not available in Python 2.4.
 But don't worry, Benchmarker provides a solution.
 
 .--------------------
 ## Instead of with-statement,
 with Benchmarker() as bm:
-    for _ in bm.repeat(5):
-        bm.run(func, arg1, arg2)
+    bm('bench1').run(func, arg1, arg2)
+    bm('bench2').run(func, arg3, arg4)
 
 ## for-statement is available!
-{{*for bm in Benchmarker(width=20):*}}
-    for _ in bm.repeat(5):
-        bm.run(func, arg1, arg2)
+{{*for bm in Benchmarker():*}}
+    bm('bench1').run(func, arg1, arg2)
+    bm('bench2').run(func, arg3, arg4)
 
-## Or if you like:
+## Above is almost same as:
 bm = Benchmarker(width=20)
 {{*bm.__enter__()*}}
-for _ in bm.repeat(5):
-    bm.run(func, arg1, arg2)
+bm('bench1').run(func, arg1, arg2)
+bm('bench2').run(func, arg3, arg4)
 {{*bm.__exit__()*}}
 .--------------------
