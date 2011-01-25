@@ -246,19 +246,6 @@ Mikuru                           4.7500 ( 89.5%) **********************
 """
             ok (s.endswith(expected)) == True
 
-    def test___iter__(self):
-        bm = self.bm
-        bm.results = [ Result('')._set(0.0, 0.0, 0.0, 0.1) ]
-        with spec("emulates with-statement."):
-            tr = Tracer()
-            tr.trace_method(bm, '__enter__', '__exit__')
-            for x in bm:
-                ok (len(tr)) == 1
-                ok (tr[0]) == [bm, '__enter__', (), {}, bm]
-            ok (len(tr)) == 2
-            ok (tr[1]) == [bm, '__exit__', (None, None, None), {}, None]
-            ok (x).is_(bm)
-
     def test___call__(self):
         bm = Benchmarker(loop=10)
         assert bm.results == []
@@ -301,87 +288,117 @@ Mikuru                           4.7500 ( 89.5%) **********************
         with spec("created task should not be included in self.results."):
             not_ok (ret.result).in_(bm.results)
 
+    def test__iter__(self):
+        with spec("calls _repeat_block()."):
+            bm = Benchmarker(repeat=5, extra=1)
+            tr = Tracer()
+            tr.trace_method(bm, '_repeat_block')
+            i = 0
+            for x in bm:
+                i += 1
+                ok (x).is_(bm)
+            ok (i) == 5 + 2*1
+            ok (tr[0].name) == '_repeat_block'
+            ok (tr[0].args) == (5, 1, True)
+
     def test_repeat(self):
-        bm = self.bm
+        with spec("calls _repeat_block()."):
+            bm = Benchmarker()
+            tr = Tracer()
+            tr.trace_method(bm, '_repeat_block')
+            i = 0
+            for x in bm.repeat(5, 1):
+                i += 1
+                ok (x).is_(bm)
+            ok (i) == 5 + 2*1
+            ok (tr[0].name) == '_repeat_block'
+            ok (tr[0].args) == (5, 1, False)
+
+    def test__repeat_block(self):
         echo = benchmarker.echo
         assert echo != benchmarker.echo_error
-        with spec("overrides by command-line option."):
-            with _dummy_cmdopt():
-                benchmarker.cmdopt.repeat = 7
-                benchmarker.cmdopt.extra = 1
-                i = 0
-                for _ in bm.repeat(3, extra=0):
-                    i += 1
-                ok (i) == 7 + 2*1
+        with spec("calls __enter__() if emulate_with_stmt is True."):
+            with spec("calls __eixt__() if emulate_with_stmt is True."):
+                bm = Benchmarker()
+                tr = Tracer()
+                tr.trace_method(bm, '__enter__', '__exit__')
+                for _ in bm._repeat_block(3, 0, False):
+                    pass
+                ok (len(tr)) == 0
+                for _ in bm._repeat_block(3, 0, True):
+                    pass
+                ok (len(tr)) == 2
+                ok (tr[0].name) == '__enter__'
+                ok (tr[1].name) == '__exit__'
         with spec("if ntimes is 1 and extra is 0 then not repeat."):
-            bm2 = Benchmarker()
+            bm = Benchmarker()
             tr = Tracer()
-            tr.trace_method(bm2, '_calc_average_results')
+            tr.trace_method(bm, '_calc_average_results')
             #
+            extra = 0
             i = 0
-            for _ in bm2.repeat(1, extra=0):
+            for x in bm._repeat_block(1, extra, True):
                 i += 1
             ok (i) == 1
             ok (len(tr)) == 0
             #
+            extra = 1
             i = 0
-            for _ in bm2.repeat(1, extra=1):
+            for x in bm._repeat_block(1, extra, True):
                 i += 1
             ok (i) == 3
             ok (len(tr)) == 1
             ok (tr[0].name) == '_calc_average_results'
         with spec("replaces 'echo' object to stderr temporarily if verbose."):
-            bm.verbose = True
-            for _ in bm.repeat(2):
+            for bm in Benchmarker(repeat=2, verbose=True):
                 not_ok (benchmarker.echo).is_(echo)
                 ok (benchmarker.echo).is_(benchmarker.echo_error)
             ok (benchmarker.echo).is_(echo)
         with spec("replaces 'echo' object to dummy I/O temporarily if not verbose."):
-            bm.verbose = False
-            for _ in bm.repeat(2):
+            for bm in Benchmarker(repeat=2, verbose=False):
                 not_ok (benchmarker.echo).is_(echo)
                 not_ok (benchmarker.echo).is_(benchmarker.echo_error)
                 ok (benchmarker.echo).is_a(Echo)
             ok (benchmarker.echo).is_(echo)
         with spec("invokes block for 'ntimes + 2*extra' times."):
             i = 0
-            for _ in bm.repeat(5, 2):
+            for bm in Benchmarker(repeat=5, extra=2):
                 i += 1
-                ok (_) == i
             ok (i) == 5 + 2*2
         with spec("resets some properties for each repetition."):
+            bm = Benchmarker(repeat=3)
             tr = Tracer()
             tr.trace_method(bm, '_setup')
-            for _ in bm.repeat(3):
+            for bm in bm:
                 pass
             ok (tr[0]) == [bm, '_setup', ("## (#1)",), {}, None]
             ok (tr[1]) == [bm, '_setup', ("## (#2)",), {}, None]
             ok (tr[2]) == [bm, '_setup', ("## (#3)",), {}, None]
         with spec("keeps all results."):
-            bm2 = Benchmarker(verbose=False)
-            for _ in bm2.repeat(3):
-                bm2('SOS')
-            ok (len(bm2.all_results)) == 3
-            for results in bm2.all_results:
+            bm = Benchmarker(verbose=False)
+            for bm in bm.repeat(3):
+                bm('SOS')
+            ok (len(bm.all_results)) == 3
+            for results in bm.all_results:
                 ok (results).is_a(list)
                 ok (len(results)) == 1
                 ok (results[0]).is_a(Result)
         with spec("restores 'echo' object after block."):
             tmp = benchmarker.echo
-            for _ in bm.repeat(2):
+            for bm in Benchmarker(repeat=2):
                 ok (benchmarker.echo) != tmp
             ok (benchmarker.echo) == tmp
         #
-        bm2 = Benchmarker()
-        tr = Tracer()
-        tr.trace_method(bm2, '_calc_average_results', '_echo_average_section')
         extra = 5
-        for _ in bm2.repeat(100, extra):
+        bm = Benchmarker(repeat=100, extra=extra)
+        tr = Tracer()
+        tr.trace_method(bm, '_calc_average_results', '_echo_average_section')
+        for bm in bm:
             pass
         with spec("calculates average of results."):
-            ok (tr[0].list()) == [bm2, '_calc_average_results', (bm2.all_results, extra), {}, []]
+            ok (tr[0].list()) == [bm, '_calc_average_results', (bm.all_results, extra), {}, []]
         with spec("prints averaged results."):
-            ok (tr[1]) == [bm2, '_echo_average_section', (bm2.results, extra, len(bm2.all_results)), {}, None]
+            ok (tr[1]) == [bm, '_echo_average_section', (bm.results, extra, len(bm.all_results)), {}, None]
 
     def test__calc_average_results(self):
         bm = self.bm

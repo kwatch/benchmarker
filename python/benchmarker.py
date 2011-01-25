@@ -141,12 +141,14 @@ class Benchmarker(object):
 
     verbose = True
 
-    def __init__(self, width=None, loop=1, verbose=None):
+    def __init__(self, width=None, loop=1, repeat=1, extra=0, verbose=None):
         #: sets format.label_with if 'wdith' option is specified.
         if width:
             format.label_width = width
-        #: sets 'loop' attribute.
-        self.loop  = loop
+        #: sets 'loop', 'ntimes', and 'extra' attributes.
+        self.loop   = loop
+        self.ntimes = repeat
+        self.extra  = extra
         #: sets 'verbose' attribute if its option is specified.
         if verbose is not None:  self.verbose = verbose
         #
@@ -158,6 +160,8 @@ class Benchmarker(object):
         global cmdopt
         if cmdopt.verbose is not None:  self.verbose = cmdopt.verbose
         if cmdopt.loop    is not None:  self.loop    = cmdopt.loop
+        if cmdopt.repeat  is not None:  self.ntimes  = cmdopt.repeat
+        if cmdopt.extra   is not None:  self.extra   = cmdopt.extra
 
     def _setup(self, section_title):
         self._section_title = section_title
@@ -180,18 +184,6 @@ class Benchmarker(object):
         #: prints separator and ratio matrix.
         echo.separator()
         echo.text(self.stats.ratio_matrix(results))
-
-    def __iter__(self):
-        #: emulates with-statement.
-        raised = False
-        try:
-            self.__enter__()
-            yield self
-        except Exception:
-            raised = True
-        self.__exit__(*sys.exc_info())
-        if raised:
-            raise
 
     def __call__(self, label):
         #: prints section title if called at the first time.
@@ -217,35 +209,45 @@ class Benchmarker(object):
         #: returns a Task object.
         return task
 
+    def __iter__(self):
+        #: calls _repeat_block().
+        return self._repeat_block(self.ntimes, self.extra, True)
+
     def repeat(self, ntimes, extra=0):
-        #: overrides by command-line option.
-        global cmdopt
-        if cmdopt.repeat is not None:  ntimes = cmdopt.repeat
-        if cmdopt.extra  is not None:  extra  = cmdopt.extra
-        #: if ntimes is 1 and extra is 0 then not repeat.
+        #: calls _repeat_block().
+        return self._repeat_block(ntimes, extra, False)
+
+    def _repeat_block(self, ntimes, extra, emulate_with_stmt):
+        #: calls __enter__() if emulate_with_stmt is True.
+        if emulate_with_stmt:
+            self.__enter__()
+        #: if ntimes is 1 and extra is 0 then just behave like with-statement.
         if ntimes == 1 and extra == 0:
-            yield 1
-            return
-        #: replaces 'echo' object to stderr temporarily if verbose.
-        #: replaces 'echo' object to dummy I/O temporarily if not verbose.
-        global echo, echo_error
-        echo_bkup = echo
-        echo = self.verbose and echo_error or Echo.create_dummy()
-        #: invokes block for 'ntimes + 2*extra' times.
-        self.all_results = []
-        for i in xrange(ntimes + 2*extra):
-            #: resets some properties for each repetition.
-            self._setup("## (#%d)" % (i+1))
-            #: keeps all results.
-            self.all_results.append(self.results)
-            yield i+1
-        #: restores 'echo' object after block.
-        echo = echo_bkup
-        #: calculates average of results.
-        avg_results = self._calc_average_results(self.all_results, extra)
-        self.results = avg_results
-        #: prints averaged results.
-        self._echo_average_section(avg_results, extra, len(self.all_results))
+            yield self
+        else:
+            #: replaces 'echo' object to stderr temporarily if verbose.
+            #: replaces 'echo' object to dummy I/O temporarily if not verbose.
+            global echo, echo_error
+            echo_bkup = echo
+            echo = self.verbose and echo_error or Echo.create_dummy()
+            #: invokes block for 'ntimes + 2*extra' times.
+            self.all_results = []
+            for i in xrange(ntimes + 2 * extra):
+                #: resets some properties for each repetition.
+                self._setup("## (#%d)" % (i+1))
+                #: keeps all results.
+                self.all_results.append(self.results)
+                yield self
+            #: restores 'echo' object after block.
+            echo = echo_bkup
+            #: calculates average of results.
+            avg_results = self._calc_average_results(self.all_results, extra)
+            self.results = avg_results
+            #: prints averaged results.
+            self._echo_average_section(avg_results, extra, len(self.all_results))
+        #: calls __eixt__() if emulate_with_stmt is True.
+        if emulate_with_stmt:
+            self.__exit__()
 
     def _calc_average_results(self, all_results, extra):
         #: prints min-max section title if extra is specified.
