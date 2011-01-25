@@ -883,14 +883,28 @@ Options:
   -v, --version  show version
   -q             quiet (not verbose)    # same as Benchmarker(verbose=False)
   -n N           loop each benchmark    # same as Benchmarker(loop=N)
-  -r N           repeat all benchmarks  # same as bm.repeat(N)
-  -X N           ignore N of min/max    # same as bm.repeat(extra=N)
+  -r N           repeat all benchmarks  # same as Benchmarker(repeat=N)
+  -X N           ignore N of min/max    # same as Benchmarker(extra=N)
   -x regexp      skip benchmarks matched to regexp pattern
   --name[=val]   user-defined option
                  ex.
                      # get value of user-defined option
                      from benchmarker import cmdopt
                      print(repr(cmdopt['name']))  #=> 'val'
+
+Examples:
+
+  ### repeat all benchmarks 5 times with 1000,000 loop
+  $ python benchmarker_test.py -r 5 -n 1000000
+
+  ### invoke bench1, bench2, and so on
+  $ python benchmarker_test.py 'bench*'
+
+  ### invoke al benchmarks except bench1, bench2, and bench3
+  $ python benchmarker_test.py -x '^bench[1-3]$'
+
+  ### invoke all benchmarks with user-defined options
+  $ python benchmarker_test.py --name1 --name2=value2
 '''[1:]
         with spec("returns help message."):
             parser = cmdopt._new_option_parser()

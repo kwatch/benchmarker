@@ -579,8 +579,8 @@ class CommandOption(object):
         add("-v", "--version", dest="version", action="store_true",     help="show version")
         add("-q", None,        dest="quiet",   action="store_true",     help="quiet (not verbose)    # same as Benchmarker(verbose=False)")
         add("-n", None,        dest="loop",    metavar="N", type="int", help="loop each benchmark    # same as Benchmarker(loop=N)")
-        add("-r", None,        dest="repeat",  metavar="N", type="int", help="repeat all benchmarks  # same as bm.repeat(N)")
-        add("-X", None,        dest="extra",   metavar="N", type="int", help="ignore N of min/max    # same as bm.repeat(extra=N)")
+        add("-r", None,        dest="repeat",  metavar="N", type="int", help="repeat all benchmarks  # same as Benchmarker(repeat=N)")
+        add("-X", None,        dest="extra",   metavar="N", type="int", help="ignore N of min/max    # same as Benchmarker(extra=N)")
         add("-x", None,        dest="exclude", metavar="regexp",        help="skip benchmarks matched to regexp pattern")
         return parser
 
@@ -625,11 +625,27 @@ class CommandOption(object):
         #: returns help message.
         if parser is None:  parser = self._new_option_parser()
         msg = parser.format_help()
-        msg += ("  --name[=val]   user-defined option\n"
-                "                 ex.\n"
-                "                     # get value of user-defined option\n"
-                "                     from benchmarker import cmdopt\n"
-                "                     print(repr(cmdopt['name']))  #=> 'val'\n")
+        msg += r"""
+  --name[=val]   user-defined option
+                 ex.
+                     # get value of user-defined option
+                     from benchmarker import cmdopt
+                     print(repr(cmdopt['name']))  #=> 'val'
+
+Examples:
+
+  ### repeat all benchmarks 5 times with 1000,000 loop
+  $ python %(file)s -r 5 -n 1000000
+
+  ### invoke bench1, bench2, and so on
+  $ python %(file)s 'bench*'
+
+  ### invoke al benchmarks except bench1, bench2, and bench3
+  $ python %(file)s -x '^bench[1-3]$'
+
+  ### invoke all benchmarks with user-defined options
+  $ python %(file)s --name1 --name2=value2
+"""[1:] % {'file': sys.argv and os.path.basename(sys.argv[0]) or 'foo.py'}
         return msg
 
     def parse(self, argv=None):
