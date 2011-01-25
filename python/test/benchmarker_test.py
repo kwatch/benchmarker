@@ -297,7 +297,7 @@ Mikuru                           4.7500 ( 89.5%) **********************
 
     def test__iter__(self):
         with spec("calls _repeat_block()."):
-            bm = Benchmarker(repeat=5, extra=1)
+            bm = Benchmarker(cycle=5, extra=1)
             tr = Tracer()
             tr.trace_method(bm, '_repeat_block')
             i = 0
@@ -337,7 +337,7 @@ Mikuru                           4.7500 ( 89.5%) **********************
                 ok (len(tr)) == 2
                 ok (tr[0].name) == '__enter__'
                 ok (tr[1].name) == '__exit__'
-        with spec("if ntimes is 1 and extra is 0 then not repeat."):
+        with spec("if cycle is 1 and extra is 0 then just behave like with-statement."):
             bm = Benchmarker()
             tr = Tracer()
             tr.trace_method(bm, '_calc_average_results')
@@ -357,23 +357,23 @@ Mikuru                           4.7500 ( 89.5%) **********************
             ok (len(tr)) == 1
             ok (tr[0].name) == '_calc_average_results'
         with spec("replaces 'echo' object to stderr temporarily if verbose."):
-            for bm in Benchmarker(repeat=2, verbose=True):
+            for bm in Benchmarker(cycle=2, verbose=True):
                 not_ok (benchmarker.echo).is_(echo)
                 ok (benchmarker.echo).is_(benchmarker.echo_error)
             ok (benchmarker.echo).is_(echo)
         with spec("replaces 'echo' object to dummy I/O temporarily if not verbose."):
-            for bm in Benchmarker(repeat=2, verbose=False):
+            for bm in Benchmarker(cycle=2, verbose=False):
                 not_ok (benchmarker.echo).is_(echo)
                 not_ok (benchmarker.echo).is_(benchmarker.echo_error)
                 ok (benchmarker.echo).is_a(Echo)
             ok (benchmarker.echo).is_(echo)
-        with spec("invokes block for 'ntimes + 2*extra' times."):
+        with spec("invokes block for 'cycle + 2*extra' times."):
             i = 0
-            for bm in Benchmarker(repeat=5, extra=2):
+            for bm in Benchmarker(cycle=5, extra=2):
                 i += 1
             ok (i) == 5 + 2*2
         with spec("resets some properties for each repetition."):
-            bm = Benchmarker(repeat=3)
+            bm = Benchmarker(cycle=3)
             tr = Tracer()
             tr.trace_method(bm, '_setup')
             for bm in bm:
@@ -392,12 +392,12 @@ Mikuru                           4.7500 ( 89.5%) **********************
                 ok (results[0]).is_a(Result)
         with spec("restores 'echo' object after block."):
             tmp = benchmarker.echo
-            for bm in Benchmarker(repeat=2):
+            for bm in Benchmarker(cycle=2):
                 ok (benchmarker.echo) != tmp
             ok (benchmarker.echo) == tmp
         #
         extra = 5
-        bm = Benchmarker(repeat=100, extra=extra)
+        bm = Benchmarker(cycle=100, extra=extra)
         tr = Tracer()
         tr.trace_method(bm, '_calc_average_results', '_echo_average_section')
         for bm in bm:
@@ -430,7 +430,7 @@ Mikuru                           4.7500 ( 89.5%) **********************
         tr_len1 = len(tr)
         #
         with spec("prints min-max section title if extra is specified."):
-            expected = r"^\n## Remove min & max *min *repeat *max *repeat\n"
+            expected = r"^\n## Remove min & max *min *cycle *max *cycle\n"
             ok (output0) == ""             # when extra == 0
             ok (output1).matches(expected) # when extra != 1
         with spec("calculates average of results and returns it."):
@@ -871,12 +871,12 @@ class CommandOption_TC(object):
     def test__populate_opts(self):
         cmdopt = self.cmdopt
         opts = Tracer().fake_obj()
-        opts.__dict__.update(dict(quiet=True, loop=3, repeat=5, extra=1, exclude='[0-9]+'))
+        opts.__dict__.update(dict(quiet=True, loop=3, cycle=5, extra=1, exclude='[0-9]+'))
         with spec("sets attributes according to options."):
             cmdopt._populate_opts(opts, ['label1', 'a*'])
             ok (cmdopt.verbose) == False
             ok (cmdopt.loop)    == 3
-            ok (cmdopt.repeat)  == 5
+            ok (cmdopt.cycle)   == 5
             ok (cmdopt.extra)   == 1
             ok (cmdopt.exclude) == '[0-9]+'
         with spec("converts patterns into regexps."):
@@ -905,7 +905,7 @@ Options:
   -v, --version  show version
   -q             quiet (not verbose)    # same as Benchmarker(verbose=False)
   -n N           loop each benchmark    # same as Benchmarker(loop=N)
-  -r N           repeat all benchmarks  # same as Benchmarker(repeat=N)
+  -r N           cycle all benchmarks   # same as Benchmarker(cycle=N)
   -X N           ignore N of min/max    # same as Benchmarker(extra=N)
   -x regexp      skip benchmarks matched to regexp pattern
   --name[=val]   user-defined option
@@ -916,7 +916,7 @@ Options:
 
 Examples:
 
-  ### repeat all benchmarks 5 times with 1000,000 loop
+  ### cycle all benchmarks 5 times with 1000,000 loop
   $ python benchmarker_test.py -r 5 -n 1000000
 
   ### invoke bench1, bench2, and so on
@@ -940,7 +940,7 @@ Examples:
             cmdopt.parse(['foo.py', '-qn100', '-r', '9', '-X1', '--k1', '--k2=v2', '--k3=', 'foo', 'b*'])
             ok (cmdopt.verbose) == False
             ok (cmdopt.loop)    == 100
-            ok (cmdopt.repeat)  == 9
+            ok (cmdopt.cycle)   == 9
             ok (cmdopt.extra)   == 1
             ok (cmdopt.exclude) == None
             ok (cmdopt['k1']) == True

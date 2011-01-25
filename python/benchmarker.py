@@ -146,13 +146,13 @@ class Benchmarker(object):
 
     verbose = True
 
-    def __init__(self, width=None, loop=1, repeat=1, extra=0, verbose=None):
+    def __init__(self, width=None, loop=1, cycle=1, extra=0, verbose=None):
         #: sets format.label_with if 'wdith' option is specified.
         if width:
             format.label_width = width
-        #: sets 'loop', 'ntimes', and 'extra' attributes.
+        #: sets 'loop', 'cycle', and 'extra' attributes.
         self.loop   = loop
-        self.ntimes = repeat
+        self.cycle  = cycle
         self.extra  = extra
         #: sets 'verbose' attribute if its option is specified.
         if verbose is not None:  self.verbose = verbose
@@ -165,7 +165,7 @@ class Benchmarker(object):
         global cmdopt
         if cmdopt.verbose is not None:  self.verbose = cmdopt.verbose
         if cmdopt.loop    is not None:  self.loop    = cmdopt.loop
-        if cmdopt.repeat  is not None:  self.ntimes  = cmdopt.repeat
+        if cmdopt.cycle   is not None:  self.cycle   = cmdopt.cycle
         if cmdopt.extra   is not None:  self.extra   = cmdopt.extra
 
     def _setup(self, section_title):
@@ -216,18 +216,18 @@ class Benchmarker(object):
 
     def __iter__(self):
         #: calls _repeat_block().
-        return self._repeat_block(self.ntimes, self.extra, True)
+        return self._repeat_block(self.cycle, self.extra, True)
 
-    def repeat(self, ntimes, extra=0):
+    def repeat(self, cycle, extra=0):
         #: calls _repeat_block().
-        return self._repeat_block(ntimes, extra, False)
+        return self._repeat_block(cycle, extra, False)
 
-    def _repeat_block(self, ntimes, extra, emulate_with_stmt):
+    def _repeat_block(self, cycle, extra, emulate_with_stmt):
         #: calls __enter__() if emulate_with_stmt is True.
         if emulate_with_stmt:
             self.__enter__()
-        #: if ntimes is 1 and extra is 0 then just behave like with-statement.
-        if ntimes == 1 and extra == 0:
+        #: if cycle is 1 and extra is 0 then just behave like with-statement.
+        if cycle == 1 and extra == 0:
             yield self
         else:
             #: replaces 'echo' object to stderr temporarily if verbose.
@@ -235,9 +235,9 @@ class Benchmarker(object):
             global echo, echo_error
             echo_bkup = echo
             echo = self.verbose and echo_error or Echo.create_dummy()
-            #: invokes block for 'ntimes + 2*extra' times.
+            #: invokes block for 'cycle + 2*extra' times.
             self.all_results = []
-            for i in xrange(ntimes + 2 * extra):
+            for i in xrange(cycle + 2 * extra):
                 #: resets some properties for each repetition.
                 self._setup("## (#%d)" % (i+1))
                 #: keeps all results.
@@ -258,7 +258,7 @@ class Benchmarker(object):
         #: prints min-max section title if extra is specified.
         if extra:
             #echo.section_title('## Remove min & max', 'min', '(#N)', 'max', '(#N)')
-            echo.section_title('## Remove min & max', 'min', 'repeat', 'max', 'repeat')
+            echo.section_title('## Remove min & max', 'min', 'cycle', 'max', 'cycle')
         #: calculates average of results and returns it.
         avg_results = []
         if self.all_results:
@@ -563,7 +563,7 @@ class CommandOption(object):
     def __init__(self):
         self.verbose = None
         self.loop    = None
-        self.repeat  = None
+        self.cycle   = None
         self.extra   = None
         self.exclude = None
         self.args    = []
@@ -595,7 +595,7 @@ class CommandOption(object):
         add("-v", "--version", dest="version", action="store_true",     help="show version")
         add("-q", None,        dest="quiet",   action="store_true",     help="quiet (not verbose)    # same as Benchmarker(verbose=False)")
         add("-n", None,        dest="loop",    metavar="N", type="int", help="loop each benchmark    # same as Benchmarker(loop=N)")
-        add("-r", None,        dest="repeat",  metavar="N", type="int", help="repeat all benchmarks  # same as Benchmarker(repeat=N)")
+        add("-r", None,        dest="cycle",   metavar="N", type="int", help="cycle all benchmarks   # same as Benchmarker(cycle=N)")
         add("-X", None,        dest="extra",   metavar="N", type="int", help="ignore N of min/max    # same as Benchmarker(extra=N)")
         add("-x", None,        dest="exclude", metavar="regexp",        help="skip benchmarks matched to regexp pattern")
         return parser
@@ -615,7 +615,7 @@ class CommandOption(object):
         #: sets attributes according to options.
         if opts.quiet   is not None:  self.verbose = False
         if opts.loop    is not None:  self.loop    = int(opts.loop)
-        if opts.repeat  is not None:  self.repeat  = int(opts.repeat)
+        if opts.cycle   is not None:  self.cycle   = int(opts.cycle)
         if opts.extra   is not None:  self.extra   = int(opts.extra)
         if opts.exclude is not None:  self.exclude = opts.exclude
         self.args = args
@@ -650,7 +650,7 @@ class CommandOption(object):
 
 Examples:
 
-  ### repeat all benchmarks 5 times with 1000,000 loop
+  ### cycle all benchmarks 5 times with 1000,000 loop
   $ python %(file)s -r 5 -n 1000000
 
   ### invoke bench1, bench2, and so on
