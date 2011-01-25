@@ -150,6 +150,13 @@ class Echo_TC(object):
             echo.task_times(1.5, 2.5, 3.5, 4.5)
             ok (sio.getvalue()) == "   1.5000    2.5000    3.5000    4.5000\n"
 
+    def test_task_message(self):
+        sio = StringIO()
+        echo = Echo(sio)
+        with spec("prints message instead of times."):
+            echo.task_message("** SKIPPED **")
+            ok (sio.getvalue()) == "** SKIPPED **\n"
+
 
 class Benchmarker_TC(object):
 
@@ -513,6 +520,21 @@ Yuki                             1.0000    2.0000    3.0000    4.0000
         with spec("same as 'self.__call__(label).run(func)'."):
             pass
 
+    def test_skip(self):
+        bm = Benchmarker()
+        with spec("accepts label string or function object."):
+            def bench():
+                """bench2"""
+                pass
+            def f():
+                bm.skip('bench1', '* skip')
+                bm.skip(bench)
+            ok (f).not_raise(Exception)
+        with spec("prints task label and message."):
+            expected = ("bench1                        * skip\n"
+                        "bench2                        (skipped)\n")
+            ok (_get_output()) == expected
+
     def test_platform(self):
         bm = Benchmarker()
         with spec("returns platform information."):
@@ -722,7 +744,7 @@ class Task_TC(object):
 
     def test___iter__(self):
         loop = 3
-        task = self._new_task("SOS", 3)
+        task = self._new_task("SOS", loop)
         #
         with spec("just returns if task is specified to skip in command-line."):
             count = 0

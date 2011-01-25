@@ -16,6 +16,7 @@ python3 = sys.version_info[0] == 3
 if python2:
     from StringIO import StringIO
 if python3:
+    basestring = str
     xrange = range
     from io import StringIO
 
@@ -131,6 +132,10 @@ class Echo(object):
         #: prints times.
         self.str(format.times % (user, sys, total, real))
         self.str("\n")
+
+    def task_message(self, message):
+        #: prints message instead of times.
+        self.str(message + "\n")
 
 
 echo       = Echo(sys.stdout)
@@ -310,6 +315,17 @@ class Benchmarker(object):
         label = func.__doc__ or func.__name__
         #: same as 'self.__call__(label).run(func)'.
         return self(label).run(func, *args)   # **kwargs
+
+    def skip(self, label_or_func, message='(skipped)'):
+        #: accepts label string or function object.
+        if isinstance(label_or_func, basestring):
+            label = label_or_func
+        else:
+            func = label_or_func
+            label = func.__doc__ or func.__name__
+        #: prints task label and message.
+        echo.task_label(label)
+        echo.task_message(message)
 
     @staticmethod
     def platform():
