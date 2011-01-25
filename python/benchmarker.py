@@ -595,7 +595,7 @@ class CommandOption(object):
         add("-v", "--version", dest="version", action="store_true",     help="show version")
         add("-q", None,        dest="quiet",   action="store_true",     help="quiet (not verbose)    # same as Benchmarker(verbose=False)")
         add("-n", None,        dest="loop",    metavar="N", type="int", help="loop each benchmark    # same as Benchmarker(loop=N)")
-        add("-r", None,        dest="cycle",   metavar="N", type="int", help="cycle all benchmarks   # same as Benchmarker(cycle=N)")
+        add("-c", None,        dest="cycle",   metavar="N", type="int", help="cycle all benchmarks   # same as Benchmarker(cycle=N)")
         add("-X", None,        dest="extra",   metavar="N", type="int", help="ignore N of min/max    # same as Benchmarker(extra=N)")
         add("-x", None,        dest="exclude", metavar="regexp",        help="skip benchmarks matched to regexp pattern")
         return parser
@@ -651,7 +651,7 @@ class CommandOption(object):
 Examples:
 
   ### cycle all benchmarks 5 times with 1000,000 loop
-  $ python %(file)s -r 5 -n 1000000
+  $ python %(file)s -c 5 -n 1000000
 
   ### invoke bench1, bench2, and so on
   $ python %(file)s 'bench*'

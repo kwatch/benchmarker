@@ -905,7 +905,7 @@ Options:
   -v, --version  show version
   -q             quiet (not verbose)    # same as Benchmarker(verbose=False)
   -n N           loop each benchmark    # same as Benchmarker(loop=N)
-  -r N           cycle all benchmarks   # same as Benchmarker(cycle=N)
+  -c N           cycle all benchmarks   # same as Benchmarker(cycle=N)
   -X N           ignore N of min/max    # same as Benchmarker(extra=N)
   -x regexp      skip benchmarks matched to regexp pattern
   --name[=val]   user-defined option
@@ -917,7 +917,7 @@ Options:
 Examples:
 
   ### cycle all benchmarks 5 times with 1000,000 loop
-  $ python benchmarker_test.py -r 5 -n 1000000
+  $ python benchmarker_test.py -c 5 -n 1000000
 
   ### invoke bench1, bench2, and so on
   $ python benchmarker_test.py 'bench*'
@@ -937,7 +937,7 @@ Examples:
             pass
         with spec("parses command line options and sets attributes."):
             cmdopt = CommandOption()
-            cmdopt.parse(['foo.py', '-qn100', '-r', '9', '-X1', '--k1', '--k2=v2', '--k3=', 'foo', 'b*'])
+            cmdopt.parse(['foo.py', '-qn100', '-c', '9', '-X1', '--k1', '--k2=v2', '--k3=', 'foo', 'b*'])
             ok (cmdopt.verbose) == False
             ok (cmdopt.loop)    == 100
             ok (cmdopt.cycle)   == 9
