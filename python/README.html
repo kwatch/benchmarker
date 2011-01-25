@@ -395,14 +395,67 @@ for bm in Benchmark(loop=1000*1000, repeat=3, extra=1, <strong>verbose=False</st
       <pre class="terminal">
 $ python ex4.py 2&gt;/dev/null
 </pre><br>
+      <a name="Command-line Options"></a>
+
+      <h3 class="section2">Command-line Options</h3>
+
+      <p>Calling <code>benchmarker.cmdopt.parse()</code>, you can specify parameters in command-line.</p><a name="ex5.py" id="ex5.py"></a>
+
+      <div class="program_caption">
+        ex5.py
+      </div>
+      <pre class="program">
+<strong>import benchmarker</strong>
+from benchmarker import Benchmarker
+<strong>benchmarker.cmdopt.parse()</strong>
+
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+for bm in Benchmarker(width=25, loop=1000*1000, repeat=3, extra=1):
+    for _ in bm.empty():
+        pass
+    for _ in bm('join'):
+        sos = ''.join((s1, s2, s3, s4, s5))
+    for _ in bm('concat'):
+        sos = s1 + s2 + s3 + s4 + s5
+    for _ in bm('format'):
+        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+</pre>
+
+      <div class="terminal_caption">
+        Command-line option example
+      </div>
+      <pre class="terminal">
+### show help
+$ python ex5.py -h
+
+### repeat all benchmarks 5 times with 1000,000 loop
+$ python ex5.py -r 5 -n 1000000
+
+### invoke bench1, bench2, and so on
+$ python ex5.py 'bench*'
+
+### invoke al benchmarks except bench1, bench2, and bench3
+$ python ex5.py -x '^bench[1-3]$'
+
+### invoke all branches with user-defined options
+$ python ex5.py --name1 --name2=value2
+</pre>
+
+      <p>You can get user-defined optios via <code>benchmarker.cmdopt</code> in your script.</p>
+      <pre class="program">
+import benchmarker
+benchmarker.cmdopt.parse()
+print(<strong>benchmarker.cmdopt['name1']</strong>)   #=&gt; True
+print(<strong>benchmarker.cmdopt['name2']</strong>)   #=&gt; 'value2'
+</pre><br>
       <a name="Function" id="Function"></a>
 
       <h3 class="section2">Function</h3>
 
-      <p>You can write benchmark code as function.</p><a name="ex5.py" id="ex5.py"></a>
+      <p>You can write benchmark code as function.</p><a name="ex6.py" id="ex6.py"></a>
 
       <div class="program_caption">
-        ex5.py
+        ex6.py
       </div>
       <pre class="program">
 from benchmarker import Benchmarker

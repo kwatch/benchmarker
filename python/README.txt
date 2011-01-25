@@ -328,12 +328,62 @@ $ python ex4.py 2>/dev/null
 .====================
 
 
+.$$ Command-line Options
+
+Calling {{,benchmarker.cmdopt.parse(),}}, you can specify parameters in command-line.
+
+.? ex5.py
+.-------------------- ex5.py
+{{*import benchmarker*}}
+from benchmarker import Benchmarker
+{{*benchmarker.cmdopt.parse()*}}
+
+s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+for bm in Benchmarker(width=25, loop=1000*1000, repeat=3, extra=1):
+    for _ in bm.empty():
+        pass
+    for _ in bm('join'):
+        sos = ''.join((s1, s2, s3, s4, s5))
+    for _ in bm('concat'):
+        sos = s1 + s2 + s3 + s4 + s5
+    for _ in bm('format'):
+        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+.--------------------
+
+.? Command-line option example
+.====================
+### show help
+$ python ex5.py -h
+
+### repeat all benchmarks 5 times with 1000,000 loop
+$ python ex5.py -r 5 -n 1000000
+
+### invoke bench1, bench2, and so on
+$ python ex5.py 'bench*'
+
+### invoke al benchmarks except bench1, bench2, and bench3
+$ python ex5.py -x '^bench[1-3]$'
+
+### invoke all branches with user-defined options
+$ python ex5.py --name1 --name2=value2
+.====================
+
+You can get user-defined optios via {{,benchmarker.cmdopt,}} in your script.
+
+.--------------------
+import benchmarker
+benchmarker.cmdopt.parse()
+print({{*benchmarker.cmdopt['name1']*}})   #=> True
+print({{*benchmarker.cmdopt['name2']*}})   #=> 'value2'
+.--------------------
+
+
 .$$ Function
 
 You can write benchmark code as function.
 
-.? ex5.py
-.-------------------- ex5.py
+.? ex6.py
+.-------------------- ex6.py
 from benchmarker import Benchmarker
 
 s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
@@ -370,7 +420,7 @@ bm(func.__doc__ or func.__name__).run(func, arg1, arg2)
 
 .#.? Output Example
 .#.====================
-.#$ python ex5.py
+.#$ python ex6.py
 .### benchmarker:       release 0.0.0 (for python)
 .### python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
 .### python version:    2.7.1
