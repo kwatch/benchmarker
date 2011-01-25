@@ -3,6 +3,46 @@ CHANGES
 =======
 
 
+Release 3.0.0 (2011-XX-XX)
+--------------------------
+
+* Rewrite entirely.
+
+* Enhanced to support command-line options. ::
+
+      import benchmarker
+      benchmarker.cmdopt.parse()
+
+  You can show all command-line options by ``python file.py -h``.
+  See README file for details.
+
+* Benchmarker.repeat() is obsolete. ::
+
+      ## Old (obsolete)
+      with Benchmarker() as bm:
+          for b in bm.repeat(5, 1):
+              with b('bench1'):
+                  ....
+
+      ## New
+      for bm in Benchmarker(repeat=5, extra=1):
+          with bm('bench1'):
+	      ....
+
+* Changed to specify time (second) format. ::
+
+      import benchmarker
+      benchmarker.format.label_with = 30
+      benchmarker.format.time       = '%9.4f'
+
+* Followings are removed.
+
+  * Benchmark.stat
+  * Benchmark.compared_matrix()
+  * Benchmark.print_compared_matrix()
+
+
+
 Release 2.0.0 (2010-10-28)
 --------------------------
 
