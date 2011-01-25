@@ -262,16 +262,15 @@ ex4.py::
     from benchmarker import Benchmarker
 
     s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-    with Benchmarker(width=25, loop=1000*1000) as bm:
-        for _ in bm.repeat(3, extra=1):
-            for _ in bm.empty():
-                pass
-            for _ in bm('join'):
-                sos = ''.join((s1, s2, s3, s4, s5))
-            for _ in bm('concat'):
-                sos = s1 + s2 + s3 + s4 + s5
-            for _ in bm('format'):
-                sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+    for bm in Benchmarker(width=25, loop=1000*1000, repeat=3, extra=1):
+        for _ in bm.empty():
+            pass
+        for _ in bm('join'):
+            sos = ''.join((s1, s2, s3, s4, s5))
+        for _ in bm('concat'):
+            sos = s1 + s2 + s3 + s4 + s5
+        for _ in bm('format'):
+            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 
 Output Example::
 
@@ -334,7 +333,7 @@ Output Example::
 If you prefer to print only averaged data, pass ``verbose=False`` to Benchmark().
 ::
 
-    with Benchmark(loop=1000*1000, verbose=False) as bm:
+    for bm in Benchmark(loop=1000*1000, repeat=3, extra=1, verbose=False) as bm:
         ....
 
 Or just ignore standard error.
@@ -343,12 +342,60 @@ Or just ignore standard error.
     $ python ex4.py 2>/dev/null
 
 
+Command-line Options
+--------------------
+
+Calling ``benchmarker.cmdopt.parse()``, you can specify parameters in command-line.
+
+ex5.py::
+
+    import benchmarker
+    from benchmarker import Benchmarker
+    benchmarker.cmdopt.parse()
+
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+    for bm in Benchmarker(width=25, loop=1000*1000, repeat=3, extra=1):
+        for _ in bm.empty():
+            pass
+        for _ in bm('join'):
+            sos = ''.join((s1, s2, s3, s4, s5))
+        for _ in bm('concat'):
+            sos = s1 + s2 + s3 + s4 + s5
+        for _ in bm('format'):
+            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+
+Command-line option example::
+
+    ### show help
+    $ python ex5.py -h
+
+    ### repeat all benchmarks 5 times with 1000,000 loop
+    $ python ex5.py -r 5 -n 1000000
+
+    ### invoke bench1, bench2, and so on
+    $ python ex5.py 'bench*'
+
+    ### invoke al benchmarks except bench1, bench2, and bench3
+    $ python ex5.py -x '^bench[1-3]$'
+
+    ### invoke all branches with user-defined options
+    $ python ex5.py --name1 --name2=value2
+
+You can get user-defined optios via ``benchmarker.cmdopt`` in your script.
+::
+
+    import benchmarker
+    benchmarker.cmdopt.parse()
+    print(benchmarker.cmdopt['name1'])   #=> True
+    print(benchmarker.cmdopt['name2'])   #=> 'value2'
+
+
 Function
 --------
 
 You can write benchmark code as function.
 
-ex5.py::
+ex6.py::
 
     from benchmarker import Benchmarker
 
@@ -418,24 +465,25 @@ You can get benchmark results by ``bm.results`` or ``bm.all_results``.
 Python 2.4 support
 ------------------
 
-With-statement is not available in Python 2.4. But don't worry, Benchmarker provides a solution.
+As you know, with-statement is not available in Python 2.4.
+But don't worry, Benchmarker provides a solution.
 ::
 
     ## Instead of with-statement,
     with Benchmarker() as bm:
-        for _ in bm.repeat(5):
-            bm.run(func, arg1, arg2)
+        bm('bench1').run(func, arg1, arg2)
+        bm('bench2').run(func, arg3, arg4)
 
     ## for-statement is available!
-    for bm in Benchmarker(width=20):
-        for _ in bm.repeat(5):
-            bm.run(func, arg1, arg2)
+    for bm in Benchmarker():
+        bm('bench1').run(func, arg1, arg2)
+        bm('bench2').run(func, arg3, arg4)
 
-    ## Or if you like:
+    ## Above is almost same as:
     bm = Benchmarker(width=20)
     bm.__enter__()
-    for _ in bm.repeat(5):
-        bm.run(func, arg1, arg2)
+    bm('bench1').run(func, arg1, arg2)
+    bm('bench2').run(func, arg3, arg4)
     bm.__exit__()
 '''
 license  = 'Public Domain'
