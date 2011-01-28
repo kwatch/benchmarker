@@ -570,6 +570,7 @@ class CommandOption(object):
         self._exclude_rexps = []
         self._include_rexps = []
         self._user_option_dict = {}
+        self.__parser = None
 
     def __getitem__(self, name):
         #: returns user option value if exists.
@@ -584,6 +585,14 @@ class CommandOption(object):
         #: returns user option value if exists.
         #: returns default value if not exist.
         return self._user_option_dict.get(name, default)
+
+    @property
+    def parser(self):
+        # creates new option parser object when it is not set.
+        if not self.__parser:
+            self.__parser = self._new_option_parser()
+        #: returns an option parser object.
+        return self.__parser
 
     def _new_option_parser(self):
         #: returns an OptionParser object.

@@ -853,6 +853,16 @@ class CommandOption_TC(object):
             ok (cmdopt.get('itsuki')) == None
             ok (cmdopt.get('itsuki', 'Koizumi')) == 'Koizumi'
 
+    def test_parser(self):
+        cmdopt = self.cmdopt
+        with spec("creates new option parser object when it is not set."):
+            import optparse
+            ok (cmdopt._CommandOption__parser) == None
+            ok (cmdopt.parser).is_a(optparse.OptionParser)
+            ok (cmdopt._CommandOption__parser).is_(cmdopt.parser)
+        with spec("returns an option parser object."):
+            ok (cmdopt.parser).is_a(optparse.OptionParser)
+
     def test__new_option_parser(self):
         cmdopt = self.cmdopt
         with spec("returns an OptionParser object."):
