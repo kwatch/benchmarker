@@ -3,7 +3,7 @@
 ###
 ### $Release: $
 ### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
-### $License: Public Domain $
+### $License: MIT License $
 ###
 
 from __future__ import with_statement

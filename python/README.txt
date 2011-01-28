@@ -3,7 +3,7 @@
 
 
 $Release: 3.0.0 $.^
-$License: Public Domain $.^
+$License: MIT License $.^
 $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $.^
 
 
