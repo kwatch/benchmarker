@@ -678,14 +678,13 @@ Examples:
         if argv is None: argv = sys.argv
         #: parses command line options and sets attributes.
         argv, user_options = self._separate_user_options(argv)
-        parser = self._new_option_parser()
-        opts, args = parser.parse_args(argv)
+        opts, args = self.parser.parse_args(argv)
         args = args[1:]
         self._populate_opts(opts, args)
         self._user_option_dict = self._parse_user_options(user_options)
         #: if '-h' or '--help' specified then print help message and exit.
         if opts.help:
-            print(self._help_message(parser))
+            print(self._help_message(self.parser))
             sys.exit()
         #: if '-v' or '--version' specified then print version and exit.
         if opts.version:
