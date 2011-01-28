@@ -14,7 +14,8 @@ Benchmarker is a small utility for benchmarking.
 
 .? Quick Example (ex0.py)
 .-------------------- ex0.py
-from benchmarker import Benchmarker
+from benchmarker import Benchmarker, cmdopt
+cmdopt.parse()
 
 s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
 with Benchmarker(width=20, loop=1000*1000) as bm:
@@ -51,6 +52,10 @@ format                 0.7568 ( 75.5%) *******************
 [01] concat            0.5711  100.0%  113.5%  132.5%
 [02] join              0.6483   88.1%  100.0%  116.7%
 [03] format            0.7568   75.5%   85.7%  100.0%
+
+$ python ex0.py -h           # show help message of command-line optins
+$ python ex0.py -n 10000     # override number of loop
+$ python ex0.py concat join  # do only 'concat' and 'join' benchmarks
 .====================
 
 Notice that empty loop times (user, sys, total, and real) are subtracted from other benchmark times automatically.
@@ -135,6 +140,8 @@ format                 0.8442 ( 76.8%) *******************
 
 .$$ Empty Loop
 
+If you want to get more accurate results, add empty loop benchmark.
+
 .? ex2.py
 .-------------------- ex2.py
 from benchmarker import Benchmarker
@@ -195,6 +202,8 @@ For example:
 
 .$$ Loop
 
+It is possible to simpily benchmark script by {{,loop,}} parameter.
+
 .? ex3.py
 .-------------------- ex3.py
 from benchmarker import Benchmarker
@@ -236,15 +245,21 @@ format                 0.7440 ( 76.1%) *******************
 [03] format            0.7440   76.1%   86.8%  100.0%
 .====================
 
+Hint: You can specify {{,loop,}} parameter by {{,-n,}} command-line option.
 
-.$$ Repeat
+
+.$$ Cycle
+
+If you want to repeat benchmarks several times and calculate average time, pass {{,cycle,}} and optional {{,extra,}} parameters, and use for-statement instead of with-statement.
+If you specify {{,extra,}} parameter, minimum and maximum values are removed from benchmark results.
+This is intended to remove abnormal results or to ignore setup time.
 
 .? ex4.py
 .-------------------- ex4.py
 from benchmarker import Benchmarker
 
 s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-{{*for bm in*}} Benchmarker(width=25, loop=1000*1000, {{*repeat=3, extra=1*}}):
+{{*for bm in*}} Benchmarker(width=25, loop=1000*1000, {{*cycle=3, extra=1*}}):
     for _ in bm.empty():
         pass
     for _ in bm('join'):
@@ -293,7 +308,7 @@ join                        0.6500    0.0000    0.6500    0.6482
 concat                      0.5600    0.0000    0.5600    0.5703
 format                      0.7400    0.0000    0.7400    0.7463
 
-## Remove min & max            min    repeat       max    repeat
+## Remove min & max            min     cycle       max     cycle
 join                        0.6482      (#5)    0.6591      (#1)
 concat                      0.5571      (#2)    0.5703      (#5)
 format                      0.7463      (#5)    0.7662      (#1)
@@ -314,10 +329,12 @@ format                      0.7533 ( 74.4%) *******************
 [03] format                 0.7533   74.4%   86.7%  100.0%
 .====================
 
-If you prefer to print only averaged data, pass {{,verbose=False,}} to {{,Benchmark(),}}.
+You can see that average time are calculated automatically after minimun and maximum values are removed.
+
+If you prefer to print only average time, pass {{,verbose=False,}} to {{,Benchmark(),}}.
 
 .--------------------
-for bm in Benchmark(loop=1000*1000, repeat=3, extra=1, {{*verbose=False*}}):
+for bm in Benchmark(loop=1000*1000, cycle=3, extra=1, {{*verbose=False*}}):
     ....
 .--------------------
 
@@ -326,6 +343,8 @@ Or just ignore standard error.
 .====================
 $ python ex4.py 2>/dev/null
 .====================
+
+Hint: You can specify {{,cycle,}} and {{,extra,}} parameter by {{,-c,}} and {{,-X,}} command-line option.
 
 
 .$$ Command-line Options
@@ -339,7 +358,7 @@ from benchmarker import Benchmarker
 {{*benchmarker.cmdopt.parse()*}}
 
 s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-for bm in Benchmarker(width=25, loop=1000*1000, repeat=3, extra=1):
+for bm in Benchmarker(width=25, loop=1000*1000, cycle=3, extra=1):
     for _ in bm.empty():
         pass
     for _ in bm('join'):
@@ -355,8 +374,8 @@ for bm in Benchmarker(width=25, loop=1000*1000, repeat=3, extra=1):
 ### show help
 $ python ex5.py -h
 
-### repeat all benchmarks 5 times with 1000,000 loop
-$ python ex5.py -r 5 -n 1000000
+### cycle all benchmarks 5 times with 1000,000 loop
+$ python ex5.py -c 5 -n 1000000
 
 ### invoke bench1, bench2, and so on
 $ python ex5.py 'bench*'
@@ -368,7 +387,7 @@ $ python ex5.py -x '^bench[1-3]$'
 $ python ex5.py --name1 --name2=value2
 .====================
 
-You can get user-defined optios via {{,benchmarker.cmdopt,}} in your script.
+You can get user-defined options via {{,benchmarker.cmdopt,}} in your script.
 
 .--------------------
 import benchmarker
@@ -402,7 +421,7 @@ def f3(n):
         sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 
 loop = 1000 * 1000
-for bm in Benchmarker(width=20, repeat=3, extra=1):
+for bm in Benchmarker(width=25, cycle=3, extra=1):
     {{*bm.run(f1, loop)   # or bm('join').run(f1, loop)*}}
     {{*bm.run(f2, loop)   # or bm('concat').run(f2, loop)*}}
     {{*bm.run(f3, loop)   # or bm('format').run(f3, loop)*}}
@@ -451,7 +470,7 @@ bm(func.__doc__ or func.__name__).run(func, arg1, arg2)
 .#concat                 0.5000    0.0000    0.5000    0.5043
 .#format                 0.6700    0.0000    0.6700    0.6746
 .#
-.### Remove min & max       min    repeat       max    repeat
+.### Remove min & max       min     cycle       max     cycle
 .#join                   0.5927      (#3)    0.6028      (#4)
 .#concat                 0.5043      (#5)    0.5185      (#2)
 .#format                 0.6746      (#5)    0.6776      (#2)
@@ -502,10 +521,10 @@ for result in bm.results:
 .--------------------
 
 
-.$$ Python 2.4 support
+.$$ Alternative of with-statement in Python 2.4
 
 As you know, with-statement is not available in Python 2.4.
-But don't worry, Benchmarker provides a solution.
+But don't worry, Benchmarker provides an alternative way.
 
 .--------------------
 ## Instead of with-statement,
