@@ -16,7 +16,7 @@ else:
 
 
 name     = 'Benchmarker'
-version  = '2.0.0'
+version  = '3.0.0'
 author   = 'makoto kuwata'
 email    = 'kwa@kuwata-lab.com'
 maintainer = author
@@ -48,7 +48,7 @@ Quick Example (ex0.py)::
 Output example::
 
     $ python ex0.py
-    ## benchmarker:       release 0.0.0 (for python)
+    ## benchmarker:       release 3.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
     ## python version:    2.7.1
     ## python executable: /usr/local/python/2.7.1/bin/python
@@ -134,7 +134,7 @@ ex1.py::
 Output example::
 
     $ python ex1.py
-    ## benchmarker:       release 0.0.0 (for python)
+    ## benchmarker:       release 3.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
     ## python version:    2.7.1
     ## python executable: /usr/local/python/2.7.1/bin/python
@@ -183,7 +183,7 @@ ex2.py::
 Output Example::
 
     $ python ex2.py
-    ## benchmarker:       release 0.0.0 (for python)
+    ## benchmarker:       release 3.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
     ## python version:    2.7.1
     ## python executable: /usr/local/python/2.7.1/bin/python
@@ -241,7 +241,7 @@ ex3.py::
 Output Example::
 
     $ python ex3.py
-    ## benchmarker:       release 0.0.0 (for python)
+    ## benchmarker:       release 3.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
     ## python version:    2.7.1
     ## python executable: /usr/local/python/2.7.1/bin/python
@@ -290,7 +290,7 @@ ex4.py::
 Output Example::
 
     $ python ex4.py
-    ## benchmarker:       release 0.0.0 (for python)
+    ## benchmarker:       release 3.0.0 (for python)
     ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
     ## python version:    2.7.1
     ## python executable: /usr/local/python/2.7.1/bin/python

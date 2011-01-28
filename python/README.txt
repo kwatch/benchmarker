@@ -2,9 +2,9 @@
 .?stylesheet:	docstyle.css
 
 
-$Release: $.^
+$Release: 3.0.0 $.^
 $License: Public Domain $.^
-$Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved. $.^
+$Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $.^
 
 
 
@@ -32,7 +32,7 @@ with Benchmarker(width=20, loop=1000*1000) as bm:
 .? Output example
 .====================
 $ python ex0.py
-## benchmarker:       release 0.0.0 (for python)
+## benchmarker:       release 3.0.0 (for python)
 ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
 ## python version:    2.7.1
 ## python executable: /usr/local/python/2.7.1/bin/python
@@ -116,7 +116,7 @@ loop = 1000 * 1000
 .? Output example
 .====================
 $ python ex1.py
-## benchmarker:       release 0.0.0 (for python)
+## benchmarker:       release 3.0.0 (for python)
 ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
 ## python version:    2.7.1
 ## python executable: /usr/local/python/2.7.1/bin/python
@@ -166,7 +166,7 @@ with Benchmarker(width=20) as bm:
 .? Output Example
 .====================
 $ python ex2.py
-## benchmarker:       release 0.0.0 (for python)
+## benchmarker:       release 3.0.0 (for python)
 ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
 ## python version:    2.7.1
 ## python executable: /usr/local/python/2.7.1/bin/python
@@ -223,7 +223,7 @@ with Benchmarker(width=20, {{*loop=1000*1000*}}) as bm:
 .? Output Example
 .====================
 $ python ex3.py
-## benchmarker:       release 0.0.0 (for python)
+## benchmarker:       release 3.0.0 (for python)
 ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
 ## python version:    2.7.1
 ## python executable: /usr/local/python/2.7.1/bin/python
@@ -273,7 +273,7 @@ s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
 .? Output Example
 .====================
 $ python ex4.py
-## benchmarker:       release 0.0.0 (for python)
+## benchmarker:       release 3.0.0 (for python)
 ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
 ## python version:    2.7.1
 ## python executable: /usr/local/python/2.7.1/bin/python
@@ -440,7 +440,7 @@ bm(func.__doc__ or func.__name__).run(func, arg1, arg2)
 .#.? Output Example
 .#.====================
 .#$ python ex6.py
-.### benchmarker:       release 0.0.0 (for python)
+.### benchmarker:       release 3.0.0 (for python)
 .### python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
 .### python version:    2.7.1
 .### python executable: /usr/local/python/2.7.1/bin/python
