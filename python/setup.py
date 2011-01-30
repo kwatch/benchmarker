@@ -16,7 +16,7 @@ else:
 
 
 name     = 'Benchmarker'
-version  = '3.0.0'
+version  = '3.0.1'
 author   = 'makoto kuwata'
 email    = 'kwa@kuwata-lab.com'
 maintainer = author
@@ -504,7 +504,7 @@ But don't worry, Benchmarker provides an alternative way.
     bm('bench2').run(func, arg3, arg4)
     bm.__exit__()
 '''
-license  = 'Public Domain'
+license  = 'MIT License'
 platforms = 'any'
 #download = 'http://downloads.sourceforge.net/oktest/Benchmarker-%s.tar.gz' % version
 download = 'http://pypi.python.org/packages/source/B/Benchmarker/Benchmarker-%s.tar.gz' % version
@@ -512,7 +512,7 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Developers',
-    'License :: Public Domain',
+    'License :: MIT License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 2.3',

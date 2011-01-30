@@ -2,7 +2,7 @@
 .?stylesheet:	docstyle.css
 
 
-$Release: 3.0.0 $.^
+$Release: 3.0.1 $.^
 $License: MIT License $.^
 $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $.^
 
