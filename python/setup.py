@@ -1,7 +1,7 @@
 ###
 ### $Release: $
 ### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
-### $License: MIT License $
+### $License: Public Domain $
 ###
 
 import sys, re, os
@@ -504,7 +504,7 @@ But don't worry, Benchmarker provides an alternative way.
     bm('bench2').run(func, arg3, arg4)
     bm.__exit__()
 '''
-license  = 'MIT License'
+license  = "Public Domain"
 platforms = 'any'
 #download = 'http://downloads.sourceforge.net/oktest/Benchmarker-%s.tar.gz' % version
 download = 'http://pypi.python.org/packages/source/B/Benchmarker/Benchmarker-%s.tar.gz' % version
@@ -512,7 +512,7 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Developers',
-    'License :: MIT License',
+    'License :: Public Domain',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 2.3',

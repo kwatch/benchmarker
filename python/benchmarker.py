@@ -3,7 +3,7 @@
 ###
 ### $Release: $
 ### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
-### $License: MIT License $
+### $License: Public Domain $
 ###
 
 import sys, os, re, time, gc

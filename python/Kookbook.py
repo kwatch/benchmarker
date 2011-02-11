@@ -23,7 +23,7 @@ kook_default_product = 'test'
 release   = prop('release', '3.0.1')
 package   = prop('package', 'Benchmarker')
 copyright = prop('copyright', "copyright(c) 2010-2011 kuwata-lab.com all rights reserved")
-license   = "MIT License"
+license   = "Public Domain"
 #kook_default_product = 'test'
 
 python = prop('python', 'python')
