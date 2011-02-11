@@ -768,7 +768,12 @@ class Task_TC(object):
         with spec("executes block for N times if 'loop' is specified."):
             ok (count) == 3
         with spec("executes block only once if 'loop' is not specified.."):
-            pass
+            task2 = self._new_task("SOS2", None)
+            cnt2 = 0
+            for _ in task2:
+                cnt2 += 1
+                ok (_) == cnt2
+            ok (cnt2) == 1
         with spec("calls __exit__() to simulate with-statement."):
             ok (tr[1]) == [task, '__exit__', (None, None, None), {}, None]
 

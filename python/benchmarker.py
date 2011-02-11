@@ -463,9 +463,9 @@ class Task(object):
             if loop > 1:
                 for i in xrange(loop):
                     yield i
-            #: executes block only once if 'loop' is not specified..
+            #: executes block only once if 'loop' is not specified.
             else:
-                yield i
+                yield 1
         except Exception:
             raised = True
         #: calls __exit__() to simulate with-statement.
