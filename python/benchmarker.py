@@ -461,7 +461,7 @@ class Task(object):
         try:
             #: executes block for N times if 'loop' is specified.
             if loop > 1:
-                for i in xrange(loop):
+                for i in xrange(1, loop+1):
                     yield i
             #: executes block only once if 'loop' is not specified.
             else:

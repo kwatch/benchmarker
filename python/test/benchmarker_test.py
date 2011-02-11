@@ -762,7 +762,7 @@ class Task_TC(object):
         count = 0
         for _ in task:
             count += 1
-            ok (_) == count - 1
+            ok (_) == count
         with spec("calls __enter__() to simulate with-statement."):
             ok (tr[0]) == [task, '__enter__', (), {}, task]
         with spec("executes block for N times if 'loop' is specified."):
