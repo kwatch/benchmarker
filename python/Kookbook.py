@@ -29,43 +29,29 @@ license   = "Public Domain"
 python = prop('python', 'python')
 
 
-@recipe
-def task_test(c):
-    for fname in glob('test/*_test.py'):
-        system(c%"$(python) $(fname)")
+python_versions = [
+    #('2.4', '/opt/local/bin/python2.4'),
+    ('2.5', '/opt/local/bin/python2.5'),
+    ('2.6', '/opt/local/bin/python2.6'),
+    ('2.7', '/opt/local/bin/python2.7'),
+    ('3.0', '/usr/local/python/3.0.1/bin/python'),
+    ('3.1', '/usr/local/python/3.1/bin/python'),
+    ('3.2', '/usr/local/python/3.2rc1/bin/python'),
+]
 
-
 @recipe
-def task_test_all(c):
-    "do test with python 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2a3"
-    versions = [
-        #('2.4', '/opt/local/bin/python2.4'),
-        ('2.5', '/opt/local/bin/python2.5'),
-        ('2.6', '/opt/local/bin/python2.6'),
-        ('2.7', '/opt/local/bin/python2.7'),
-        ('3.0', '/usr/local/python/3.0.1/bin/python'),
-        ('3.1', '/usr/local/python/3.1/bin/python'),
-        ('3.2', '/usr/local/python/3.2a3/bin/python'),
-    ]
-    for ver, bin in versions:
-        print("#")
-        print("# python " + ver)
-        print("#")
+@spices("-a: do test with python from 2.4 to 3.2")
+def task_test(c, *args, **kwargs):
+    if kwargs.get('a'):
+        for ver, bin in python_versions:
+            print("#")
+            print("# python %s (%s)" % (ver, bin))
+            print("#")
+            for fname in glob('test/*_test.py'):
+                system(c%"$(bin) $(fname)")
+    else:
         for fname in glob('test/*_test.py'):
-            system(c%"$(bin) $(fname)")
-        #fpath = "test/oktest_test.py"
-        #try:
-        #    if ver == '2.4':
-        #        mv(fpath, fpath+'.bkup')
-        #        cp(fpath+'.bkup', fpath)
-        #        s = open(fpath+'.bkup').read()
-        #        line = 'from __future__ import with_statement'
-        #        open(fpath, 'w').write(s.replace(line, '#' + line))
-        #    system(c%"PYTHON=$(bin) $(bin) test/oktest_test.py")
-        #    break
-        #finally:
-        #    if ver == '2.4':
-        #        mv(fpath+'.bkup', fpath)
+            system(c%"$(python) $(fname)")
 
 
 @recipe
