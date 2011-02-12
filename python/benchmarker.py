@@ -393,7 +393,7 @@ class Task(object):
     def __init__(self, result, loop=1, _empty=None):
         #: takes a Result object, loop, and _empty result.
         self.result = result
-        self.loop   = loop
+        self.loop   = loop or 1
         self._empty = _empty
 
     def __enter__(self):
