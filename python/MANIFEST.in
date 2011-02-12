@@ -1,4 +1,4 @@
-include README.html MANIFEST CHANGES.txt setup.py docstyle.css MIT-LICENSE
+include README.html MANIFEST CHANGES.txt setup.py docstyle.css
 include benchmarker.py
 include test/*.py
 include Kookbook.py
