@@ -3,10 +3,16 @@ CHANGES
 =======
 
 
-Release 3.0.1 (2011-01-30)
+Release 3.0.1 (2011-02-13)
 --------------------------
 
-* Fix to include MIT-LICENSE file.
+* License is changed again to Public Domain.
+
+* Change Task class to pass 1-origin index to yield block when 'for _ in bm()' .
+
+* Fix a bug that 'for _ in bm()' raised error when loop count was not specified.
+
+* Fix a bug that 'for _ in bm()' raised RuntimeError on Python 3.
 
 
 
