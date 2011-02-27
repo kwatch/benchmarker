@@ -20,6 +20,10 @@ module Benchmarker
     runner
   end
 
+  def self.bm(width=30, &block)    # for compatibility with benchmark.rb
+    return self.new(:width=>30, &block)
+  end
+
   def self.platform()
     #: returns platform information.
     return <<END
@@ -67,6 +71,8 @@ END
       #: returns created task object.
       t
     end
+
+    alias report task      # for compatibility with benchmark.rb
 
     def empty_task
       #: creates empty task and save it.
