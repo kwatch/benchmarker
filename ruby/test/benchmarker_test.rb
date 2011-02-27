@@ -1,627 +1,527 @@
-# -*- coding: utf-8 -*-
-
 ###
 ### $Release: $
-### $Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
+### $Copyright: copyright(c) 2011 kuwata-lab.com all rights reserved $
 ### $License: MIT License $
 ###
 
+$:.unshift File.class_eval { expand_path(join(dirname(__FILE__), '..')) }
 
 require 'oktest'
 require 'benchmarker'
 
 
-
-class Benchmarker::ResultTest
+class Benchmarker_TC
   include Oktest::TestCase
 
+  def test_SELF_new
+    spec "creates runner object and returns it." do
+      ret = Benchmarker.new
+      ok {ret}.is_a?(Benchmarker::RUNNER)
+    end
+  end
+
+  def test_SELF_platform
+    spec "returns platform information." do
+      s = Benchmarker.platform()
+      ok {s} =~ /^benchmarker\.rb:\s+release \d+\.\d+\.\d+/
+      rexp = /^RUBY_VERSION:\s+(.*)/
+      ok {s} =~ rexp
+      ok {s =~ rexp and $1} == RUBY_VERSION
+      rexp = /^RUBY_PATCHLEVEL:\s+(.*)/
+      ok {s} =~ rexp
+      ok {s =~ rexp and $1} == RUBY_PATCHLEVEL.to_s
+      rexp = /^RUBY_PLATFORM:\s+(.*)/
+      ok {s} =~ rexp
+      ok {s =~ rexp and $1} == RUBY_PLATFORM
+      i = 0
+      s.each_line {|line| i += 1 }
+      ok {i} == 4
+    end
+  end
+
+end
+
+
+class Benchmarker::Runner_TC
+  include Oktest::TestCase
 
   def test_initialize
-
-    spec "take labe, user, sys, and real vaues." do
-      r = Benchmarker::Result.new("AAA", 1.1, 2.2, 3.5, 4.9)
-      ok_(r.label) == 'AAA'
-      ok_(r.user)  == 1.1
-      ok_(r.sys)   == 2.2
-      ok_(r.total) == 3.5
-      ok_(r.real)  == 4.9
+    spec "takes :loop, :cycle, and :extra options." do
+      runner = Benchmarker::RUNNER.new(:loop=>10, :cycle=>20, :extra=>30)
+      ok {runner.instance_variable_get('@loop')}  == 10
+      ok {runner.instance_variable_get('@cycle')} == 20
+      ok {runner.instance_variable_get('@extra')} == 30
     end
-
   end
 
-
-  def test_to_a
-
-    spec "return values as an array" do
-      r = Benchmarker::Result.new("AAA", 1.1, 2.2, 3.5, 4.9)
-      ok_(r.to_a) == ['AAA', 1.1, 2.2, 3.5, 4.9]
+  def test_task
+    runner = nil
+    ret    = nil
+    called = false
+    sout   = nil
+    spec "prints section title if not printed yet." do
+      sout, serr = dummy_io() do
+        runner = Benchmarker::RUNNER.new   # should be inside dummy_io() block!
+        ret = runner.task("label1") { called = true }
+      end
+      ok {sout} =~ /\A\n## {28}      user       sys     total      real\n.*\n/
+      ok {serr} == ""
     end
-
+    spec "returns created task object." do
+      ok {ret}.is_a?(Benchmarker::TASK)
+    end
+    spec "creates task objet and saves it." do
+      task = ret
+      ok {runner.tasks} == [task]
+    end
+    spec "run task." do
+      ok {called} == true
+      ok {sout} =~ /\A\n.*\nlabel1                            0\.\d+    0\.\d+    0\.\d+    0\.\d+\n/
+    end
+    spec "subtracts times of empty task if exists." do
+      empty_task = runner.empty_task()
+      empty_task.user  = 10.0
+      empty_task.sys   =  5.0
+      empty_task.total = 15.0
+      empty_task.real  = 20.0
+      t = runner.task("label2") { x = 1+1 }
+      ok {t.user }.in_delta?(-10.0, 0.1)
+      ok {t.sys  }.in_delta?(- 5.0, 0.1)
+      ok {t.total}.in_delta?(-15.0, 0.1)
+      ok {t.real }.in_delta?(-20.0, 0.1)
+    end
   end
 
+  def test_empty_task
+    runner = nil
+    task = nil
+    spec "returns empty task." do
+      sout, serr = dummy_io() do
+        runner = Benchmarker::RUNNER.new    # should be inside dummy_io() block!
+        task = runner.empty_task()
+      end
+      ok {task}.is_a?(Benchmarker::TASK)
+      ok {task.label} == "(Empty)"
+    end
+    spec "creates empty task and save it." do
+      ok {runner.tasks} == [task]
+    end
+  end
+
+  def test__before_all
+    spec "prints platform information." do
+      sout, serr = dummy_io() do
+        runner = Benchmarker::RUNNER.new
+        runner._before_all()
+      end
+      ok {sout} == Benchmarker.platform()
+    end
+  end
+
+  def test__after_all
+    spec "prints statistics of benchmarks." do
+      tr = tracer()
+      sout, serr = dummy_io() do
+        runner = Benchmarker::RUNNER.new
+        tr.trace_method(runner.stats, :all)
+        runner.task("label1") { nil }
+        runner.task("label2") { nil }
+        runner._after_all()
+      end
+      ok {tr[0].name} == :all
+      ok {sout} =~ /^## Ranking/
+      ok {sout} =~ /^## Matrix/
+    end
+  end
+
+  def test__run
+    spec "when @cycle > 1..." do
+      runner = sout = block_param = nil
+      spec "yields block @cycle times." do
+        i = 0
+        sout, serr = dummy_io() do
+          runner = Benchmarker::RUNNER.new(:cycle=>2)
+          runner._run do |r|
+            i +=1
+            block_param = r
+            r.task('taskA') { nil }
+            r.task('taskB') { nil }
+          end
+        end
+        ok {i} == 2
+        ok {sout} =~ /^## \(1\)/
+        ok {sout} =~ /^## \(2\)/
+      end
+      spec "yields block with self as block paramter." do
+        ok {block_param}.same?(runner)
+      end
+      spec "reports average of results." do
+        ok {sout} =~ /^## Average/
+      end
+    end
+    spec "when @cycle == 0 or not specified..." do
+      runner = sout = block_param = nil
+      spec "yields block only once." do
+        i = 0
+        sout, serr = dummy_io() do
+          runner = Benchmarker::RUNNER.new()
+          runner._run do |r|
+            i +=1
+            block_param = r
+            r.task('taskA') { nil }
+            r.task('taskB') { nil }
+          end
+        end
+        ok {i} == 1
+        ok {sout} =~ /^## *user/
+      end
+      spec "yields block with self as block paramter." do
+        ok {block_param}.same?(runner)
+      end
+    end
+  end
+
+end
+
+
+class Benchmarker::Task_TC
+  include Oktest::TestCase
+
+  def before
+    @task1 = Benchmarker::TASK.new("label1")
+    @task1.user  = 1.5
+    @task1.sys   = 0.5
+    @task1.total = 2.0
+    @task1.real  = 2.25
+    @task2 = Benchmarker::TASK.new("label1")
+    @task2.user  = 1.125
+    @task2.sys   = 0.25
+    @task2.total = 1.375
+    @task2.real  = 1.5
+  end
+
+  def test_initialize
+    t = nil
+    spec "takes label and loop." do
+      t = Benchmarker::TASK.new("label1", 123)
+      ok {t.label} == "label1"
+      ok {t.loop}  == 123
+    end
+    spec "sets all times to zero." do
+      ok {t.user}  == 0.0
+      ok {t.sys}   == 0.0
+      ok {t.total} == 0.0
+      ok {t.real}  == 0.0
+    end
+  end
+
+  def test_run
+    spec "yields block for @loop times." do
+      task = Benchmarker::TASK.new("label2")
+      i = 0
+      task.run { i += 1 }
+      ok {i} == i
+      task.loop = 3
+      i = 0
+      task.run { i += 1 }
+      ok {i} == 3
+    end
+    spec "measures times." do
+      task = Benchmarker::TASK.new("label2")
+      task.user = task.sys = task.total = task.real = -1.0
+      task.run { nil }
+      delta = 0.001
+      ok {task.user }.in_delta?(0.0, delta)
+      ok {task.sys  }.in_delta?(0.0, delta)
+      ok {task.total}.in_delta?(0.0, delta)
+      ok {task.real }.in_delta?(0.0, delta)
+    end
+  end
+
+  def test_add
+    spec "returns self." do
+      ok {@task1.add(@task2)}.same?(@task1)
+    end
+    spec "adds other's times into self." do
+      ok {@task1.user } == 2.625
+      ok {@task1.sys  } == 0.75
+      ok {@task1.total} == 3.375
+      ok {@task1.real } == 3.75
+    end
+  end
+
+  def test_sub
+    spec "returns self." do
+      ok {@task1.sub(@task2)}.same?(@task1)
+    end
+    spec "substracts other's times from self." do
+      ok {@task1.user } == 0.375
+      ok {@task1.sys  } == 0.25
+      ok {@task1.total} == 0.625
+      ok {@task1.real } == 0.75
+    end
+  end
+
+  def test_mul
+    spec "returns self." do
+      ok {@task1.mul(2)}.same?(@task1)
+    end
+    spec "multiplies times with n." do
+      ok {@task1.user } == 3.0
+      ok {@task1.sys  } == 1.0
+      ok {@task1.total} == 4.0
+      ok {@task1.real } == 4.5
+    end
+  end
+
+  def test_div
+    spec "returns self." do
+      ok {@task1.div(2)}.same?(@task1)
+    end
+    spec "divides times by n." do
+      ok {@task1.user } == 0.75
+      ok {@task1.sys  } == 0.25
+      ok {@task1.total} == 1.0
+      ok {@task1.real } == 1.125
+    end
+  end
 
   def test_SELF_average
-
-    klass = Benchmarker::Result
-    results = [
-      klass.new("A", 1.1, 0.1, 1.4, 2.1),
-      klass.new("A", 1.2, 0.2, 1.6, 2.2),
-      klass.new("A", 1.3, 0.3, 1.8, 2.3),
-      klass.new("A", 1.4, 0.4, 2.0, 2.4),
-      klass.new("A", 1.5, 0.5, 2.2, 2.5),
-    ]
-
-    spec "return new Result object." do
-      ret = klass.average(results)
-      ok_(ret).is_a?(Benchmarker::Result)
+    klass = Benchmarker::TASK
+    spec "returns empty task when argument is empty." do
+      t = klass.average([])
+      ok {t.label} == nil
+      ok {t.user} == 0.0
     end
-
-    spec "calculate average values of results." do
-      r = klass.average(results)
-      ok_(r.label) == "A"
-      ok_(r.user).in_delta?( (1.1+1.2+1.3+1.4+1.5)/5, 0.0000001)
-      ok_(r.sys).in_delta?(  (0.1+0.2+0.3+0.4+0.5)/5, 0.0000001)
-      ok_(r.total).in_delta?((1.4+1.6+1.8+2.0+2.2)/5, 0.0000001)
-      ok_(r.real).in_delta?( (2.1+2.2+2.3+2.4+2.5)/5, 0.0000001)
+    spec "create new task with label." do
+      t = klass.average([@task1, @task2])
+      ok {t.label} == @task1.label
+      not_ok {t.label}.same?(@task1)
     end
-
+    spec "returns averaged task." do
+      t = klass.average([@task1, @task2, @task1, @task2])
+      ok {t.user } == (@task1.user  + @task2.user ) / 2
+      ok {t.sys  } == (@task1.sys   + @task2.sys  ) / 2
+      ok {t.total} == (@task1.total + @task2.total) / 2
+      ok {t.real } == (@task1.real  + @task2.real ) / 2
+    end
   end
-
 
 end
 
 
-
-class Benchmarker::ReporterTest
+class Benchmarker::Reporter_TC
   include Oktest::TestCase
 
-
   def before
-    @klass = Benchmarker::Reporter
+    @buf = ""
+    @r = Benchmarker::Reporter.new(:out=>@buf)
   end
-
 
   def test_initialize
-
-    spec "take options." do
-      r = @klass.new(:out=>"OUT", :width=>"WIDTH", :fmt=>"FMT", :header=>"HEADER",
-                    :verbose=>"VERBOSE", :vout=>"VOUT")
-      ok_(r.out) == "OUT"
-      ok_(r.width) == "WIDTH"
-      ok_(r.fmt) == "FMT"
-      ok_(r.header) == "HEADER"
-      ok_(r.verbose) == "VERBOSE"
-      ok_(r.vout) == "VOUT"
+    spec "takes :out, :width, and :format options." do
+      r = Benchmarker::Reporter.new(:out=>$stderr, :width=>123, :format=>"%10.1f")
+      ok {r.out}.same?($stderr)
+      ok {r.label_width} == 123
+      ok {r.format_time} == "%10.1f"
     end
-
-    spec "if :verbose is false then set @vout to dummy string." do
-      r = @klass.new(:verbose=>false, :vout=>$stderr)
-      ok_(r.vout) == ""
-    end
-
   end
 
-
-  def test_start_verbose_region
-
-    spec "switch @out to verbose output." do
-      vout = ""
-      r = @klass.new(:vout=>vout)
-      out = r.out
-      r.start_verbose_region
-      ok_(r.out).same?(vout)
-      r << "foobar"
-      ok_(vout) == "foobar"
+  def test_label_width=()
+    spec "sets @label_width." do
+      @r.label_width = 123
+      ok {@r.label_width} == 123
     end
-
+    spec "sets @format_label, too." do
+      ok {@r.instance_variable_get('@format_label')} == "%-123s"
+    end
   end
 
-
-  def test_stop_verbose_region
-
-    spec "switch back @out to original object." do
-      out = "(out)"
-      vout = "(vout)"
-      r = @klass.new(:out=>out, :vout=>vout)
-      r.start_verbose_region
-      r << "foo"
-      ok_(out) == "(out)"
-      ok_(vout) == "(vout)foo"
-      r.stop_verbose_region
-      r << "bar"
-      ok_(out) == "(out)bar"
-      ok_(vout) == "(vout)foo"
+  def test_format_time=()
+    spec "sets @format_time." do
+      @r.format_time = "%10.2f"
+      ok {@r.format_time} == "%10.2f"
     end
-
+    spec "sets @format_header, too." do
+      ok {@r.instance_variable_get('@format_header')} == "%10s"
+    end
   end
 
-
-  def test_ltlt
-
-    spec "write arg into @out." do
-      out = ""
-      r = @klass.new(:out=>out)
-      r << "foobar"
-      ok_(out) == "foobar"
+  def test_write
+    spec "writes arguments to @out with '<<' operator." do
+      @r.write("Haruhi", nil, 32)
+      ok {@buf} == "Haruhi32"
     end
-
+    spec "saves the last argument." do
+      ok {@r.instance_variable_get('@_prev')} == 32
+    end
+    spec "returns self." do
+      ok {@r.write()}.same?(@r)
+    end
   end
 
-
-  def test_flush
-
-    spec "call flush() if @out is IO object." do
-      s = ""
-      r = @klass.new(:out=>s)
-      not_ok_(proc {r.flush()}).raise?(Exception)
-      def s.flush
-        self << "flushed!"
-      end
-      ok_(s) == ""
-      s.flush()
-      ok_(s) == "flushed!"
+  def test_report_section_title
+    ret = @r.report_section_title("SOS")
+    spec "prints newline at first." do
+      ok {@buf} =~ /\A\n/
     end
-
+    spec "prints section title with @format_label." do
+      ok {@buf} =~ /\A\n## SOS {24}/
+    end
+    spec "returns self." do
+      ok {ret}.same?(@r)
+    end
   end
 
-
-  def test_print_header
-
-    spec "write header string into @out." do
-      s = ""
-      r = @klass.new(:out=>s, :width=>10, :header=>"<header>")
-      r.print_header("TITLE")
-      ok_(s) == "## TITLE  <header>\n"
+  def test_report_section_headers
+    args = ["user", "sys", "total", "real"]
+    ret = @r.report_section_headers(*args)
+    spec "prints headers." do
+      ok {@buf} == "      user       sys     total      real\n"
     end
-
+    spec "prints newline at end." do
+      ok {@buf} =~ /\n\z/
+    end
+    spec "returns self." do
+      ok {ret}.same?(@r)
+    end
   end
 
-
-  def test_print_label
-
-    s = ""
-    r = @klass.new(:out=>s, :width=>10, :header=>"<header>")
-    def s.flush
-      @flush_called = true
+  def test_report_section_header
+    ret = @r.report_section_header("Haruhi")
+    spec "prints header with @format_header." do
+      ok {@buf} == "    Haruhi"
+      @buf[0..-1] = ""
+      @r.format_time = "%5.2f"
+      @r.report_section_header("SOS")
+      ok {@buf} == "   SOS"
     end
-
-    spec "write label string ito @out." do
-      r.print_label('AAA')
-      ok_(s) == "AAA       "
+    spec "returns self." do
+      ok {ret}.same?(@r)
     end
-
-    spec "call flush()." do
-      #falldown
-      ok_(s.instance_variable_get('@flush_called')) == true
-    end
-
-    spec "label can be trimmed if too long." do
-      r.out = ""
-      r.print_label('123456789012345')
-      ok_(r.out) == '1234567890'
-    end
-
   end
 
-
-  def test_print_times
-
-    spec "write user, sys, total, and real time into @out." do
-      s = ""
-      r = @klass.new(:out=>s)
-      r.print_times(1.1, 0.5, 1.8, 2.0)
-      ok_(s) == "    1.1000    0.5000    1.8000    2.0000\n"
+  def test_report_task_label
+    ret = @r.report_task_label("Sasaki")
+    spec "prints task label with @format_label." do
+      ok {@buf} == "Sasaki                        "
+      @buf[0..-1] = ""
+      @r.instance_variable_set('@format_label', "%-12s")
+      @r.report_task_label("Sasakisan")
+      ok {@buf} == "Sasakisan   "
     end
-
+    spec "returns self." do
+      ok {ret}.same?(@r)
+    end
   end
 
+  def test_report_task_times
+    ret = @r.report_task_times(1.1, 1.2, 1.3, 1.4)
+    spec "prints task times with @format_time." do
+      ok {@buf} == "    1.1000    1.2000    1.3000    1.4000\n"
+    end
+    spec "returns self." do
+      ok {ret}.same?(@r)
+    end
+  end
+
+  def test_report_task_time
+    ret = @r.report_task_time(12.3)
+    spec "prints task time with @format_time." do
+      ok {@buf} == "   12.3000"
+    end
+    spec "returns self." do
+      ok {ret}.same?(@r)
+    end
+  end
 
 end
 
 
-
-class Benchmarker::StatisticsTest
+class Benchmarker::Stats_TC
   include Oktest::TestCase
 
-
   def before
-    @klass = Benchmarker::Statistics
+    @out = ""
+    @r = Benchmarker::Reporter.new(:out=>@out)
+    @stats = Benchmarker::Stats.new(@r)
+    #
+    @tasks = []
+    sos = proc do |label, user, sys, total, real|
+      t = Benchmarker::TASK.new(label)
+      t.user, t.sys, t.total, t.real = user, sys, total, real
+      @tasks << t
+    end
+    sos.call("Haruhi", 11.1, 0.2, 11.3, 11.5)
+    sos.call("Mikuru", 14.1, 0.2, 14.3, 14.5)
+    sos.call("Yuki",   10.1, 0.2, 10.3, 10.5)
+    sos.call("Itsuki", 12.1, 0.2, 12.3, 12.5)
+    sos.call("Kyon",   13.1, 0.2, 13.3, 13.5)
   end
-
 
   def test_initialize
-    spec "save opts." do
-      st = @klass.new(:compensate=>-100)
-      ok_(st.instance_variable_get('@opts')).is_a?(Hash)
-      ok_(st.instance_variable_get('@opts')[:compensate]) == -100
+    r = Benchmarker::Reporter.new
+    stats = Benchmarker::Stats.new(r)
+    spec "takes reporter object." do
+      ok {stats.instance_variable_get('@report')} == r
     end
+    #spec "takes :real, :barchar, and :loop options." do
+    #end
   end
-
-
-  @@_results1 = [
-    Benchmarker::Result.new("AAA", 1.5, 0.5, 2.5, 2.5),
-    Benchmarker::Result.new("BBB", 1.2, 0.2, 2.1, 2.2),
-    Benchmarker::Result.new("CCC", 1.1, 0.1, 2.0, 2.1),
-    Benchmarker::Result.new("DDD", 1.4, 0.4, 2.6, 2.4),
-    Benchmarker::Result.new("EEE", 1.3, 0.3, 2.4, 2.3),
-  ]
-
 
   def test_ranking
+    expected1 = <<'END'
 
-    spec "sort results and return ranking output." do
-      st = @klass.new()
-      output = st.ranking(@@_results1)
-      expected = <<'END'
-## Ranking                          real  ratio
-CCC                               2.1000 (100.0) ********************
-BBB                               2.2000 ( 95.5) *******************
-EEE                               2.3000 ( 91.3) ******************
-DDD                               2.4000 ( 87.5) *****************
-AAA                               2.5000 ( 84.0) ****************
+## Ranking                          real
+Yuki                             10.5000 (100.0%) ********************
+Haruhi                           11.5000 ( 91.3%) ******************
+Itsuki                           12.5000 ( 84.0%) *****************
+Kyon                             13.5000 ( 77.8%) ****************
+Mikuru                           14.5000 ( 72.4%) **************
 END
-      ok_(output) == expected
+    expected2 = <<'END'
+
+## Ranking                          real
+Yuki                             10.5000 (100.0%)     95238.10 per sec
+Haruhi                           11.5000 ( 91.3%)     86956.52 per sec
+Itsuki                           12.5000 ( 84.0%)     80000.00 per sec
+Kyon                             13.5000 ( 77.8%)     74074.07 per sec
+Mikuru                           14.5000 ( 72.4%)     68965.52 per sec
+END
+    spec "prints ranking." do
+      spec "prints barchart if @numerator is not specified." do
+        @stats.ranking(@tasks)
+        ok {@out} == expected1
+      end
+      spec "prints inverse number if @numerator specified." do
+        @out = ""
+        @r = Benchmarker::Reporter.new(:out=>@out)
+        @stats = Benchmarker::Stats.new(@r, :numerator=>1000*1000)
+        @stats.ranking(@tasks)
+        ok {@out} == expected2
+      end
     end
-
   end
-
 
   def test_ratio_matrix
-
-    spec "calculate each ratios and return it." do
-      st = @klass.new()
-      output = st.ratio_matrix(@@_results1)
-      expected = <<'END'
-## Ratio Matrix                     real   [01]   [02]   [03]   [04]   [05]
-[01] CCC                          2.1000  100.0  104.8  109.5  114.3  119.0
-[02] BBB                          2.2000   95.5  100.0  104.5  109.1  113.6
-[03] EEE                          2.3000   91.3   95.7  100.0  104.3  108.7
-[04] DDD                          2.4000   87.5   91.7   95.8  100.0  104.2
-[05] AAA                          2.5000   84.0   88.0   92.0   96.0  100.0
-END
-      ok_(output) == expected
-    end
-
-  end
-
-
-end
-
-
-
-class Benchmarker::RunnerTest
-  include Oktest::TestCase
-
-
-  def _new_runner
-    runner = Benchmarker::Runner.new()
-    runner.reporter = Benchmarker::Reporter.new(:out=>'', :verbose=>false)
-    runner
-  end
-
-
-  def before
-    @klass = Benchmarker::Runner
-    @runner = _new_runner()
-  end
-
-
-  def test_intialize
-
-    spec "take opts." do
-      r = @klass.new(:loop=>99)
-      ok_(r.loop) == 99
-    end
-
-  end
-
-
-  def test_bench
-
-    spec "run block and create Result object." do
-      r = @runner
-      called = 0
-      r.bench("AAA") { called += 1 }
-      ok_(called) == 1
-      ok_(r.results.length) == 1
-      ok_(r.results[0]).is_a?(Benchmarker::Result)
-      ok_(r.results[0].label) == "AAA"
-    end
-
-    spec "run block N-times if @loop is N." do
-      r = @klass.new(:loop=>99)
-      r.reporter = Benchmarker::Reporter.new(:out=>"")
-      called = 0
-      r.bench("BBB") { called += 1 }
-      ok_(called) == 99
-      ok_(r.results.length) == 1
-      ok_(r.results[0]).is_a?(Benchmarker::Result)
-      ok_(r.results[0].label) == "BBB"
-    end
-
-    spec "if header is not printed then prit it." do
-      r = _new_runner()
-      rexp = /\#\# Benchmark\s+user\s+sys\s+total\s+real/
-      # 1st
-      r.reporter.out = ""
-      r.bench('label1') { }
-      ok_(r.reporter.out.split(/^/).grep(rexp).length) == 1
-      # 2nd
-      r.reporter.out = ""
-      r.bench('label2') { }
-      ok_(r.reporter.out.split(/^/).grep(rexp).length) == 0
-    end
-
-  end
-
-
-  def test__delete_minmax_from
-    key, fmt, label_fmt = :real, '%9.4f', '%-10s'
-    _create_results = proc {|label|
-      [
-        Benchmarker::Result.new(label, 1.2, 0.2, 2.4, 2.2),
-        Benchmarker::Result.new(label, 1.4, 0.4, 2.8, 2.4),
-        Benchmarker::Result.new(label, 1.5, 0.5, 2.0, 2.5),
-        Benchmarker::Result.new(label, 1.1, 0.1, 2.2, 2.1),
-        Benchmarker::Result.new(label, 1.3, 0.3, 2.6, 2.3),
-      ]
-    }
-    reported = {}
-    proc_obj = proc {|extra, label|
-      results = _create_results.call(label)
-      runner = @klass.new()
-      runner.reporter = Benchmarker::Reporter.new(:out=>'', :vout=>'')
-      runner.__send__(:_delete_minmax_from, results, key, extra, fmt, label_fmt)
-      reported[extra] = runner.reporter.out
-      results
-    }
-
-    spec "remove results which have min or max value." do
-      # extra = 1
-      results = proc_obj.call(1, "AAA")
-      ok_(results.length) == 3
-      ok_(results.collect {|x| x.__send__(key) }) == [2.2, 2.4, 2.3]
-      # extra = 2
-      results = proc_obj.call(2, "BBB")
-      ok_(results.length) == 1
-      ok_(results.collect {|x| x.__send__(key) }) == [2.3]
-    end
-
-    spec "report remove min and max results." do
-      # falldown
-      ok_(reported[1]) == "AAA          2.1000        #4   2.5000        #3\n"
-      ok_(reported[2]) == "BBB          2.1000        #4   2.5000        #3\n" \
-                        + "             2.2000        #1   2.4000        #2\n"
-    end
-
-  end
-
-
-  def test__average_results
-    _create_results = proc {|label|
-      [
-        Benchmarker::Result.new(label, 1.2, 0.2, 2.4, 2.2),
-        Benchmarker::Result.new(label, 1.4, 0.4, 2.8, 2.4+0.3),
-        Benchmarker::Result.new(label, 1.5, 0.5, 2.0, 2.5+7-0.3),
-        Benchmarker::Result.new(label, 1.1, 0.1, 2.2, 2.1-2),
-        Benchmarker::Result.new(label, 1.3, 0.3, 2.6, 2.3),
-      ]
-    }
-
-    spec "if extra is specified then calculate averages after removing mix/max data." do
-      results_matrix = [ _create_results.call("AAA"), _create_results.call("BBB") ]
-      extra = 1
-      avg_results = @runner.__send__(:_average_results, results_matrix, :real, extra)
-      ok_(avg_results[0].label) == 'AAA'
-      ok_(avg_results[0].real) == 2.4
-      ok_(avg_results[1].label) == 'BBB'
-      ok_(avg_results[1].real) == 2.4
-      #
-      results_matrix = [ _create_results.call("CCC"), _create_results.call("DDD") ]
-      extra = 2
-      avg_results = @runner.__send__(:_average_results, results_matrix, :real, extra)
-      ok_(avg_results[0].label) == 'CCC'
-      ok_(avg_results[0].real) == 2.3
-      ok_(avg_results[1].label) == 'DDD'
-      ok_(avg_results[1].real) == 2.3
-    end
-
-    spec "if extra is less than or equal to 0 then just calculate averages." do
-      results_matrix = [ _create_results.call("AAA"), _create_results.call("BBB") ]
-      runner = @klass.new
-      runner.reporter = Benchmarker::Reporter.new(:out=>"", :vout=>"")
-      key, extra = :real, 0
-      avg_results = runner.__send__(:_average_results, results_matrix, key, extra)
-      ok_(avg_results[0].label) == 'AAA'
-      ok_(avg_results[0].real) == 3.3
-      ok_(avg_results[1].label) == 'BBB'
-      ok_(avg_results[1].real) == 3.3
-    end
-
-  end
-
-
-  def test__print_results
-    results = [
-      Benchmarker::Result.new('AAA', 1.1, 0.1, 1.2, 2.1),
-      Benchmarker::Result.new('BBB', 1.2, 0.2, 1.4, 2.2),
-    ]
-    @runner.__send__(:_print_results, results, 'Example')
     expected = <<'END'
-## Example                          user       sys     total      real
-AAA                               1.1000    0.1000    1.2000    2.1000
-BBB                               1.2000    0.2000    1.4000    2.2000
+
+## Matrix                           real     [01]     [02]     [03]     [04]     [05]
+[01] Yuki                        10.5000   100.0%   109.5%   119.0%   128.6%   138.1%
+[02] Haruhi                      11.5000    91.3%   100.0%   108.7%   117.4%   126.1%
+[03] Itsuki                      12.5000    84.0%    92.0%   100.0%   108.0%   116.0%
+[04] Kyon                        13.5000    77.8%    85.2%    92.6%   100.0%   107.4%
+[05] Mikuru                      14.5000    72.4%    79.3%    86.2%    93.1%   100.0%
 END
-    ok_(@runner.reporter.out) == expected
+    spec "prints matrix." do
+      @stats.ratio_matrix(@tasks)
+      ok {@out} == expected
+    end
   end
-
-
-  def test_repeat
-
-    spec "repeat blocks n times." do
-      r = @runner
-      ctr = 0
-      r.repeat(10) do
-        ctr += 1
-      end
-      ok_(ctr) == 10
-    end
-
-    spec "repeat blocks n + 2*extra times if :extra specified." do
-      r = @runner
-      ctr = 0
-      r.repeat(10, :extra=>3) do
-        ctr += 1
-      end
-      ok_(ctr) == 10 + 2*3
-    end
-
-    spec "repeated result is printed into separated outout." do
-      r = @klass.new(:loop=>7)
-      r.reporter = Benchmarker::Reporter.new(:out=>"", :vout=>"")
-      r.repeat(3, :extra=>1) do
-        r.empty { }
-        r.bench("AAA") { a = 1 }
-        r.bench("BBBB") { b = 1 }
-        r.bench("CC") { c = 1 }
-      end
-      expected = <<'END'
-## Average of 3 (=5-2*1)            user       sys     total      real
-AAA                               0.0000    0.0000    0.0000    0.0000
-BBBB                              0.0000    0.0000    0.0000    0.0000
-CC                                0.0000    0.0000    0.0000    0.0000
-END
-      ok_(r.reporter.out.gsub(/-0\.0/, ' 0.0')) == expected
-      expected = <<'END'
-## Benchmark #1                     user       sys     total      real
-(Empty)                           0.0000    0.0000    0.0000    0.0000
-AAA                               0.0000    0.0000    0.0000    0.0000
-BBBB                              0.0000    0.0000    0.0000    0.0000
-CC                                0.0000    0.0000    0.0000    0.0000
-
-## Benchmark #2                     user       sys     total      real
-(Empty)                           0.0000    0.0000    0.0000    0.0000
-AAA                               0.0000    0.0000    0.0000    0.0000
-BBBB                              0.0000    0.0000    0.0000    0.0000
-CC                                0.0000    0.0000    0.0000    0.0000
-
-## Benchmark #3                     user       sys     total      real
-(Empty)                           0.0000    0.0000    0.0000    0.0000
-AAA                               0.0000    0.0000    0.0000    0.0000
-BBBB                              0.0000    0.0000    0.0000    0.0000
-CC                                0.0000    0.0000    0.0000    0.0000
-
-## Benchmark #4                     user       sys     total      real
-(Empty)                           0.0000    0.0000    0.0000    0.0000
-AAA                               0.0000    0.0000    0.0000    0.0000
-BBBB                              0.0000    0.0000    0.0000    0.0000
-CC                                0.0000    0.0000    0.0000    0.0000
-
-## Benchmark #5                     user       sys     total      real
-(Empty)                           0.0000    0.0000    0.0000    0.0000
-AAA                               0.0000    0.0000    0.0000    0.0000
-BBBB                              0.0000    0.0000    0.0000    0.0000
-CC                                0.0000    0.0000    0.0000    0.0000
-
-## Remove min & max                  min    bench#       max    bench#
-AAA                               0.0000        #?    0.0000        #?
-BBBB                              0.0000        #?    0.0000        #?
-CC                                0.0000        #?    0.0000        #?
-
-END
-      actual = r.reporter.vout.gsub(/-0\.0/, ' 0.0') \
-                                     .gsub(/    \#\d/, '    #?') \
-                                     .gsub(/0\.000\d/, '0.0000')
-      ok_(actual) == expected
-    end
-
-  end
-
-
-  def test_print
-
-    spec "print arg into reporter's output." do
-      r = @runner
-      r.print("hoge")
-      ok_(r.reporter.out) == "hoge"
-    end
-
-  end
-
-
-  def test_ranking
-
-    spec "call @statistics.ranking()." do
-      r = @runner
-      r.bench("AAA") { x = 1 }
-      tr = tracer()
-      tr.trace_method(r.stat, :ranking)
-      ret = r.stat.ranking()
-      ok_(tr[0].name) == :ranking
-      ok_(ret) == <<'END'
-## Ranking                          real  ratio
-AAA                               0.0000 (100.0) ********************
-END
-    end
-
-  end
-
-
-  def test_ratio_matrix
-
-    spec "call @statistics.ratio_matrix()." do
-      r = @runner
-      r.bench("AAA") { x = 1 }
-      tr = tracer()
-      tr.trace_method(r.stat, :ratio_matrix)
-      ret = r.stat.ratio_matrix()
-      ok_(tr[0].name) == :ratio_matrix
-      ok_(ret) == <<'END'
-## Ratio Matrix                     real   [01]
-[01] AAA                          0.0000  100.0
-END
-    end
-
-  end
-
-
-  def test_platform
-
-    spec "return string containing platform information." do
-      r = @runner
-      s = r.platform
-      ok_(s) =~ /RUBY_PLATFORM/
-      ok_(s) =~ /RUBY_ENGINE/
-      ok_(s) =~ /RUBY_VERSION/
-      ok_(s) =~ /RUBY_PATCHLEVEL/
-      ok_(s) =~ /RUBY_RELEASE_DATE/
-    end
-
-  end
-
-
 
 end
 
 
-
-class BenchmarkerTest
-  include Oktest::TestCase
-
-
-  %w[RESULT REPORTER STATISTICS RUNNER].each do |name|
-    eval <<-END
-      def test_SELF__#{name}
-        orig = Benchmarker::#{name}
-        begin
-          Benchmarker.#{name} = 'foobar'
-          ok_(Benchmarker::#{name}) == 'foobar'
-        ensure
-          Benchmarker.class_eval { remove_const :#{name}; const_set :#{name}, orig }
-        end
-      end
-    END
-  end
-
-
+if __FILE__ == $0
+  Oktest::run_all()
 end

@@ -1,539 +1,391 @@
-# -*- coding: utf-8 -*-
-
 ###
 ### $Release: $
-### $Copyright: copyright(c) 2010 kuwata-lab.com all rights reserved $
+### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###
 
-###
-### benchmarker.rb - benchmark library
-###
-### ex (example.rb).
-###
-###    require 'benchmarker'
-###
-###    n = (ARGV[0] || 10000).to_i
-###    nums = (1..100).to_a
-###
-###    bm = Benchmarker.new(:width=>30, :loop=>n, :verbose=>true)
-###    print bm.platform, "\n"
-###
-###    bm.repeat(5, :extra=>1) do    # you can omit repeat() if no need to repeat
-###
-###      bm.bench("Enumerable#each & '+='") do
-###        total = 0
-###        nums.each {|n| total += n }
-###        total
-###      end
-###
-###      bm.bench("Enumerable#inject") do
-###        total = nums.inject(0) {|t, n| t += n }
-###      end
-###
-###      bm.bench("while-stmt") do
-###        total = 0
-###        i, len = 0, nums.length
-###        while i < len
-###          total += nums[i]
-###          i += 1
-###        end
-###        total
-###      end
-###
-###    end
-###
-###    puts bm.stats()   # or bm.stats(:compensate=>-100.0)
-###    ### or
-###    # puts bm.ranking
-###    # puts bm.ratio_matrix
-###
-###
-### output example:
-###
-###    $ ruby example.rb 2>/dev/null   # or 'ruby example.rb' to view details
-###    ## RUBY_PLATFORM:      x86_64-darwin10.4.0
-###    ## RUBY_ENGINE:        ruby
-###    ## RUBY_VERSION:       1.9.2
-###    ## RUBY_PATCHLEVEL:    0
-###    ## RUBY_RELEASE_DATE:  2010-08-18
-###
-###    ## Average (7-2*1)                  user       sys     total      real
-###    Enumerable#each & '+='            0.1420    0.0000    0.1420    0.1469
-###    Enumerable#inject                 0.1760    0.0000    0.1760    0.1797
-###    while-stmt                        0.0740    0.0000    0.0740    0.0811
-###
-###    ## Ranking                          real  ratio
-###    while-stmt                        0.0811 (100.0) ********************
-###    Enumerable#each & '+='            0.1469 ( 55.2) ***********
-###    Enumerable#inject                 0.1797 ( 45.1) *********
-###
-###    ## Ratio Matrix                     real   [01]   [02]   [03]
-###    [01] while-stmt                   0.0811  100.0  181.2  221.6
-###    [02] Enumerable#each & '+='       0.1469   55.2  100.0  122.3
-###    [03] Enumerable#inject            0.1797   45.1   81.8  100.0
-###
-module Benchmarker
 
+module Benchmarker
 
   VERSION = "$Release: 0.0.0 $".split(/ /)[1]
 
-
-  class Result
-
-
-    def initialize(label, user=nil, sys=nil, total=nil, real=nil)
-      @label, @user, @sys, @total, @real = label, user, sys, total, real
+  def self.new(opts={}, &block)
+    #: creates runner object and returns it.
+    runner = RUNNER.new(opts)
+    if block
+      runner._before_all()
+      runner._run(&block)
+      runner._after_all()
     end
-
-
-    attr_accessor :label, :user, :sys, :total, :real
-
-
-    def to_a
-      [@label, @user, @sys, @total, @real]
-    end
-
-
-    def self.average(results)
-      label = nil
-      user = sys = total = real = 0.0
-      results.each do |r|
-        (label ||= r.label) == r.label  or
-          raise "*** assertion: #{label.inspect} == #{r.label.inspect}: failed."
-        user  += r.user
-        sys   += r.sys
-        total += r.total
-        real  += r.real
-      end
-      n = results.length
-      return self.new(label, user/n, sys/n, total/n, real/n)
-    end
-
-
+    runner
   end
 
-
-
-  class Reporter
-
-
-    DEFAULTS = {
-      :out     => $stdout,
-      :width   => 30,
-      :fmt     => "%9.4f",
-      :header  => " %9s %9s %9s %9s" % ['user', 'sys', 'total', 'real'],
-      :verbose => true,
-      :vout    => $stderr,   # verbose output
-    }
-
-
-    def initialize(opts={})
-      opts = DEFAULTS.merge(opts)
-      @out, @width, @fmt, @header, @verbose, @vout = \
-        opts.values_at(:out, :width, :fmt, :header, :verbose, :vout)
-      @vout = '' unless @verbose
-    end
-
-
-    attr_accessor :out, :width, :fmt, :header, :verbose, :vout
-
-
-    def start_verbose_region
-      @__out = @out
-      @out = @vout
-    end
-
-
-    def stop_verbose_region
-      @out = @__out
-      @__out = nil
-    end
-
-
-    def <<(str)
-      @out << str
-    end
-
-
-    def flush
-      @out.flush if @out.respond_to?(:flush)
-    end
-
-
-    def print_header(title)
-      @out << ("%-#{@width}s" % "## #{title}") << @header << "\n"
-    end
-
-
-    def print_label(label)
-      @out << "%-#{@width}s" % label[0, @width]
-      flush()
-    end
-
-
-    def print_times(user, sys, total, real)
-      [user, sys, total, real].each {|t| @out << " #{@fmt}" % t }
-      @out << "\n"
-    end
-
-
+  def self.platform()
+    #: returns platform information.
+    return <<END
+benchmarker.rb:   release #{VERSION}
+RUBY_VERSION:     #{RUBY_VERSION}
+RUBY_PATCHLEVEL:  #{RUBY_PATCHLEVEL}
+RUBY_PLATFORM:    #{RUBY_PLATFORM}
+END
   end
-
-
-
-  class Statistics
-
-
-    DEFAULTS = {
-      :key   => :real,
-      :width => Reporter::DEFAULTS[:width],
-      :fmt   => Reporter::DEFAULTS[:fmt],
-      :sort  => true,
-      :compensate => 0.0,
-    }
-
-
-    def initialize(opts={})
-      @opts = DEFAULTS.merge(opts)
-    end
-
-
-    ##
-    ## return ranking, sorted by key
-    ##
-    ## options:
-    ##   :key=>:real       : :real, :user, :sys, or :total
-    ##
-    def ranking(results, opts={})
-      key, width, fmt = @opts.merge(opts).values_at(:key, :width, :fmt)
-      sb = ""
-      sb << "%-#{width}s %9s  %5s\n" % ['## Ranking', key, 'ratio']
-      base = nil
-      results.sort_by {|r| r.__send__(key) }.each do |r|
-        val = r.__send__(key)
-        base ||= 100.0 * val
-        percent = base / val
-        sb << "%-#{width}s #{fmt} (%5.1f) " % [r.label[0, width], val, percent]
-        sb << ( '*' * (percent / 5.0).to_i )
-        sb << "\n"
-      end
-      return sb
-    end
-
-
-    ##
-    ## return compared ratio matrix
-    ##
-    ## options:
-    ##   :sort=>true       : sort benchmark results
-    ##   :key=>:real       : :real, :user, :sys, or :total
-    ##   :compensate=>0.0  : compensation of time (try '-100.0' if you want)
-    ##   :width=>30        : width of titles
-    ##
-    def ratio_matrix(results, opts={})
-      key, width, fmt, sort, compensate = \
-        DEFAULTS.merge(opts).values_at(:key, :width, :fmt, :sort, :compensate)
-      results = results.sort_by {|r| r.__send__(key) } if sort
-      sb = ""
-      sb << "%-#{width}s %9s" % ['## Ratio Matrix', key.to_s]
-      width -= "[00] ".length
-      (1..results.length).each {|n| sb << "   [%02d]" % n }
-      sb << "\n"
-      values = results.collect {|r| r.__send__(key) }
-      results.each_with_index do |r, i|
-        val = r.__send__(key)
-        sb << "[%02d] %-#{width}s #{fmt}" % [i+1, r.label[0, width], val]
-        values.each_with_index do |other, j|
-          ratio = block_given? ? yield(val, other) : 100.0 * other / val
-          sb << " %6.1f" % (ratio + compensate)
-        end
-        sb << "\n"
-      end
-      return sb
-    end
-
-
-  end
-
-
-
-  class StatisticsProxy
-
-
-    def initialize(runner, statistics)
-      @runner = runner
-      @statistics = statistics
-    end
-
-
-    attr_accessor :runner, :statistics
-
-
-    def _proxy(method, opts)
-      opts[:width] ||= @runner.reporter.width if @runner.reporter
-      return @statistics.__send__(method, @runner.results, opts)
-    end
-    private :_proxy
-
-
-    def ranking(opts={})
-      return _proxy(:ranking, opts)
-    end
-
-
-    def ratio_matrix(opts={})
-      return _proxy(:ratio_matrix, opts)
-    end
-
-
-    ##
-    ## return ranking() and ratio_matrix()
-    ##
-    def all(opts={})
-      sb = ""
-      sb << "\n" << ranking(opts)
-      sb << "\n" << ratio_matrix(opts)
-      return sb
-    end
-
-
-  end
-
 
 
   class Runner
 
-
-    DEFAULTS = {
-      :loop   => 1,
-    }
-
-
     def initialize(opts={})
-      @loop, = DEFAULTS.merge(opts).values_at(:loop)
-      @header_title = 'Benchmark'
-      @_header_printed = false
-      @results = []
-      @reporter = REPORTER.new(opts)
-      @stat = StatisticsProxy.new(self, STATISTICS.new(opts))
+      #: takes :loop, :cycle, and :extra options.
+      @loop  = opts[:loop]
+      @cycle = opts[:cycle]
+      @extra = opts[:extra]
+      #:
+      @tasks = []
+      @report = REPORTER.new(opts)
+      @stats  = STATS.new(@report, opts)
+      @_section_title = ""
+      @_section_started = false
     end
 
+    attr_accessor :tasks, :report, :stats
 
-    attr_accessor :results, :results_list, :loop, :reporter, :stat
-
-
-    ##
-    ## execute block as benchmark
-    ##
-    def bench(label)
-      if ! @_header_printed
-        @_header_printed = true
-        @reporter.print_header(@header_title)
+    def task(label, &block)
+      #: prints section title if not printed yet.
+      if ! @_section_started
+        @_section_started = true
+        @report.section_title(@_section_title).
+                section_headers("user", "sys", "total", "real")
       end
-      @reporter.print_label(label)
-      loop = @loop
-      GC.start
-      pt1 = Process.times
-      t1  = Time.now
-      loop == 1 ? yield : loop.times { yield }
-      t2  = Time.now
-      pt2 = Process.times
-      user, sys, real = pt2.utime - pt1.utime, pt2.stime - pt1.stime, t2 - t1
-      if (r = @_empty_result)
-        user -= r.user
-        sys  -= r.sys
-        real -= r.real
+      #: creates task objet and saves it.
+      t = TASK.new(label, @loop)
+      @tasks << t
+      #: run task.
+      @report.task_label(label)
+      t.run(&block)
+      #: subtracts times of empty task if exists.
+      t.sub(@_empty_task) if @_empty_task
+      @report.task_times(t.user, t.sys, t.total, t.real)
+      #: returns created task object.
+      t
+    end
+
+    def empty_task
+      #: creates empty task and save it.
+      @_empty_task = task("(Empty)") { nil }
+      #: returns empty task.
+      @_empty_task
+    end
+
+    def _before_all   # :nodoc:
+      #: prints Benchmarker.platform().
+      print Benchmarker.platform()
+    end
+
+    def _after_all    # :nodoc:
+      #: prints statistics out benchmarks.
+      print @stats.all(@tasks)
+    end
+
+    def _run   # :nodoc:
+      #: when @cycle > 1...
+      if @cycle && @cycle > 1
+        #: yields block @cycle times.
+        @all_tasks = []
+        i = 0
+        @cycle.times do
+          _reset_section("(#{i+=1})")
+          @all_tasks << (@tasks = [])
+          #: yields block with self as block paramter.
+          yield self
+        end
+        #: reports average of results.
+        @tasks = _calc_averages(@all_tasks)
+        _report_average_section(@tasks)
+      #: when @cycle == 0 or not specified...
+      else
+        #: yields block only once.
+        _reset_section("")
+        #: yields block with self as block paramter.
+        yield self
       end
-      total = user + sys
-      @reporter.print_times(user, sys, total, real)
-      @results << RESULT.new(label, user, sys, total, real)
-      @results[-1]
     end
-
-
-    ##
-    ## do empty loop
-    ##
-    def empty(label="(Empty)", &block)
-      bench(label, &block)
-      @_empty_block = @results.pop
-    end
-
 
     private
 
-
-    def _reset(header_title)
-      @header_title = header_title
-      @_header_printed = false
-      @_empty_result = nil
-      @results = []
+    def _reset_section(section_title)
+      @_section_started = false
+      @_section_title = section_title
     end
 
+    def _calc_averages(all_tasks)
+      n = all_tasks.first.length
+      avg_tasks = (0...n).collect {|i|
+        Task.average(all_tasks.collect {|tasks| tasks[i] })
+      }
+      return avg_tasks
+    end
 
-    def _delete_minmax_from(results, key, extra, fmt, label_fmt)
-      sorted = results.sort_by {|r| r.__send__(key) }
-      arr = sorted.collect {|x| x.__send__(key) }
-      min_arr, max_arr = sorted[0...extra], sorted[-extra..-1].reverse
-      label = results.first.label
-      min_arr.zip(max_arr) do |min_r, max_r|
-        min = min_r.__send__(key);  min_idx = results.index(min_r)
-        max = max_r.__send__(key);  max_idx = results.index(max_r)
-        @reporter << (label_fmt % label) \
-                  << (fmt % min) << (" %9s" % "\##{min_idx+1}") \
-                  << (fmt % max) << (" %9s" % "\##{max_idx+1}") << "\n"
-        label = nil
-        results[min_idx] = results[max_idx] = nil
+    def _report_average_section(tasks)
+      @report.section_title("Average").section_headers("user", "sys", "total", "real")
+      tasks.each do |t|
+        @report.task_label(t.label).task_times(t.user, t.sys, t.total, t.real)
       end
-      results.compact!
     end
 
+  end
 
-    def _average_results(results_matrix, key, extra)
-      if extra > 0
-        fmt, label_fmt = " #{@reporter.fmt}", "%-#{@reporter.width}s"
-        @reporter << (label_fmt % "## Remove min & max") \
-                  << (" %9s %9s %9s %9s" % ['min', 'bench#', 'max', 'bench#']) << "\n"
-        avg_results = results_matrix.collect {|results|
-          results = results.dup
-          _delete_minmax_from(results, key, extra, fmt, label_fmt)
-          RESULT.average(results)
-        }
-        @reporter << "\n"
+  RUNNER = Runner
+
+
+  class Task
+
+    def initialize(label, loop=1, &block)
+      #: takes label and loop.
+      @label = label
+      @loop  = loop
+      #: sets all times to zero.
+      @user = @sys = @total = @real = 0.0
+    end
+
+    attr_accessor :label, :loop, :user, :sys, :total, :real
+
+    def run
+      #: yields block for @loop times.
+      ntimes = @loop || 1
+      pt1 = Process.times
+      t1 = Time.now
+      if ntimes > 1
+        ntimes.times { yield }
       else
-        avg_results = results_matrix.collect {|results|
-          RESULT.average(results)
-        }
+        yield
       end
-      return avg_results
+      pt2 = Process.times
+      t2 = Time.now
+      #: measures times.
+      @user  = pt2.utime - pt1.utime
+      @sys   = pt2.stime - pt1.stime
+      @total = @user + @sys
+      @real  = t2 - t1
+      return self
     end
 
-
-    def _print_results(results, title)
-      @reporter.print_header(title)
-      results.each do |r|
-        @reporter.print_label(r.label)
-        @reporter.print_times(r.user, r.sys, r.total, r.real)
-      end
+    def add(other)
+      #: adds other's times into self.
+      @user  += other.user
+      @sys   += other.sys
+      @total += other.total
+      @real  += other.real
+      #: returns self.
+      return self
     end
 
+    def sub(other)
+      #: substracts other's times from self.
+      @user  -= other.user
+      @sys   -= other.sys
+      @total -= other.total
+      @real  -= other.real
+      #: returns self.
+      return self
+    end
 
-    public
+    def mul(n)
+      #: multiplies times with n.
+      @user  *= n
+      @sys   *= n
+      @total *= n
+      @real  *= n
+      #: returns self.
+      return self
+    end
+
+    def div(n)
+      #: divides times by n.
+      @user  /= n
+      @sys   /= n
+      @total /= n
+      @real  /= n
+      #: returns self.
+      return self
+    end
+
+    def self.average(tasks)
+      #: returns empty task when argument is empty.
+      n = tasks.length
+      return self.new(nil) if n == 0
+      #: create new task with label.
+      task = self.new(tasks.first.label)
+      #: returns averaged task.
+      tasks.each {|t| task.add(t) }
+      task.div(n)
+      return task
+    end
+
+  end
+
+  TASK = Task
 
 
-    ##
-    ## repeat benchmarks n times.
-    ##
-    ## options:
-    ##   :extra=>0    : increate number of repeat by 2*extra, and remove min/max results
-    ##   :key=>:real  : :real, :user, :sys, or :total
-    ##
-    def repeat(n, opts={})
-      opts = {:key=>:real, :extra=>0}.merge(opts)
-      key, extra = opts.values_at(:key, :extra)
-      @reporter.start_verbose_region
-      @results_matrix = []
-      (n + 2 * extra).times do |i|
-        _reset("Benchmark \##{i+1}")
-        yield self
-        @results.each_with_index do |r, j|
-          (@results_matrix[j] ||= []) << r
+  class Reporter
+
+    def initialize(opts={})
+      #: takes :out, :width, and :format options.
+      @out = opts[:out] || $stdout
+      self.label_width = opts[:width] || 30
+      self.format_time = opts[:format] || "%9.4f"
+    end
+
+    attr_accessor :out
+    attr_reader :label_width, :format_time
+
+    def label_width=(width)
+      #: sets @label_width.
+      @label_width = width
+      #: sets @format_label, too.
+      @format_label = "%-#{width}s"
+    end
+
+    def format_time=(format)
+      #: sets @format_time.
+      @format_time = format
+      #: sets @format_header, too.
+      m = /%-?(\d+)\.\d+/.match(format)
+      @format_header = "%#{$1.to_i}s" if m
+    end
+
+    def write(*args)
+      #: writes arguments to @out with '<<' operator.
+      args.each {|x| @out << x.to_s }
+      #: saves the last argument.
+      @_prev = args[-1]
+      #: returns self.
+      return self
+    end
+    alias text write
+
+    def report_section_title(title)
+      #: prints newline at first.
+      write "\n"
+      #: prints section title with @format_label.
+      write @format_label % "## #{title}"
+      #: returns self.
+      return self
+    end
+    alias section_title report_section_title
+
+    def report_section_headers(*headers)
+      #: prints headers.
+      headers.each do |header|
+        report_section_header(header)
+      end
+      #: prints newline at end.
+      write "\n"
+      #: returns self.
+      return self
+    end
+    alias section_headers report_section_headers
+
+    def report_section_header(header)
+      #: prints header with @format_header.
+      write " ", @format_header % header
+      #: returns self.
+      return self
+    end
+    alias section_header report_section_header
+
+    def report_task_label(label)
+      #: prints task label with @format_label.
+      write @format_label % label
+      #: returns self.
+      return self
+    end
+    alias task_label report_task_label
+
+    def report_task_times(user, sys, total, real)
+      #: prints task times with @format_time.
+      fmt = @format_time
+      write " ", fmt % user, " ", fmt % sys, " ", fmt % total, " ", fmt % real, "\n"
+      #: returns self.
+      return self
+    end
+    alias task_times report_task_times
+
+    def report_task_time(time)
+      #: prints task time with @format_titme.
+      write " ", @format_time % time
+      #: returns self.
+      return self
+    end
+    alias task_time report_task_time
+
+  end
+
+  REPORTER = Reporter
+
+
+  class Stats
+
+    def initialize(reporter, opts={})
+      #: takes reporter object.
+      @report   = reporter
+      @key      = opts[:key] || 'real'
+      @sort_key = opts[:sort_key] || 'real'
+      @loop     = opts[:loop]
+      @numerator = opts[:numerator]
+    end
+
+    def all(tasks)
+      ranking(tasks)
+      ratio_matrix(tasks)
+    end
+
+    def ranking(tasks)
+      tasks = tasks.sort_by {|t| t.__send__(@sort_key) } if @sort_key
+      #: prints ranking.
+      key = @key
+      @report.section_title("Ranking").section_headers(key.to_s)
+      #base = tasks.min_by {|t| t.__send__(key) }.__send__(key)  # min_by() is available since 1.8.7
+      base = tasks.collect {|t| t.__send__(key) }.min
+      tasks.each do |task|
+        sec = task.__send__(key).to_f
+        val = 100.0 * base / sec
+        @report.task_label(task.label).task_time(sec).text(" (%5.1f%%) " % val)
+        #: prints barchart if @numerator is not specified.
+        if ! @numerator
+          bar = '*' * (val / 5.0).round
+          @report.text(bar).text("\n")
+        #: prints inverse number if @numerator specified.
+        else
+          @report.text("%12.2f per sec" % (@numerator/ sec)).text("\n")
         end
-        @reporter << "\n"
       end
-      @results = _average_results(@results_matrix, key, extra)
-      @reporter.stop_verbose_region
-      title = "Average of #{n}"
-      title << " (=#{n+2*extra}-2*#{extra})" if extra > 0
-      _print_results(@results, title)
     end
 
-
-    def print(arg)
-      @reporter << arg
+    def ratio_matrix(tasks)
+      tasks = tasks.sort_by {|t| t.__send__(@sort_key) } if @sort_key
+      #: prints matrix.
+      key = @key
+      @report.section_title("Matrix").section_header("real")
+      tasks.each_with_index do |t, i|
+        @report.text(" %8s" % ("[%02d]" % (i+1)))
+      end
+      @report.text("\n")
+      i = 0
+      tasks.each do |base_task|
+        i += 1
+        base = base_task.__send__(key).to_f
+        @report.task_label("[%02d] %s" % [i, base_task.label]).task_time(base)
+        tasks.each do |t|
+          sec = t.__send__(key).to_f
+          val = 100.0 * sec / base
+          @report.text(" %7.1f%%" % val)
+        end
+        @report.text("\n")
+      end
     end
 
-
-    ##
-    ## return platform information
-    ##
-    def platform
-      sb = ""
-      sb << "## RUBY_PLATFORM:      #{RUBY_PLATFORM}\n"
-      sb << "## RUBY_ENGINE:        #{(RUBY_ENGINE rescue nil)}\n"
-      sb << "## RUBY_VERSION:       #{RUBY_VERSION}\n"
-      sb << "## RUBY_PATCHLEVEL:    #{RUBY_PATCHLEVEL}\n"
-      sb << "## RUBY_RELEASE_DATE:  #{RUBY_RELEASE_DATE}\n"
-      sb << "\n"
-      return sb
-    end
-
-
   end
 
-
-
-  RESULT     = Result
-  REPORTER   = Reporter
-  STATISTICS = Statistics
-  RUNNER     = Runner
-
-  #--
-  #s =''
-  #constants().grep(/^[A-Z0-9_]+$/).each do |const_name|
-  #  next unless const_get(const_name).is_a?(Class)
-  #  s << "def self.#{const_name}=(klass)
-  #          remove_const :#{const_name}; const_set :#{const_name}, klass
-  #        end;"
-  #end
-  #eval s
-  #++
-
-
-  def self.RESULT=(klass)
-    remove_const :RESULT; const_set :RESULT, klass
-  end
-
-
-  def self.REPORTER=(klass)
-    remove_const :REPORTER; const_set :REPORTER, klass
-  end
-
-
-  def self.STATISTICS=(klass)
-    remove_const :STATISTICS; const_set :STATISTICS, klass
-  end
-
-
-  def self.RUNNER=(klass)
-    remove_const :RUNNER; const_set :RUNNER, klass
-  end
-
-
-
-  ##
-  ## create Runner object.
-  ##
-  ## options:
-  ##   :width=>30     : width of benchmark label
-  ##   :out=>$stdout  : stream to write result (I/O or String)
-  ##   :verbose=>true : verbose mode
-  ##   :fmt=>'%9.4f'  : format of benchmark time
-  ##
-  def self.new(opts={})
-    runner = RUNNER.new(opts)
-    #runner.reporter = REPORTER.new(opts)
-    #runner.stat.statistics = STATISTICS.new(opts)
-    if block_given?
-      out = opts[:out] || REPORTER::DEFAULTS[:out]
-      out.puts runner.platform
-      yield runner
-      out.puts runner.stat.all
-    end
-    return runner
-  end
-
+  STATS = Stats
 
 
 end
