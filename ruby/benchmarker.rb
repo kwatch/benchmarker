@@ -104,7 +104,7 @@ END
           yield self
         end
         #: reports average of results.
-        @tasks = _calc_averages(@all_tasks)
+        @tasks = _calc_averages(@all_tasks, @extra)
         _report_average_section(@tasks)
       #: when @cycle == 0 or not specified...
       else
@@ -122,12 +122,44 @@ END
       @_section_title = section_title
     end
 
-    def _calc_averages(all_tasks)
-      n = all_tasks.first.length
-      avg_tasks = (0...n).collect {|i|
-        Task.average(all_tasks.collect {|tasks| tasks[i] })
-      }
-      return avg_tasks
+    def _calc_averages(all_tasks, extra)
+      #: calculates average times of tasks.
+      tasks_list = _transform_all_tasks(all_tasks)
+      if extra
+        @report.section_title("Remove Min & Max").section_headers("min", "(#)", "max", "(#)")
+        tasks_list = tasks_list.collect {|tasks| _remove_min_max(tasks, extra) }
+      end
+      avg_tasks = tasks_list.collect {|tasks| Task.average(tasks) }
+      avg_tasks
+    end
+
+    def _transform_all_tasks(all_tasks)
+      tasks_list = []
+      all_tasks.each do |tasks|
+        tasks.each_with_index do |task, i|
+          (tasks_list[i] ||= []) << task
+        end
+      end
+      tasks_list
+    end
+
+    def _remove_min_max(tasks, extra)
+      #: reports min and max tasks.
+      idx = -1
+      pairs = tasks.collect {|task| [task, idx+=1] }
+      pairs.sort_by! {|task, idx| task.real }
+      j = -1
+      while (j += 1) < extra
+        @report.task_label(j == 0 ? pairs[j].first.label : '')
+        task, idx = pairs[j]      # min
+        @report.task_time(task.real).task_index(idx+1)
+        task, idx = pairs[-j-1]   # max
+        @report.task_time(task.real).task_index(idx+1)
+        @report.text("\n")
+      end
+      #: removes min and max tasks, and returns remained tasks.
+      remained_tasks = pairs[extra...-extra].collect {|task, idx| task }
+      remained_tasks
     end
 
     def _report_average_section(tasks)
@@ -322,6 +354,14 @@ END
       return self
     end
     alias task_time report_task_time
+
+    def report_task_index(index)
+      #: prints task time with @format_titme.
+      write " ", @format_header % "(#{index})"
+      #: returns self.
+      return self
+    end
+    alias task_index report_task_index
 
   end
 

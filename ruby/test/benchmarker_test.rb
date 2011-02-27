@@ -181,6 +181,89 @@ class Benchmarker::Runner_TC
     end
   end
 
+  def test__calc_average
+    sos = proc do |label, user, sys, total, real|
+      t = Benchmarker::TASK.new(label)
+      t.user, t.sys, t.total, t.real = user, sys, total, real
+      t
+    end
+    all_tasks = []
+    all_tasks << [
+      sos.call("Haruhi", 11.1, 0.2, 11.3, 11.3),
+      sos.call("Mikuru", 14.1, 0.2, 14.3, 14.1),
+      sos.call("Yuki",   10.1, 0.2, 10.3, 10.4),
+      sos.call("Itsuki", 12.1, 0.2, 12.3, 12.1),
+      sos.call("Kyon",   13.1, 0.2, 13.3, 13.5),
+    ]
+    all_tasks << [
+      sos.call("Haruhi", 11.1, 0.2, 11.3, 11.9),
+      sos.call("Mikuru", 14.1, 0.2, 14.3, 14.2),
+      sos.call("Yuki",   10.1, 0.2, 10.3, 10.6),
+      sos.call("Itsuki", 12.1, 0.2, 12.3, 12.5),
+      sos.call("Kyon",   13.1, 0.2, 13.3, 13.3),
+    ]
+    all_tasks << [
+      sos.call("Haruhi", 11.1, 0.2, 11.3, 11.5),
+      sos.call("Mikuru", 14.1, 0.2, 14.3, 14.8),
+      sos.call("Yuki",   10.1, 0.2, 10.3, 10.9),
+      sos.call("Itsuki", 12.1, 0.2, 12.3, 12.7),
+      sos.call("Kyon",   13.1, 0.2, 13.3, 13.9),
+    ]
+    all_tasks << [
+      sos.call("Haruhi", 11.1, 0.2, 11.3, 11.3),
+      sos.call("Mikuru", 14.1, 0.2, 14.3, 14.2),
+      sos.call("Yuki",   10.1, 0.2, 10.3, 10.3),
+      sos.call("Itsuki", 12.1, 0.2, 12.3, 12.8),
+      sos.call("Kyon",   13.1, 0.2, 13.3, 13.4),
+    ]
+    all_tasks << [
+      sos.call("Haruhi", 11.1, 0.2, 11.3, 11.6),
+      sos.call("Mikuru", 14.1, 0.2, 14.3, 14.2),
+      sos.call("Yuki",   10.1, 0.2, 10.3, 10.6),
+      sos.call("Itsuki", 12.1, 0.2, 12.3, 12.4),
+      sos.call("Kyon",   13.1, 0.2, 13.3, 13.3),
+    ]
+    all_tasks << [
+      sos.call("Haruhi", 11.1, 0.2, 11.3, 11.3),
+      sos.call("Mikuru", 14.1, 0.2, 14.3, 14.8),
+      sos.call("Yuki",   10.1, 0.2, 10.3, 10.3),
+      sos.call("Itsuki", 12.1, 0.2, 12.3, 12.2),
+      sos.call("Kyon",   13.1, 0.2, 13.3, 13.7),
+    ]
+    #
+    expected = <<'END'
+
+## Remove Min & Max                  min       (#)       max       (#)
+Haruhi                           11.3000       (1)   11.9000       (2)
+                                 11.3000       (6)   11.6000       (5)
+Mikuru                           14.1000       (1)   14.8000       (6)
+                                 14.2000       (2)   14.8000       (3)
+Yuki                             10.3000       (6)   10.9000       (3)
+                                 10.3000       (4)   10.6000       (5)
+Itsuki                           12.1000       (1)   12.8000       (4)
+                                 12.2000       (6)   12.7000       (3)
+Kyon                             13.3000       (5)   13.9000       (3)
+                                 13.3000       (2)   13.7000       (6)
+
+## Average                          user       sys     total      real
+Haruhi                           11.1000    0.2000   11.3000   11.4000
+Mikuru                           14.1000    0.2000   14.3000   14.2000
+Yuki                             10.1000    0.2000   10.3000   10.5000
+Itsuki                           12.1000    0.2000   12.3000   12.4500
+Kyon                             13.1000    0.2000   13.3000   13.4500
+END
+    #
+    spec "calculates average times of tasks." do
+      avg_tasks = nil
+      sout, serr = dummy_io() do
+        runner = Benchmarker::RUNNER.new()
+        avg_tasks = runner.__send__(:_calc_averages, all_tasks, 2)
+        runner.__send__(:_report_average_section, avg_tasks)
+      end
+      ok {sout} == expected
+    end
+  end
+
 end
 
 
