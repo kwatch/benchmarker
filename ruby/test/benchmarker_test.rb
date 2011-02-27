@@ -79,7 +79,7 @@ class Benchmarker::Runner_TC
       ok {sout} =~ /\A\n.*\nlabel1                            0\.\d+    0\.\d+    0\.\d+    0\.\d+\n/
     end
     spec "subtracts times of empty task if exists." do
-      empty_task = runner.empty_task()
+      empty_task = runner.empty_task { nil }
       empty_task.user  = 10.0
       empty_task.sys   =  5.0
       empty_task.total = 15.0
@@ -98,7 +98,7 @@ class Benchmarker::Runner_TC
     spec "returns empty task." do
       sout, serr = dummy_io() do
         runner = Benchmarker::RUNNER.new    # should be inside dummy_io() block!
-        task = runner.empty_task()
+        task = runner.empty_task { nil }
       end
       ok {task}.is_a?(Benchmarker::TASK)
       ok {task.label} == "(Empty)"

@@ -74,9 +74,9 @@ END
 
     alias report task      # for compatibility with benchmark.rb
 
-    def empty_task
+    def empty_task(&block)
       #: creates empty task and save it.
-      @_empty_task = task("(Empty)") { nil }
+      @_empty_task = task("(Empty)", &block)
       #: returns empty task.
       @_empty_task
     end
