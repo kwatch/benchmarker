@@ -149,8 +149,8 @@ class Benchmarker::Runner_TC
           end
         end
         ok {i} == 2
-        ok {sout} =~ /^## \(1\)/
-        ok {sout} =~ /^## \(2\)/
+        ok {sout} =~ /^## \(#1\)/
+        ok {sout} =~ /^## \(#2\)/
       end
       spec "yields block with self as block paramter." do
         ok {block_param}.same?(runner)
@@ -233,17 +233,17 @@ class Benchmarker::Runner_TC
     #
     expected = <<'END'
 
-## Remove Min & Max                  min       (#)       max       (#)
-Haruhi                           11.3000       (1)   11.9000       (2)
-                                 11.3000       (6)   11.6000       (5)
-Mikuru                           14.1000       (1)   14.8000       (6)
-                                 14.2000       (2)   14.8000       (3)
-Yuki                             10.3000       (6)   10.9000       (3)
-                                 10.3000       (4)   10.6000       (5)
-Itsuki                           12.1000       (1)   12.8000       (4)
-                                 12.2000       (6)   12.7000       (3)
-Kyon                             13.3000       (5)   13.9000       (3)
-                                 13.3000       (2)   13.7000       (6)
+## Remove Min & Max                  min     cycle       max     cycle
+Haruhi                           11.3000      (#1)   11.9000      (#2)
+                                 11.3000      (#6)   11.6000      (#5)
+Mikuru                           14.1000      (#1)   14.8000      (#6)
+                                 14.2000      (#2)   14.8000      (#3)
+Yuki                             10.3000      (#6)   10.9000      (#3)
+                                 10.3000      (#4)   10.6000      (#5)
+Itsuki                           12.1000      (#1)   12.8000      (#4)
+                                 12.2000      (#6)   12.7000      (#3)
+Kyon                             13.3000      (#5)   13.9000      (#3)
+                                 13.3000      (#2)   13.7000      (#6)
 
 ## Average                          user       sys     total      real
 Haruhi                           11.1000    0.2000   11.3000   11.4000

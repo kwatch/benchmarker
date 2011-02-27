@@ -98,7 +98,7 @@ END
         @all_tasks = []
         i = 0
         @cycle.times do
-          _reset_section("(#{i+=1})")
+          _reset_section("(##{i+=1})")
           @all_tasks << (@tasks = [])
           #: yields block with self as block paramter.
           yield self
@@ -126,7 +126,7 @@ END
       #: calculates average times of tasks.
       tasks_list = _transform_all_tasks(all_tasks)
       if extra
-        @report.section_title("Remove Min & Max").section_headers("min", "(#)", "max", "(#)")
+        @report.section_title("Remove Min & Max").section_headers("min", "cycle", "max", "cycle")
         tasks_list = tasks_list.collect {|tasks| _remove_min_max(tasks, extra) }
       end
       avg_tasks = tasks_list.collect {|tasks| Task.average(tasks) }
@@ -357,7 +357,7 @@ END
 
     def report_task_index(index)
       #: prints task time with @format_titme.
-      write " ", @format_header % "(#{index})"
+      write " ", @format_header % "(##{index})"
       #: returns self.
       return self
     end
