@@ -23,6 +23,13 @@ Benchmarker.new(:width=>24, :loop=>1000, :cycle=>5, :extra=>1) do |bm|
     total
   end
 
+  msg = "    # skip because Symbol#to_proc() is not defined."
+  msg = nil if :+.respond_to?(:to_proc)
+  bm.task("inject(&:+)", :skip=>msg) do
+    total = nums.inject(0, &:+)
+    total
+  end
+
   bm.task("for statement") do
     total = 0
     for n in nums
