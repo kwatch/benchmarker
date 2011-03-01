@@ -54,11 +54,7 @@ END
 
     def task(label, &block)
       #: prints section title if not printed yet.
-      if ! @_section_started
-        @_section_started = true
-        @report.section_title(@_section_title).
-                section_headers("user", "sys", "total", "real")
-      end
+      _report_section_title_if_not_printed_yet()
       #: creates task objet and saves it.
       t = TASK.new(label, @loop)
       @tasks << t
@@ -90,6 +86,8 @@ END
     end
 
     def skip_task(label, message="** skipped **")
+      #: prints section title if not printed yet.
+      _report_section_title_if_not_printed_yet()
       #: prints task label and message instead of times.
       @report.task_label(label).write(message + "\n")
       #:: don't create a new task object nor add to @tasks.
@@ -140,6 +138,14 @@ END
     def _reset_section(section_title)
       @_section_started = false
       @_section_title = section_title
+    end
+
+    def _report_section_title_if_not_printed_yet
+      if ! @_section_started
+        @_section_started = true
+        @report.section_title(@_section_title)\
+               .section_headers("user", "sys", "total", "real")
+      end
     end
 
     def _calc_averages(all_tasks, extra)
