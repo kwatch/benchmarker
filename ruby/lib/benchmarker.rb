@@ -62,9 +62,13 @@ END
       #: creates task objet and saves it.
       t = TASK.new(label, @loop)
       @tasks << t
-      #: run task.
+      #: runs task.
       @report.task_label(label)
       t.run(&block)
+      #:: @_empty_task should be cleared when empty task.
+      if label == "(Empty)"
+        @_empty_task.nil?  or raise "** assertion failed"
+      end
       #: subtracts times of empty task if exists.
       t.sub(@_empty_task) if @_empty_task
       @report.task_times(t.user, t.sys, t.total, t.real)
@@ -75,6 +79,8 @@ END
     alias report task      # for compatibility with benchmark.rb
 
     def empty_task(&block)
+      #:: clear @_empty_task.
+      @_empty_task = nil
       #: creates empty task and save it.
       @_empty_task = task("(Empty)", &block)
       #:: don't add empty task to @tasks.

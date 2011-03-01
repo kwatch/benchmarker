@@ -75,7 +75,7 @@ class Benchmarker::Runner_TC
       task = ret
       ok {runner.tasks} == [task]
     end
-    spec "run task." do
+    spec "runs task." do
       ok {called} == true
       ok {sout} =~ /\A\n.*\nlabel1                            0\.\d+    0\.\d+    0\.\d+    0\.\d+\n/
     end
@@ -90,6 +90,16 @@ class Benchmarker::Runner_TC
       ok {t.sys  }.in_delta?(- 5.0, 0.1)
       ok {t.total}.in_delta?(-15.0, 0.1)
       ok {t.real }.in_delta?(-20.0, 0.1)
+    end
+    spec "@_empty_task should be cleared when empty task." do
+      pr = proc do
+        runner.task("(Empty)") { nil }
+      end
+      ok {pr}.raise?(RuntimeError, "** assertion failed")
+      pr = proc do
+        runner.empty_task { nil }
+      end
+      not_ok {pr}.raise?(Exception)
     end
   end
 
@@ -109,6 +119,9 @@ class Benchmarker::Runner_TC
     end
     spec "creates empty task and save it." do
       ok {runner.instance_variable_get('@_empty_task')} == task
+    end
+    spec "clear @_empty_task." do
+      # pass
     end
   end
 
