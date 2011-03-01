@@ -94,10 +94,13 @@ END
     def _run   # :nodoc:
       #: when @cycle > 1...
       if @cycle && @cycle > 1
-        #: yields block @cycle times.
         @all_tasks = []
+        #: yields block @cycle times when @extra is not specified.
+        #: yields block @cycle + 2*@extra times when @extra is specified.
         i = 0
-        @cycle.times do
+        cycle = @cycle
+        cycle += 2 * @extra if @extra
+        cycle.times do
           _reset_section("(##{i+=1})")
           @all_tasks << (@tasks = [])
           #: yields block with self as block paramter.

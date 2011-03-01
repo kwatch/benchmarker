@@ -137,7 +137,7 @@ class Benchmarker::Runner_TC
   def test__run
     spec "when @cycle > 1..." do
       runner = sout = block_param = nil
-      spec "yields block @cycle times." do
+      spec "yields block @cycle times when @extra is not specified." do
         i = 0
         sout, serr = dummy_io() do
           runner = Benchmarker::RUNNER.new(:cycle=>2)
@@ -152,11 +152,30 @@ class Benchmarker::Runner_TC
         ok {sout} =~ /^## \(#1\)/
         ok {sout} =~ /^## \(#2\)/
       end
+      runner2 = sout2 = block_param2 = nil
+      spec "yields block @cycle + 2*@extra times when @extra is specified." do
+        i = 0
+        sout2, serr2 = dummy_io() do
+          runner2 = Benchmarker::RUNNER.new(:cycle=>5, :extra=>1)
+          runner2._run do |r|
+            i +=1
+            block_param2 = r
+            r.task('taskA') { nil }
+            r.task('taskB') { nil }
+          end
+        end
+        ok {i} == 7
+        ok {sout2} =~ /^## \(#1\)/
+        ok {sout2} =~ /^## \(#2\)/
+      end
+
       spec "yields block with self as block paramter." do
         ok {block_param}.same?(runner)
+        ok {block_param2}.same?(runner2)
       end
       spec "reports average of results." do
-        ok {sout} =~ /^## Average/
+        ok {sout}  =~ /^## Average/
+        ok {sout2} =~ /^## Average/
       end
     end
     spec "when @cycle == 0 or not specified..." do
