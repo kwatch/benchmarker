@@ -155,7 +155,7 @@ END
       #: reports min and max tasks.
       idx = -1
       pairs = tasks.collect {|task| [task, idx+=1] }
-      pairs.sort_by! {|task, idx| task.real }
+      pairs = pairs.sort_by {|task, idx| task.real }   # 1.8 doesn't support sort_by!
       j = -1
       while (j += 1) < extra
         @report.task_label(j == 0 ? pairs[j].first.label : '')
