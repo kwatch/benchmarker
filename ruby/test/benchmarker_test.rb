@@ -140,7 +140,7 @@ class Benchmarker::Runner_TC
 
   def test__run
     spec "when @cycle > 1..." do
-      runner = sout = block_param = nil
+      runner = sout = serr = block_param = nil
       spec "yields block @cycle times when @extra is not specified." do
         i = 0
         sout, serr = dummy_io() do
@@ -153,10 +153,8 @@ class Benchmarker::Runner_TC
           end
         end
         ok {i} == 2
-        ok {sout} =~ /^## \(#1\)/
-        ok {sout} =~ /^## \(#2\)/
       end
-      runner2 = sout2 = block_param2 = nil
+      runner2 = sout2 = serr2 = block_param2 = nil
       spec "yields block @cycle + 2*@extra times when @extra is specified." do
         i = 0
         sout2, serr2 = dummy_io() do
@@ -169,10 +167,17 @@ class Benchmarker::Runner_TC
           end
         end
         ok {i} == 7
-        ok {sout2} =~ /^## \(#1\)/
-        ok {sout2} =~ /^## \(#2\)/
       end
-
+      spec "prints output of cycle into stderr." do
+        not_ok {sout} =~ /^## \(#1\)/
+        not_ok {sout} =~ /^## \(#2\)/
+        ok {serr} =~ /^## \(#1\)/
+        ok {serr} =~ /^## \(#2\)/
+        not_ok {sout2} =~ /^## \(#1\)/
+        not_ok {sout2} =~ /^## \(#2\)/
+        ok {serr2} =~ /^## \(#1\)/
+        ok {serr2} =~ /^## \(#2\)/
+      end
       spec "yields block with self as block paramter." do
         ok {block_param}.same?(runner)
         ok {block_param2}.same?(runner2)

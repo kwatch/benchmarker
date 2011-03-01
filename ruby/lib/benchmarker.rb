@@ -97,16 +97,19 @@ END
       #: when @cycle > 1...
       if @cycle && @cycle > 1
         @all_tasks = []
-        #: yields block @cycle times when @extra is not specified.
-        #: yields block @cycle + 2*@extra times when @extra is specified.
-        i = 0
-        cycle = @cycle
-        cycle += 2 * @extra if @extra
-        cycle.times do
-          _reset_section("(##{i+=1})")
-          @all_tasks << (@tasks = [])
-          #: yields block with self as block paramter.
-          yield self
+        #: prints output of cycle into stderr.
+        @report._switch_out_to_err do
+          #: yields block @cycle times when @extra is not specified.
+          #: yields block @cycle + 2*@extra times when @extra is specified.
+          i = 0
+          cycle = @cycle
+          cycle += 2 * @extra if @extra
+          cycle.times do
+            _reset_section("(##{i+=1})")
+            @all_tasks << (@tasks = [])
+            #: yields block with self as block paramter.
+            yield self
+          end
         end
         #: reports average of results.
         @tasks = _calc_averages(@all_tasks, @extra)
