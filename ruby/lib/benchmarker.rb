@@ -54,21 +54,12 @@ END
 
     def task(label, &block)
       #: prints section title if not printed yet.
-      _report_section_title_if_not_printed_yet()
-      #: creates task objet and saves it.
-      t = TASK.new(label, @loop)
-      @tasks << t
+      #: creates task objet and returns it.
       #: runs task.
-      @report.task_label(label)
-      t.run(&block)
-      #:: @_empty_task should be cleared when empty task.
-      if label == "(Empty)"
-        @_empty_task.nil?  or raise "** assertion failed"
-      end
       #: subtracts times of empty task if exists.
-      t.sub(@_empty_task) if @_empty_task
-      @report.task_times(t.user, t.sys, t.total, t.real)
-      #: returns created task object.
+      t = _new_task(label, &block)
+      #: saves created task object.
+      @tasks << t
       t
     end
 
@@ -77,20 +68,21 @@ END
     def empty_task(label="(Empty)", &block)
       #:: clear @_empty_task.
       @_empty_task = nil
-      #: creates empty task and save it.
-      @_empty_task = task(label, &block)
+      #: prints section title if not printed yet.
+      #: creates empty task object and returns it.
+      t = _new_task(label, &block)
+      #: saves empty task object.
       #:: don't add empty task to @tasks.
-      @tasks.pop().eql?(@_empty_task)  or raise "** assertion failed"
-      #: returns empty task.
-      @_empty_task
+      @_empty_task = t
+      t
     end
 
-    def skip_task(label, message="** skipped **")
+    def skip_task(label, message="   ** skipped **")
       #: prints section title if not printed yet.
-      _report_section_title_if_not_printed_yet()
+      t = _new_task(label)
       #: prints task label and message instead of times.
-      @report.task_label(label).write(message + "\n")
-      #:: don't create a new task object nor add to @tasks.
+      @report.write(message + "\n")
+      #: don't change @tasks.
     end
 
     def _before_all   # :nodoc:
@@ -138,6 +130,22 @@ END
     def _reset_section(section_title)
       @_section_started = false
       @_section_title = section_title
+    end
+
+    def _new_task(label, &block)
+      #: prints section title if not printed yet.
+      _report_section_title_if_not_printed_yet()
+      #: creates task objet and returns it.
+      t = TASK.new(label, @loop)
+      @report.task_label(label)
+      if block
+        #: runs task.
+        t.run(&block)
+        #: subtracts times of empty task if exists.
+        t.sub(@_empty_task) if @_empty_task
+        @report.task_times(t.user, t.sys, t.total, t.real)
+      end
+      t
     end
 
     def _report_section_title_if_not_printed_yet

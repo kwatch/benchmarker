@@ -68,10 +68,10 @@ class Benchmarker::Runner_TC
       ok {sout} =~ /\A\n## {28}      user       sys     total      real\n.*\n/
       ok {serr} == ""
     end
-    spec "returns created task object." do
+    spec "creates task objet and returns it." do
       ok {ret}.is_a?(Benchmarker::TASK)
     end
-    spec "creates task objet and saves it." do
+    spec "saves created task object." do
       task = ret
       ok {runner.tasks} == [task]
     end
@@ -91,22 +91,11 @@ class Benchmarker::Runner_TC
       ok {t.total}.in_delta?(-15.0, 0.1)
       ok {t.real }.in_delta?(-20.0, 0.1)
     end
-    spec "@_empty_task should be cleared when empty task." do
-      pr = proc do
-        runner.task("(Empty)") { nil }
-      end
-      ok {pr}.raise?(RuntimeError, "** assertion failed")
-      pr = proc do
-        runner.empty_task { nil }
-      end
-      not_ok {pr}.raise?(Exception)
-    end
   end
 
   def test_empty_task
-    runner = nil
-    task = nil
-    spec "returns empty task." do
+    runner = task = sout = nil
+    spec "creates empty task object and returns it." do
       sout, serr = dummy_io() do
         runner = Benchmarker::RUNNER.new    # should be inside dummy_io() block!
         task = runner.empty_task { nil }
@@ -114,11 +103,14 @@ class Benchmarker::Runner_TC
       ok {task}.is_a?(Benchmarker::TASK)
       ok {task.label} == "(Empty)"
     end
+    spec "prints section title if not printed yet." do
+      ok {sout} =~ /^## +user +sys +total +real\n/
+    end
+    spec "saves empty task object." do
+      ok {runner.instance_variable_get('@_empty_task')} == task
+    end
     spec "don't add empty task to @tasks." do
       ok {runner.tasks} == []
-    end
-    spec "creates empty task and save it." do
-      ok {runner.instance_variable_get('@_empty_task')} == task
     end
     spec "clear @_empty_task." do
       # pass
@@ -139,7 +131,7 @@ class Benchmarker::Runner_TC
       ok {sout} =~ /^bench1 +\-\- not installed \-\-\n/
       ok {sout} =~ /^bench2 +\*\* not supported \*\*\n/
     end
-    spec "don't create a new task object nor add to @tasks." do
+    spec "don't change @tasks." do
       ok {runner.instance_variable_get('@tasks')} == []
     end
   end
