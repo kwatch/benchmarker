@@ -77,6 +77,8 @@ END
     def empty_task(&block)
       #: creates empty task and save it.
       @_empty_task = task("(Empty)", &block)
+      #:: don't add empty task to @tasks.
+      @tasks.pop().eql?(@_empty_task)  or raise "** assertion failed"
       #: returns empty task.
       @_empty_task
     end

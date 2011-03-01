@@ -104,8 +104,11 @@ class Benchmarker::Runner_TC
       ok {task}.is_a?(Benchmarker::TASK)
       ok {task.label} == "(Empty)"
     end
+    spec "don't add empty task to @tasks." do
+      ok {runner.tasks} == []
+    end
     spec "creates empty task and save it." do
-      ok {runner.tasks} == [task]
+      ok {runner.instance_variable_get('@_empty_task')} == task
     end
   end
 
