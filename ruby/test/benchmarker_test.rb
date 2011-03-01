@@ -447,6 +447,21 @@ class Benchmarker::Reporter_TC
     end
   end
 
+  def test__switch_out_to_err
+    spec "switches @out to @err temporarily." do
+      sout, serr = dummy_io() do
+        r = Benchmarker::Reporter.new()
+        r.write("Haruhi\n")
+        r._switch_out_to_err() do
+          r.write("Sasaki\n")
+        end
+        r.write("Kyon\n")
+      end
+      ok {sout} == "Haruhi\nKyon\n"
+      ok {serr} == "Sasaki\n"
+    end
+  end
+
   def test_label_width=()
     spec "sets @label_width." do
       @r.label_width = 123

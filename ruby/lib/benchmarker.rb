@@ -293,6 +293,17 @@ END
     attr_accessor :out, :err
     attr_reader :label_width, :format_time
 
+    def _switch_out_to_err()   # :nodoc:
+      #: switches @out to @err temporarily.
+      begin
+        out = @out
+        @out = @err
+        yield
+      ensure
+        @out = out
+      end
+    end
+
     def label_width=(width)
       #: sets @label_width.
       @label_width = width
