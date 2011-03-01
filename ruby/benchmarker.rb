@@ -88,7 +88,7 @@ END
 
     def _after_all    # :nodoc:
       #: prints statistics out benchmarks.
-      print @stats.all(@tasks)
+      @stats.all(@tasks)
     end
 
     def _run   # :nodoc:
