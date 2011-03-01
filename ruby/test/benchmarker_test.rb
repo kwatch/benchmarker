@@ -438,9 +438,10 @@ class Benchmarker::Reporter_TC
   end
 
   def test_initialize
-    spec "takes :out, :width, and :format options." do
-      r = Benchmarker::Reporter.new(:out=>$stderr, :width=>123, :format=>"%10.1f")
+    spec "takes :out, :err, :width, and :format options." do
+      r = Benchmarker::Reporter.new(:out=>$stderr, :err=>$stdout, :width=>123, :format=>"%10.1f")
       ok {r.out}.same?($stderr)
+      ok {r.err}.same?($stdout)
       ok {r.label_width} == 123
       ok {r.format_time} == "%10.1f"
     end

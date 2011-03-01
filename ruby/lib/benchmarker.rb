@@ -283,13 +283,14 @@ END
   class Reporter
 
     def initialize(opts={})
-      #: takes :out, :width, and :format options.
+      #: takes :out, :err, :width, and :format options.
       @out = opts[:out] || $stdout
+      @err = opts[:err] || $stderr
       self.label_width = opts[:width] || 30
       self.format_time = opts[:format] || "%9.4f"
     end
 
-    attr_accessor :out
+    attr_accessor :out, :err
     attr_reader :label_width, :format_time
 
     def label_width=(width)
