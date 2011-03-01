@@ -174,8 +174,8 @@ class Benchmarker::Runner_TC
         ok {block_param2}.same?(runner2)
       end
       spec "reports average of results." do
-        ok {sout}  =~ /^## Average/
-        ok {sout2} =~ /^## Average/
+        ok {sout}  =~ /^## Average of 2/
+        ok {sout2} =~ /^## Average of 5 \(=7-2\*1\)/
       end
     end
     spec "when @cycle == 0 or not specified..." do
@@ -264,7 +264,7 @@ Itsuki                           12.1000      (#1)   12.8000      (#4)
 Kyon                             13.3000      (#5)   13.9000      (#3)
                                  13.3000      (#2)   13.7000      (#6)
 
-## Average                          user       sys     total      real
+## Average of 2                     user       sys     total      real
 Haruhi                           11.1000    0.2000   11.3000   11.4000
 Mikuru                           14.1000    0.2000   14.3000   14.2000
 Yuki                             10.1000    0.2000   10.3000   10.5000
@@ -275,11 +275,24 @@ END
     spec "calculates average times of tasks." do
       avg_tasks = nil
       sout, serr = dummy_io() do
-        runner = Benchmarker::RUNNER.new()
+        runner = Benchmarker::RUNNER.new(:cycle=>2)
         avg_tasks = runner.__send__(:_calc_averages, all_tasks, 2)
         runner.__send__(:_report_average_section, avg_tasks)
       end
       ok {sout} == expected
+    end
+  end
+
+  def test__get_average_section_title
+    spec "returns 'Average of N (=x-2*y)' string if label width is enough wide." do
+      runner = Benchmarker::RUNNER.new(:width=>24, :cycle=>5, :extra=>1)
+      title = runner.__send__(:_get_average_section_title)
+      ok {title} == "Average of 5 (=7-2*1)"
+    end
+    spec "returns 'Average of N' string if label width is not enough wide." do
+      runner = Benchmarker::RUNNER.new(:width=>23, :cycle=>5, :extra=>1)
+      title = runner.__send__(:_get_average_section_title)
+      ok {title} == "Average of 5"
     end
   end
 

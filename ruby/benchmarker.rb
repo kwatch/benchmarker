@@ -166,10 +166,22 @@ END
     end
 
     def _report_average_section(tasks)
-      @report.section_title("Average").section_headers("user", "sys", "total", "real")
+      title = _get_average_section_title()
+      @report.section_title(title).section_headers("user", "sys", "total", "real")
       tasks.each do |t|
         @report.task_label(t.label).task_times(t.user, t.sys, t.total, t.real)
       end
+    end
+
+    def _get_average_section_title()
+      #: returns 'Average of N (=x-2*y)' string if label width is enough wide.
+      #: returns 'Average of N' string if label width is not enough wide.
+      title = "Average of #{@cycle}"
+      if @extra
+        s = " (=#{@cycle+2*@extra}-2*#{@extra})"
+        title << s if "## #{title}#{s}".length <= @report.label_width
+      end
+      title
     end
 
   end
