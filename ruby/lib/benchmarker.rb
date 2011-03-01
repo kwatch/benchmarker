@@ -52,14 +52,16 @@ END
 
     attr_accessor :tasks, :report, :stats
 
-    def task(label, &block)
+    def task(label, opts={}, &block)
       #: prints section title if not printed yet.
       #: creates task objet and returns it.
-      #: runs task.
+      #: runs task when :skip option is not specified.
+      #: skip block and prints message when :skip option is specified.
       #: subtracts times of empty task if exists.
-      t = _new_task(label, &block)
-      #: saves created task object.
-      @tasks << t
+      skip_message = opts[:skip]
+      t = _new_task(label, skip_message, &block)
+      #: saves created task object unless :skip optin is not specified.
+      @tasks << t unless skip_message
       t
     end
 
@@ -132,14 +134,17 @@ END
       @_section_title = section_title
     end
 
-    def _new_task(label, &block)
+    def _new_task(label, skip_message=nil, &block)
       #: prints section title if not printed yet.
       _report_section_title_if_not_printed_yet()
       #: creates task objet and returns it.
       t = TASK.new(label, @loop)
       @report.task_label(label)
-      if block
-        #: runs task.
+      #: skip block and prints message when :skip option is specified.
+      if skip_message
+        @report.write(skip_message + "\n")
+      #: runs task when :skip option is not specified.
+      elsif block
         t.run(&block)
         #: subtracts times of empty task if exists.
         t.sub(@_empty_task) if @_empty_task

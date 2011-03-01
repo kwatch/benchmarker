@@ -59,25 +59,28 @@ class Benchmarker::Runner_TC
     runner = nil
     ret    = nil
     called = false
-    sout   = nil
+    sout, serr = dummy_io() do
+      runner = Benchmarker::RUNNER.new   # should be inside dummy_io() block!
+      ret = runner.task("label1") { called = true }
+      runner.task("label2", :skip=>"# not installed.") { nil }
+    end
     spec "prints section title if not printed yet." do
-      sout, serr = dummy_io() do
-        runner = Benchmarker::RUNNER.new   # should be inside dummy_io() block!
-        ret = runner.task("label1") { called = true }
-      end
       ok {sout} =~ /\A\n## {28}      user       sys     total      real\n.*\n/
       ok {serr} == ""
     end
     spec "creates task objet and returns it." do
       ok {ret}.is_a?(Benchmarker::TASK)
     end
-    spec "saves created task object." do
+    spec "saves created task object unless :skip optin is not specified." do
       task = ret
       ok {runner.tasks} == [task]
     end
-    spec "runs task." do
+    spec "runs task when :skip option is not specified." do
       ok {called} == true
       ok {sout} =~ /\A\n.*\nlabel1                            0\.\d+    0\.\d+    0\.\d+    0\.\d+\n/
+    end
+    spec "skip block and prints message when :skip option is specified." do
+      ok {sout} =~ /^label2 *\# not installed\.\n/
     end
     spec "subtracts times of empty task if exists." do
       empty_task = runner.empty_task { nil }
