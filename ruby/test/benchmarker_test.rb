@@ -4,7 +4,8 @@
 ### $License: MIT License $
 ###
 
-$:.unshift File.class_eval { expand_path(join(dirname(__FILE__), '..')) }
+$:.unshift File.class_eval { expand_path(dirname(__FILE__)) }
+$:.unshift File.class_eval { expand_path(join(dirname(__FILE__), '../lib')) }
 
 require 'oktest'
 require 'benchmarker'
