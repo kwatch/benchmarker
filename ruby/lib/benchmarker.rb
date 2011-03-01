@@ -89,6 +89,12 @@ END
       @_empty_task
     end
 
+    def skip_task(label, message="** skipped **")
+      #: prints task label and message instead of times.
+      @report.task_label(label).write(message + "\n")
+      #:: don't create a new task object nor add to @tasks.
+    end
+
     def _before_all   # :nodoc:
       #: prints Benchmarker.platform().
       print Benchmarker.platform()

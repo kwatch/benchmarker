@@ -125,6 +125,20 @@ class Benchmarker::Runner_TC
     end
   end
 
+  def test_skip_task
+    runner = nil
+    spec "prints task label and message instead of times." do
+      sout, serr = dummy_io() do
+        runner = Benchmarker::RUNNER.new
+        runner.skip_task("bench1", "-- not installed --")
+      end
+      ok {sout} =~ /^bench1 +-- not installed --\n/
+    end
+    spec "don't create a new task object nor add to @tasks." do
+      ok {runner.instance_variable_get('@tasks')} == []
+    end
+  end
+
   def test__before_all
     spec "prints platform information." do
       sout, serr = dummy_io() do
