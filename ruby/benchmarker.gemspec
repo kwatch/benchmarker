@@ -63,7 +63,4 @@ if (RUBY_VERSION == '1.8.3')
   end
 end
 
-if $0 == __FILE__
-  Gem::manage_gems
-  Gem::Builder.new(spec).build
-end
+spec
