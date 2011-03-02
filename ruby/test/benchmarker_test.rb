@@ -120,24 +120,26 @@ class Benchmarker::Runner_TC
     end
   end
 
-  def test_skip_task
-    runner = nil
-    sout, serr = dummy_io() do
-      runner = Benchmarker::RUNNER.new
-      runner.skip_task("bench1", "-- not installed --")
-      runner.skip_task("bench2", "** not supported **")
-    end
-    spec "prints headers if they are not printed." do
-      ok {sout} =~ /^## +user +sys +total +real\n/
-    end
-    spec "prints task label and message instead of times." do
-      ok {sout} =~ /^bench1 +\-\- not installed \-\-\n/
-      ok {sout} =~ /^bench2 +\*\* not supported \*\*\n/
-    end
-    spec "don't change @tasks." do
-      ok {runner.instance_variable_get('@tasks')} == []
-    end
-  end
+  #--
+  #def test_skip_task
+  #  runner = nil
+  #  sout, serr = dummy_io() do
+  #    runner = Benchmarker::RUNNER.new
+  #    runner.skip_task("bench1", "-- not installed --")
+  #    runner.skip_task("bench2", "** not supported **")
+  #  end
+  #  spec "prints headers if they are not printed." do
+  #    ok {sout} =~ /^## +user +sys +total +real\n/
+  #  end
+  #  spec "prints task label and message instead of times." do
+  #    ok {sout} =~ /^bench1 +\-\- not installed \-\-\n/
+  #    ok {sout} =~ /^bench2 +\*\* not supported \*\*\n/
+  #  end
+  #  spec "don't change @tasks." do
+  #    ok {runner.instance_variable_get('@tasks')} == []
+  #  end
+  #end
+  #++
 
   def test__before_all
     spec "prints platform information." do

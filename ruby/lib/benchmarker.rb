@@ -79,13 +79,15 @@ END
       t
     end
 
-    def skip_task(label, message="   ** skipped **")
-      #: prints section title if not printed yet.
-      t = _new_task(label)
-      #: prints task label and message instead of times.
-      @report.write(message + "\n")
-      #: don't change @tasks.
-    end
+    #--
+    #def skip_task(label, message="   ** skipped **")
+    #  #: prints section title if not printed yet.
+    #  t = _new_task(label)
+    #  #: prints task label and message instead of times.
+    #  @report.write(message + "\n")
+    #  #: don't change @tasks.
+    #end
+    #++
 
     def _before_all   # :nodoc:
       #: prints Benchmarker.platform().
