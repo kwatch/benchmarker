@@ -4,3 +4,5 @@ syntax:glob
 dist/*
 tmp/*
 archives/*
+python/build/*
+ruby/build/*
