@@ -1035,4 +1035,5 @@ class GlobalFunctions_TC(object):
 
 
 if __name__ == '__main__':
-    run()
+    import oktest
+    oktest.main()
