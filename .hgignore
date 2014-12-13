@@ -1,8 +1,11 @@
 syntax:glob
 .DS_Store
 *.pyc
+*.swp
+*~
 dist/*
 tmp/*
 archives/*
 python/build/*
+python/local/*
 ruby/build/*
