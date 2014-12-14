@@ -45,7 +45,7 @@ ex:
 from __future__ import with_statement
 
 
-__all__ = ('Benchmarker',)
+__all__ = ('Benchmarker', 'Skip',)
 __version__ = '$Release: 0.0.0 $'.split()[1]
 
 import sys, os, re
@@ -253,13 +253,16 @@ class Benchmark(object):
     def run(self, empty_bench_elapsed=None):
         self._not_yet = False
         self._start_at = self._end_at = None
-        start_at = (_os_times(), _time_time())
-        skipped = self.func(self)
-        end_at = (_os_times(), _time_time())
-        if skipped:
-            elapsed = None
+        try:
+            start_at = (_os_times(), _time_time())
+            self.func(self)
+            end_at = (_os_times(), _time_time())
+        except Skip:
+            skipped = sys.exc_info()[1]
             self.skipped = skipped
+            elapsed = None
         else:
+            skipped = None
             if self._start_at and self._end_at:
                 start_at, end_at = self._start_at, self._end_at
             elapsed = self._calc_elapsed(start_at, end_at, empty_bench_elapsed)
@@ -319,6 +322,10 @@ class Elapsed(object):
 
     def __iter__(self):
         return iter((self.real_time, self.total_time, self.user_time, self.sys_time))
+
+
+class Skip(Exception):
+    pass
 
 
 class Float(float):
