@@ -195,3 +195,15 @@ def task_examples(c, **kwargs):
         if m:
             script_name = m.group(1)
             lines = []
+
+@recipe
+@product('website.zip')
+@ingreds('README.html', 'style.css')
+def file_website_zip(c):
+    """create zip file for https://pythonhosted.org/"""
+    replacer = [
+        (r'Release: 0\.0\.0', release),
+        (r'X\.X\.X', release),
+    ]
+    edit(c.ingred, by=replacer)
+    system(c%"zip $(product) $(ingreds)")
