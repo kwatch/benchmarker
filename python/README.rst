@@ -442,3 +442,198 @@ Example::
     $ python mybench.py {{*-f 'tag!=tooslow'*}}  # reject all tagged as 'tooslow'
     $ python mybench.py {{*-f 'tag=~^fast$'*}}   # select by pattern
     $ python mybench.py {{*-f 'tag!~^tooslo$'*}} # reject by pattern
+
+
+
+Changelog
+=========
+
+
+Release 3.0.1 (2011-02-13)
+--------------------------
+
+* License is changed again to Public Domain.
+
+* Change Task class to pass 1-origin index to yield block when 'for _ in bm()' .
+
+* Fix a bug that 'for _ in bm()' raised error when loop count was not specified.
+
+* Fix a bug that 'for _ in bm()' raised RuntimeError on Python 3.
+
+
+
+Release 3.0.0 (2011-01-29)
+--------------------------
+
+* Rewrite entirely.
+
+* License is changed to MIT License.
+
+* Enhanced to support command-line options. ::
+
+      import benchmarker
+      benchmarker.cmdopt.parse()
+
+  You can show all command-line options by ``python file.py -h``.
+  See README file for details.
+
+* Benchmarker.repeat() is obsolete. ::
+
+      ## Old (obsolete)
+      with Benchmarker() as bm:
+          for b in bm.repeat(5, 1):
+              with b('bench1'):
+                  ....
+
+      ## New
+      for bm in Benchmarker(cycle=5, extra=1):
+          with bm('bench1'):
+	      ....
+
+* Changed to specify time (second) format. ::
+
+      import benchmarker
+      benchmarker.format.label_with = 30
+      benchmarker.format.time       = '%9.4f'
+
+* Followings are removed.
+
+  * Benchmark.stat
+  * Benchmark.compared_matrix()
+  * Benchmark.print_compared_matrix()
+
+
+
+Release 2.0.0 (2010-10-28)
+--------------------------
+
+* Rewrited entirely.
+
+* Enhance to support empty loop. Result of empty loop is subtracted
+  automatically  automatically from other benchmark result. ::
+
+      bm = Benchmarker()
+      with bm.empty():
+        for i in xrange(1000*1000):
+          pass
+      with bm('my benchmark 1'):
+        #... do something ...
+
+* Enhance to support for-statement. ::
+
+      bm = Benchmarker(loop=1000*1000)
+      for i in bm('example'):
+        #... do something ...
+
+      ## the above is same as:
+      bm = Benchmarker()
+      with bm('example'):
+        for i in xrange(1000*1000):
+	  #... do something ...
+
+* Enhance to support new feature to repeat benchmarks. ::
+
+      bm = Benchmarker()
+      for b in bm.repeat(5):   # repeat benchmark 5 times
+        with b('example1'):
+	  #... do something ...
+        with b('example2'):
+	  #... do something ...
+
+* 'compared_matrix()' is replaced by 'stat.all()'.
+  'stat.all()' shows benchmark ranking and ratio matrix. ::
+
+       bm = Benchmarker()
+       with bm('example'):
+          # ....
+       print(bm.stat.all())   # ranking and ratio matrix
+
+* Enhance to support 'Benchmark.platform()' which gives you platform
+  information. ::
+
+      print bm.platform()
+      #### output example
+      ## benchmarker:       release 2.0.0 (for python)
+      ## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
+      ## python version:    2.5.5
+      ## python executable: /usr/local/python/2.5.5/bin/python2.5
+
+* 'with-statement' for benchmarker object prints platform info and statistics
+  automatically. ::
+
+      with Benchmarker() as bm:
+        wtih bm('fib(30)'):
+          fib(30)
+      #### the above is same as:
+      # bm = Benchmarker()
+      # print(bm.platform())
+      # with bm('fib(30)'):
+      #   fib(30)
+      # print(bm.stat.all())
+
+* Enhance Benchmarker.run() to use function docment (__doc__) as benchmark
+  label when label is not specified. ::
+
+      def fib(n):
+        """fibonacchi"""
+        return n <= 2 and 1 or fib(n-1) + fib(n-2)
+      bm = Benchmarker()
+      bm.run(fib, 30)    # same as bm("fibonacchi").run(fib, 30)
+
+* Default format of times is changed from '%9.3f' to '%9.4f'.
+
+
+
+Release 1.1.0 (2010-06-26)
+--------------------------
+
+* Enhance Benchmarker.run() to take function args. ::
+
+    bm = Benchmarker()
+    bm('fib(34)').run(fib, 34)   # same as .run(lambda: fib(34))
+
+* (experimental) Enhance Benchmarker.run() to use function name as title
+  if title is not specified. ::
+
+    def fib34(): fib(34)
+    bm = Benchmarker()
+    bm.run(fib34)     # same as bm('fib34').run(fib34)
+
+* Enhanced to support compared matrix of benchmark results. ::
+
+    bm = Benchmarker(9)
+    bm('fib(30)').run(fib, 30)
+    bm('fib(31)').run(fib, 31)
+    bm('fib(32)').run(fib, 32)
+    bm.print_compared_matrix(sort=False, transpose=False)
+    ## output example
+    #                 utime     stime     total      real
+    #fib(30)          0.440     0.000     0.440     0.449
+    #fib(31)          0.720     0.000     0.720     0.722
+    #fib(32)          1.180     0.000     1.180     1.197
+    #--------------------------------------------------------------------------
+    #                    real      [01]     [02]     [03]
+    #[01] fib(30)     0.4487s        -     60.9%   166.7%
+    #[02] fib(31)     0.7222s    -37.9%       -     65.7%
+    #[03] fib(32)     1.1967s    -62.5%   -39.6%       - 
+
+* Benchmark results are stored into Benchmarker.results as a list of tuples. ::
+
+    bm = Benchmarker()
+    bm('fib(34)').run(fib, 34)
+    bm('fib(35)').run(fib, 35)
+    for result in bm.results:
+        print result
+    ## output example:
+    #('fib(34)', 4.37, 0.02, 4.39, 4.9449)
+    #('fib(35)', 7.15, 0.05, 7.20, 8.0643)
+
+* Time format is changed from '%10.4f' to '%9.3f'
+
+* Changed to run full-GC for each benchmarks
+
+
+Release 1.0.0 (2010-05-16)
+--------------------------
+
+* public release
