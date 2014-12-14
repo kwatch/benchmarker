@@ -521,6 +521,20 @@ DESCRIPT                D.DDDD  ( DD.D) BAR
         ok (sout).matches(expected_pattern)
         ok (serr) == ""
 
+    @test("'--name=value' sets benchmarker property.")
+    def _(self, sample_file):
+        content = r"""
+from benchmarker import Benchmarker
+from pprint import pprint
+with Benchmarker() as bench:
+    pprint(bench.properties)
+"""[1:]
+        with open(sample_file, 'w') as f:
+            f.write(content)
+        sout, serr = run_command("%s %s --str=foo --flag --num=123" % (sys.executable, sample_file))
+        ok (sout).should.startswith("{'flag': True, 'num': '123', 'str': 'foo'}\n")
+        ok (serr) == ""
+
 
 
 if __name__ == '__main__':

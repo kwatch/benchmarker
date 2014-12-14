@@ -680,7 +680,7 @@ def _parse_cmdopts(argv=None):
         if arg == "--":
             break
         if arg.startswith("--"):
-            m = re.match(r'^([-\w]+)(?:=(.*))?', arg)
+            m = re.match(r'^(\w[-\w]*)(?:=(.*))?', arg[2:])
             if not m:
                 raise CommandOptionError("%s: invalid option." % arg)
             key, val = m.groups()
