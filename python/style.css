@@ -1,0 +1,110 @@
+/* -*- coding: utf-8 -*- */
+@charset "utf-8";
+
+body {
+	background: #EAEFF2;
+	line-height: 1.42857143;
+	Xfont-family: "MS PGothic", "Hiragino Kaku Gothic", "Osaka", Arial, sans-serif;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	color: #333;
+	margin: 0;
+	padding: 0;
+}
+div.document {
+	max-width: 750px;
+	margin: 0 auto;
+	padding: 0;
+}
+
+
+h1.title {
+	background: #238EC6;
+	margin-top: 0;
+	margin-bottom: 30px;
+	padding: 50px 15px 30px 15px;
+	text-align: center;
+	font-family: "Helvetica Neue Light", Helvetica, Arial, sans-serif;
+	font-weight: normal;
+	font-size: 250%;
+	color: #fff;
+	border-radius: 0 0 10px 10px;
+}
+
+
+div.section {
+	background: #FFF;
+	padding: 10px 15px;
+	margin: 20px 0;
+	border-radius: 4px;
+}
+div.section div.section {
+	padding: 10px 0px;
+}
+div.section h1 {
+	margin: 5px 0 0 0;
+	padding: 25px 0 15px 15px;
+	font-size: 180%;
+	color: #238EC6;
+	border: solid #238EC6;
+	border-width: 0 0 0 20px;
+}
+div.section h2 {
+	font-size: 150%;
+	color: #238EC6;
+}
+div.section h3 {
+	color: #238EC6;
+}
+div.section h3 tt {
+	font-size: 150%;
+}
+
+
+pre {
+	background: #EEE;
+	border: solid 1px #CCC;
+	padding: 5px 10px;
+	word-break: normal;
+	Xword-wrap: break-word;
+	border-radius: 3px;
+}
+pre, code, tt {
+	Xfont-size: 0.8125em;
+	font-size: 100%;
+	Xfont-family: Osaka-mono, "Osaka-等幅", "MS Gothic", "ＭＳ ゴシック", monospace, serif;
+	font-family: "Courier New", "Consolas", "MS Gothic", "ＭＳ ゴシック", monospace, serif;
+	line-height: 1.42857143;
+}
+pre strong {
+	font-family: "Courier New", "Consolas", "MS Gothic", "ＭＳ ゴシック", monospace, serif;
+	font-weight: bold;
+	color: #900;
+}
+
+
+dl.docutils dt {
+	font-weight: bold;
+	border: dotted #090;
+	border-width: 0 0 1px 0;
+	display: inline;
+	font: gothic;
+	color: #333;
+}
+dl.docutils dd {
+	margin-bottom: 10px;
+	font: sanserif;
+}
+
+
+th.field-name {
+	text-align: left;
+}
+td.field-body {
+	text-align: left;
+}
+
+
+div.line-block {
+	font-size: 90%;
+	color: #888;
+}
