@@ -1,5 +1,5 @@
-include README.html MANIFEST CHANGES.txt setup.py docstyle.css
+include README.rst README.html MANIFEST setup.py style.css
 include benchmarker.py
-include test/*.py
+include test/*_test.py test/oktest.py
 include Kookbook.py
 include examples/*.py
