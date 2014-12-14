@@ -2,7 +2,7 @@
 
 ###
 ### $Release: $
-### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
+### $Copyright: copyright(c) 2010-2014 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###
 
@@ -20,7 +20,7 @@ from glob import glob
 from kook.utils import read_file, write_file
 kook_default_product = 'test'
 
-release   = prop('release', '3.0.1')
+release   = prop('release', '4.0.0')
 package   = prop('package', 'Benchmarker')
 copyright = prop('copyright', "copyright(c) 2010-2011 kuwata-lab.com all rights reserved")
 license   = "Public Domain"
@@ -71,7 +71,7 @@ def task_edit(c):
     filenames.remove('test/oktest.py')
     edit(filenames, by=replacer)
     replacer = lambda s: re.sub(r'\$Release:[^%]*?\$', '$Release: %s $' % release, s)
-    edit('README.txt', by=replacer)
+    #edit('README.txt', by=replacer)
     pat = re.compile(r'^(version *= *).*?$', re.M)
     replacer = lambda s: pat.sub(r"\1'%s'" % release, s)
     edit('setup.py', by=replacer)
@@ -202,7 +202,7 @@ def task_examples(c, **kwargs):
 def file_website_zip(c):
     """create zip file for https://pythonhosted.org/"""
     replacer = [
-        (r'Release: 0\.0\.0', release),
+        (r'Release: 0\.0\.0', 'Release: %s' % release),
         (r'X\.X\.X', release),
     ]
     edit(c.ingred, by=replacer)
