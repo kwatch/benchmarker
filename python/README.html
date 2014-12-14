@@ -456,7 +456,26 @@ with Benchmarker(filter="tag!=heavy") as bench:
     def _(bm):
         # do heavy benchmark
 </pre>
+<p>Command-line example:</p>
+<pre class="literal-block">
+$ python mybench.py               # skips heavy benchmarks
+$ python mybench.py -f 'tag=~.'   # runs all benchmarks
+</pre>
 </div>
+</div>
+<div class="section" id="command-line-options">
+<h1>Command-line Options</h1>
+<pre class="literal-block">
+-h               help
+-v               print Benchmarker version
+-n N             loop N times in each benchmark (N=1)
+-c N             cycle benchmarks N times (N=1)
+-x N             ignore worst N results and best N results (N=0)
+-o result.json   output file in JSON format
+-f name=...      filter by benchmark name   (op: '==', '!=', '=~', '!~')
+-f tag=...       filter by user-defined tag (op: '==', '!=', '=~', '!~')
+--key[=value]    user-defined properties
+</pre>
 </div>
 <div class="section" id="changelog">
 <h1>Changelog</h1>

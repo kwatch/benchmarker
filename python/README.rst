@@ -465,6 +465,28 @@ It is very useful to skip heavy benchmarks by default::
 	def _(bm):
 	    # do heavy benchmark
 
+Command-line example::
+
+    $ python mybench.py               # skips heavy benchmarks
+    $ python mybench.py -f 'tag=~.'   # runs all benchmarks
+
+
+
+Command-line Options
+====================
+
+::
+
+    -h               help
+    -v               print Benchmarker version
+    -n N             loop N times in each benchmark (N=1)
+    -c N             cycle benchmarks N times (N=1)
+    -x N             ignore worst N results and best N results (N=0)
+    -o result.json   output file in JSON format
+    -f name=...      filter by benchmark name   (op: '==', '!=', '=~', '!~')
+    -f tag=...       filter by user-defined tag (op: '==', '!=', '=~', '!~')
+    --key[=value]    user-defined properties
+
 
 
 Changelog
