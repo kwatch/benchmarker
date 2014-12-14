@@ -217,6 +217,14 @@ Output Example::
 For example, actual time of 'join' entry is 0.3015 (= 0.2779 + 0.0236).
 In other words, real time (0.2779) is already subtracted empty loop time (0.0236).
 
++---------+----------------------------+
+| join    | 0.3015 (= 0.2779 + 0.0236) |
++---------+----------------------------+
+| concat  | 0.4028 (= 0.3792 + 0.0236) |
++---------+----------------------------+
+| format  | 0.4469 (= 0.4233 + 0.0236) |
++---------+----------------------------+
+
 
 Iteration and Average
 ---------------------
@@ -467,7 +475,7 @@ Changelog
 Release 4.0.0 (2014-12-14)
 --------------------------
 
-* Rewrited entirely.
+* Rewrited entirely. This release is not compatible with previous version.
 
 
 Release 3.0.1 (2011-02-13)

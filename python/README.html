@@ -212,6 +212,23 @@ format                  0.4233  ( 65.6) *************
 </pre>
 <p>For example, actual time of 'join' entry is 0.3015 (= 0.2779 + 0.0236).
 In other words, real time (0.2779) is already subtracted empty loop time (0.0236).</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="24%" />
+<col width="76%" />
+</colgroup>
+<tbody valign="top">
+<tr><td>join</td>
+<td>0.3015 (= 0.2779 + 0.0236)</td>
+</tr>
+<tr><td>concat</td>
+<td>0.4028 (= 0.3792 + 0.0236)</td>
+</tr>
+<tr><td>format</td>
+<td>0.4469 (= 0.4233 + 0.0236)</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="iteration-and-average">
 <h2>Iteration and Average</h2>
@@ -447,7 +464,7 @@ with Benchmarker(filter="tag!=heavy") as bench:
 <div class="section" id="release-4-0-0-2014-12-14">
 <h2>Release 4.0.0 (2014-12-14)</h2>
 <ul class="simple">
-<li>Rewrited entirely.</li>
+<li>Rewrited entirely. This release is not compatible with previous version.</li>
 </ul>
 </div>
 <div class="section" id="release-3-0-1-2011-02-13">
