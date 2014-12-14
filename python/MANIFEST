@@ -1,10 +1,9 @@
-CHANGES.txt
 Kookbook.py
 MANIFEST
 README.html
-README.txt
+README.rst
 benchmarker.py
-docstyle.css
+style.css
 setup.py
 examples/bench_strconcat.py
 test/benchmarker_test.py
