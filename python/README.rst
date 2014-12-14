@@ -381,12 +381,11 @@ Example::
 Skip Benchmarks
 ---------------
 
-You can skip benchmark if you want.
-If you want skip benchmark, return a string (= reason to skip).
+You can skip benchmark by raising ``benchmark.Skip`` exception.
 
 Example::
 
-    from benchmarker import Benchmarker
+    from benchmarker import Benchmarker, {{*Skip*}}
 
     with Benchmarker(1000) as bench:
 
@@ -397,7 +396,7 @@ Example::
                 import django
                 import django.template
             except ImportError:
-                {{*return "skip because not installed"*}}    # !!!!!
+                {{*raise Skip("not installed")*}}    # !!!!!
             ...
             ...
             ...

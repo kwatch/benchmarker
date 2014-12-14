@@ -378,11 +378,10 @@ with Benchmarker(1000) as bench:
 </div>
 <div class="section" id="skip-benchmarks">
 <h2>Skip Benchmarks</h2>
-<p>You can skip benchmark if you want.
-If you want skip benchmark, return a string (= reason to skip).</p>
+<p>You can skip benchmark by raising <tt class="docutils literal">benchmark.Skip</tt> exception.</p>
 <p>Example:</p>
 <pre class="literal-block">
-from benchmarker import Benchmarker
+from benchmarker import Benchmarker, <strong>Skip</strong>
 
 with Benchmarker(1000) as bench:
 
@@ -393,7 +392,7 @@ with Benchmarker(1000) as bench:
             import django
             import django.template
         except ImportError:
-            <strong>return "skip because not installed"</strong>    # !!!!!
+            <strong>raise Skip("not installed")</strong>    # !!!!!
         ...
         ...
         ...
