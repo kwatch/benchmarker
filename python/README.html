@@ -1,562 +1,432 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-
-<html>
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-  <meta name="generator" content="HTML Tidy for Mac OS X (vers 31 October 2006 - Apple Inc. build 15.3.6), see www.w3.org">
-  <meta http-equiv="Content-Type" content="text/html">
-
-  <title>Benchmarker README</title>
-  <meta name="generator" content="kwaser">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <link rel="stylesheet" href="docstyle.css" type="text/css">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width; initial-scale=1.0" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title>Benchmarker.py README</title>
+<link rel="stylesheet" href="style.css" type="text/css" />
 </head>
-
 <body>
-  <blockquote>
-    <div class="mainbody">
-      <div align="left">
-        <h1>Benchmarker README</h1>
-      </div>
+<div class="document" id="benchmarker-py-readme">
+<h1 class="title">Benchmarker.py README</h1>
 
-      <p>$Release: 3.0.0 $<br>
-      $License: Public Domain $<br>
-      $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $<br></p><a name="Overview" id="Overview"></a>
-
-      <h2 class="section1">Overview</h2>
-
-      <p>Benchmarker is a small utility for benchmarking.</p><a name="ex0.py" id="ex0.py"></a>
-
-      <div class="program_caption">
-        Quick Example (ex0.py)
-      </div>
-      <pre class="program">
-from benchmarker import Benchmarker, cmdopt
-cmdopt.parse()
-
-s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-with Benchmarker(width=20, loop=1000*1000) as bm:
-    for _ in bm.empty():     ## empty loop
-        pass
-    for _ in bm('join'):
-        sos = ''.join((s1, s2, s3, s4, s5))
-    for _ in bm('concat'):
-        sos = s1 + s2 + s3 + s4 + s5
-    for _ in bm('format'):
-        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
-</pre>
-
-      <div class="terminal_caption">
-        Output example
-      </div>
-      <pre class="terminal">
-$ python ex0.py
-## benchmarker:       release 3.0.0 (for python)
-## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
-## python version:    2.7.1
-## python executable: /usr/local/python/2.7.1/bin/python
-
-##                       user       sys     total      real
-(Empty)                0.1600    0.0000    0.1600    0.1639
-join                   0.6500    0.0000    0.6500    0.6483
-concat                 0.5700    0.0000    0.5700    0.5711
-format                 0.7600    0.0000    0.7600    0.7568
-
-## Ranking               real
-concat                 0.5711 (100.0%) *************************
-join                   0.6483 ( 88.1%) **********************
-format                 0.7568 ( 75.5%) *******************
-
-## Ratio Matrix          real    [01]    [02]    [03]
-[01] concat            0.5711  100.0%  113.5%  132.5%
-[02] join              0.6483   88.1%  100.0%  116.7%
-[03] format            0.7568   75.5%   85.7%  100.0%
-
-$ python ex0.py -h           # show help message of command-line optins
-$ python ex0.py -n 10000     # override number of loop
-$ python ex0.py concat join  # do only 'concat' and 'join' benchmarks
-</pre>
-
-      <p>Notice that empty loop times (user, sys, total, and real) are subtracted from other benchmark times automatically. For example:</p>
-
-      <div align="center">
-        <table class="table2" border="1" cellspacing="0">
-          <tr class="tr2">
-            <th class="th2">benchmark label</th>
-
-            <th class="th2">real (second)</th>
-          </tr>
-
-          <tr class="tr2">
-            <td class="td2">join</td>
-
-            <td class="td2">0.6483 (= 0.8122 - 0.1639)</td>
-          </tr>
-
-          <tr class="tr2">
-            <td class="td2">concat</td>
-
-            <td class="td2">0.5711 (= 0.7350 - 0.1639)</td>
-          </tr>
-
-          <tr class="tr2">
-            <td class="td2">format</td>
-
-            <td class="td2">0.7568 (= 0.9207 - 0.1639)</td>
-          </tr>
-        </table>
-      </div>
-
-      <p><span style="color:#FF0000">NOTICE:</span> This release doesn't have compatibility with previous version. See <a href="CHANGES.txt">CHANGES.txt</a> for details.</p><br>
-      <a name="Download and Install"></a>
-
-      <h2 class="section1">Download and Install</h2>
-
-      <p><a href="http://pypi.python.org/pypi/Benchmarker/">http://pypi.python.org/pypi/Benchmarker/</a></p>
-
-      <div class="terminal_caption">
-        Installation
-      </div>
-      <pre class="terminal">
-## if you have installed easy_install:
+<div class="line-block">
+<div class="line">$Release: 0.0.0 $</div>
+<div class="line">$License: MIT License $</div>
+<div class="line">$Copyright: copyright(c) 2010-2014 kuwata-lab.com all rights reserved. $</div>
+</div>
+<div class="section" id="overview">
+<h1>Overview</h1>
+<p>Benchmarker.py is an awesome benchmarking tool for Python.</p>
+<ul class="simple">
+<li>Easy to use</li>
+<li>Pretty good output (including JSON format)</li>
+<li>Available on Python &gt;= 2.5 and &gt;= 3.0</li>
+</ul>
+<div class="section" id="install">
+<h2>Install</h2>
+<p><a class="reference external" href="http://pypi.python.org/pypi/Benchmarker/">http://pypi.python.org/pypi/Benchmarker/</a></p>
+<pre class="literal-block">
+$ sudo pip install Benchmarker
+## or
 $ sudo easy_install Benchmarker
-## or download Benchmarker-X.X.X.tar.gz and install it
+## or
 $ wget http://pypi.python.org/packages/source/B/Benchmarker/Benchmarker-X.X.X.tar.gz
 $ tar xzf Benchmarker-X.X.X.tar.gz
 $ cd Benchmarker-X.X.X/
 $ sudo python setup.py install
-</pre><br>
-      <a name="Step by Step Examples"></a>
-
-      <h2 class="section1">Step by Step Examples</h2><a name="Basic Example"></a>
-
-      <h3 class="section2">Basic Example</h3><a name="ex1.py" id="ex1.py"></a>
-
-      <div class="program_caption">
-        ex1.py
-      </div>
-      <pre class="program">
+</pre>
+</div>
+</div>
+<div class="section" id="step-by-step-tutorial">
+<h1>Step by Step Tutorial</h1>
+<div class="section" id="basic-usage">
+<h2>Basic Usage</h2>
+<p>Example (ex1.py):</p>
+<pre class="literal-block">
 <strong>from benchmarker import Benchmarker</strong>
+try:
+    xrange
+except NameError:
+    xrange = range       # for Python3
 
-s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
 loop = 1000 * 1000
-<strong>with Benchmarker(width=20) as bm:</strong>
-    <strong>with bm('join'):</strong>
-        for i in xrange(loop):
+<strong>with Benchmarker(width=20) as bench:</strong>
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+    <strong>@bench("join")</strong>
+    def _(<strong>bm</strong>):
+        for _ in xrange(loop):
             sos = ''.join((s1, s2, s3, s4, s5))
-    <strong>with bm('concat'):</strong>
-        for i in xrange(loop):
+
+    <strong>@bench("concat")</strong>
+    def _(<strong>bm</strong>):
+        for _ in xrange(loop):
             sos = s1 + s2 + s3 + s4 + s5
-    <strong>with bm('format'):</strong>
-        for i in xrange(loop):
+
+    <strong>@bench("format")</strong>
+    def _(<strong>bm</strong>):
+        for _ in xrange(loop):
             sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 </pre>
-
-      <div class="terminal_caption">
-        Output example
-      </div>
-      <pre class="terminal">
+<p>Output example:</p>
+<pre class="literal-block">
 $ python ex1.py
-## benchmarker:       release 3.0.0 (for python)
-## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
-## python version:    2.7.1
-## python executable: /usr/local/python/2.7.1/bin/python
+## benchmarker:         release 0.0.0 (for python)
+## python version:      3.4.2
+## python compiler:     GCC 4.8.2
+## python platform:     Linux-3.13.0-36-generic-x86_64-with-debian-jessie-sid
+## python executable:   /opt/vs/python/3.4.2/bin/python
+## cpu model:           Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz  # 2494.050 MHz
+## parameters:          loop=1, cycle=1, extra=0
 
-##                       user       sys     total      real
-join                   0.7300    0.0000    0.7300    0.7358
-concat                 0.6500    0.0000    0.6500    0.6482
-format                 0.8400    0.0000    0.8400    0.8442
+##                        real    (total    = user    + sys)
+join                    0.2892    0.2900    0.2900    0.0000
+concat                  0.3889    0.3800    0.3800    0.0000
+format                  0.4496    0.4500    0.4500    0.0000
 
-## Ranking               real
-concat                 0.6482 (100.0%) *************************
-join                   0.7358 ( 88.1%) **********************
-format                 0.8442 ( 76.8%) *******************
+## Ranking                real
+join                    0.2892  (100.0) ********************
+concat                  0.3889  ( 74.4) ***************
+format                  0.4496  ( 64.3) *************
 
-## Ratio Matrix          real    [01]    [02]    [03]
-[01] concat            0.6482  100.0%  113.5%  130.2%
-[02] join              0.7358   88.1%  100.0%  114.7%
-[03] format            0.8442   76.8%   87.2%  100.0%
-</pre><br>
-      <a name="Empty Loop"></a>
-
-      <h3 class="section2">Empty Loop</h3>
-
-      <p>If you want to get more accurate results, add empty loop benchmark.</p><a name="ex2.py" id="ex2.py"></a>
-
-      <div class="program_caption">
-        ex2.py
-      </div>
-      <pre class="program">
+## Matrix                 real    [01]    [02]    [03]
+[01] join               0.2892   100.0   134.5   155.5
+[02] concat             0.3889    74.4   100.0   115.6
+[03] format             0.4496    64.3    86.5   100.0
+</pre>
+</div>
+<div class="section" id="number-of-loop">
+<h2>Number of Loop</h2>
+<p>You can specify number of loop in script and/or command-line option.</p>
+<p>Example (ex2.py):</p>
+<pre class="literal-block">
 from benchmarker import Benchmarker
 
-s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-loop = 1000 * 1000
-with Benchmarker(width=20) as bm:
-    <strong>with bm.empty():</strong>
-        <strong>for i in xrange(loop):</strong>
-            <strong>pass</strong>
-    with bm('join'):
-        for i in xrange(loop):
+## specify number of loop
+with Benchmarker(<strong>1000*1000</strong>, width=20) as bench:
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+    @bench("join")
+    def _(bm):
+        for i in <strong>bm</strong>:      ## instead of xrange(N)
             sos = ''.join((s1, s2, s3, s4, s5))
-    with bm('concat'):
-        for i in xrange(loop):
+
+    @bench("concat")
+    def _(bm):
+        for i in <strong>bm</strong>:
             sos = s1 + s2 + s3 + s4 + s5
-    with bm('format'):
-        for i in xrange(loop):
+
+    @bench("format")
+    def _(bm):
+        for i in <strong>bm</strong>:
             sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 </pre>
+<p>Output Example:</p>
+<pre class="literal-block">
+$ python ex2.py   # or python ex2.py <strong>-n 1000000</strong>
+## benchmarker:         release 0.0.0 (for python)
+## python version:      3.4.2
+## python compiler:     GCC 4.8.2
+## python platform:     Linux-3.13.0-36-generic-x86_64-with-debian-jessie-sid
+## python executable:   /opt/vs/python/3.4.2/bin/python
+## cpu model:           Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz  # 2494.050 MHz
+## parameters:          loop=1000000, cycle=1, extra=0
 
-      <div class="terminal_caption">
-        Output Example
-      </div>
-      <pre class="terminal">
-$ python ex2.py
-## benchmarker:       release 3.0.0 (for python)
-## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
-## python version:    2.7.1
-## python executable: /usr/local/python/2.7.1/bin/python
+##                        real    (total    = user    + sys)
+join                    0.2960    0.3000    0.3000    0.0000
+concat                  0.3946    0.3900    0.3900    0.0000
+format                  0.4430    0.4500    0.4500    0.0000
 
-##                       user       sys     total      real
-(Empty)                0.0800    0.0000    0.0800    0.0824
-join                   0.6600    0.0000    0.6600    0.6541
-concat                 0.5600    0.0000    0.5600    0.5592
-format                 0.7600    0.0000    0.7600    0.7603
+## Ranking                real
+join                    0.2960  (100.0) ********************
+concat                  0.3946  ( 75.0) ***************
+format                  0.4430  ( 66.8) *************
 
-## Ranking               real
-concat                 0.5592 (100.0%) *************************
-join                   0.6541 ( 85.5%) *********************
-format                 0.7603 ( 73.6%) ******************
-
-## Ratio Matrix          real    [01]    [02]    [03]
-[01] concat            0.5592  100.0%  117.0%  135.9%
-[02] join              0.6541   85.5%  100.0%  116.2%
-[03] format            0.7603   73.6%   86.0%  100.0%
+## Matrix                 real    [01]    [02]    [03]
+[01] join               0.2960   100.0   133.3   149.7
+[02] concat             0.3946    75.0   100.0   112.3
+[03] format             0.4430    66.8    89.1   100.0
 </pre>
-
-      <p>Notice that benchmark results are subtracted by '(Empty)' loop results. For example:</p>
-
-      <div align="center">
-        <table class="table2" border="1" cellspacing="0">
-          <tr class="tr2">
-            <th class="th2">benchmark label</th>
-
-            <th class="th2">real (second)</th>
-          </tr>
-
-          <tr class="tr2">
-            <td class="td2">join</td>
-
-            <td class="td2">0.6541 (= 0.7365 - 0.0824)</td>
-          </tr>
-
-          <tr class="tr2">
-            <td class="td2">concat</td>
-
-            <td class="td2">0.5592 (= 0.6416 - 0.0824)</td>
-          </tr>
-
-          <tr class="tr2">
-            <td class="td2">format</td>
-
-            <td class="td2">0.7603 (= 0.8427 - 0.0824)</td>
-          </tr>
-        </table>
-      </div><br>
-      <a name="Loop" id="Loop"></a>
-
-      <h3 class="section2">Loop</h3>
-
-      <p>It is possible to simpily benchmark script by <code>loop</code> parameter.</p><a name="ex3.py" id="ex3.py"></a>
-
-      <div class="program_caption">
-        ex3.py
-      </div>
-      <pre class="program">
+</div>
+<div class="section" id="empty-loop">
+<h2>Empty Loop</h2>
+<p>'Empty loop' is used to subtract time for loop from entire time.</p>
+<p>Example (ex3.py):</p>
+<pre class="literal-block">
 from benchmarker import Benchmarker
 
-s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-with Benchmarker(width=20, <strong>loop=1000*1000</strong>) as bm:
-    <strong>for _ in bm.empty():</strong>
-        pass
-    <strong>for _ in bm('join'):</strong>
-        sos = ''.join((s1, s2, s3, s4, s5))
-    <strong>for _ in bm('concat'):</strong>
-        sos = s1 + s2 + s3 + s4 + s5
-    <strong>for _ in bm('format'):</strong>
-        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
-</pre>
+## specify number of loop
+with Benchmarker(1000*1000, width=20) as bench:
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
 
-      <div class="terminal_caption">
-        Output Example
-      </div>
-      <pre class="terminal">
+    <strong>@bench(None)</strong>                ## !!!!! empty loop
+    <strong>def _(bm):</strong>
+        <strong>for i in bm:</strong>
+            <strong>pass</strong>
+
+    @bench("join")
+    def _(bm):
+        for i in bm:
+            sos = ''.join((s1, s2, s3, s4, s5))
+
+    @bench("concat")
+    def _(bm):
+        for i in bm:
+            sos = s1 + s2 + s3 + s4 + s5
+
+    @bench("format")
+    def _(bm):
+        for i in bm:
+            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+</pre>
+<p>Output Example:</p>
+<pre class="literal-block">
 $ python ex3.py
-## benchmarker:       release 3.0.0 (for python)
-## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
-## python version:    2.7.1
-## python executable: /usr/local/python/2.7.1/bin/python
+## benchmarker:         release 0.0.0 (for python)
+## python version:      3.4.2
+## python compiler:     GCC 4.8.2
+## python platform:     Linux-3.13.0-36-generic-x86_64-with-debian-jessie-sid
+## python executable:   /opt/vs/python/3.4.2/bin/python
+## cpu model:           Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz  # 2494.050 MHz
+## parameters:          loop=1000000, cycle=1, extra=0
 
-##                       user       sys     total      real
-(Empty)                0.1600    0.0000    0.1600    0.1683
-join                   0.6500    0.0000    0.6500    0.6457
-concat                 0.5700    0.0000    0.5700    0.5660
-format                 0.7500    0.0000    0.7500    0.7440
+##                        real    (total    = user    + sys)
+<strong>(Empty)                 0.0236    0.0200    0.0200    0.0000</strong>
+join                    <strong>0.2779</strong>    0.2800    0.2800    0.0000
+concat                  <strong>0.3792</strong>    0.3800    0.3800    0.0000
+format                  <strong>0.4233</strong>    0.4300    0.4300    0.0000
 
-## Ranking               real
-concat                 0.5660 (100.0%) *************************
-join                   0.6457 ( 87.6%) **********************
-format                 0.7440 ( 76.1%) *******************
+## Ranking                real
+join                    0.2779  (100.0) ********************
+concat                  0.3792  ( 73.3) ***************
+format                  0.4233  ( 65.6) *************
 
-## Ratio Matrix          real    [01]    [02]    [03]
-[01] concat            0.5660  100.0%  114.1%  131.5%
-[02] join              0.6457   87.6%  100.0%  115.2%
-[03] format            0.7440   76.1%   86.8%  100.0%
+## Matrix                 real    [01]    [02]    [03]
+[01] join               0.2779   100.0   136.5   152.3
+[02] concat             0.3792    73.3   100.0   111.6
+[03] format             0.4233    65.6    89.6   100.0
 </pre>
-
-      <p>Hint: You can specify <code>loop</code> parameter by <code>-n</code> command-line option.</p><br>
-      <a name="Cycle" id="Cycle"></a>
-
-      <h3 class="section2">Cycle</h3>
-
-      <p>If you want to repeat benchmarks several times and calculate average time, pass <code>cycle</code> and optional <code>extra</code> parameters, and use for-statement instead of with-statement. If you specify <code>extra</code> parameter, minimum and maximum values are removed from benchmark results. This is intended to remove abnormal results or to ignore setup time.</p><a name="ex4.py" id="ex4.py"></a>
-
-      <div class="program_caption">
-        ex4.py
-      </div>
-      <pre class="program">
+<p>For example, actual time of 'join' entry is 0.3015 (= 0.2779 + 0.0236).
+In other words, real time (0.2779) is already subtracted empty loop time (0.0236).</p>
+</div>
+<div class="section" id="iteration-and-average">
+<h2>Iteration and Average</h2>
+<p>It is possible to iterate all benchmarks. Average of results are calculated
+automatically.</p>
+<ul class="simple">
+<li><tt class="docutils literal">Benchmark(cycle=3)</tt> or <tt class="docutils literal"><span class="pre">-c</span> 3</tt> option iterates all benchmarks 3 times
+and reports average of benchmarks.</li>
+<li><tt class="docutils literal">Benchmark(extra=1)</tt> or <tt class="docutils literal"><span class="pre">-x</span> 1</tt> option increases number of iterations
+by <tt class="docutils literal">2*1</tt> times, and excludes min and max result from average.</li>
+<li><tt class="docutils literal">Benchmark(cycle=3, extra=1)</tt> or <tt class="docutils literal"><span class="pre">-c</span> 3 <span class="pre">-x</span> 1</tt> option iterates benchmarks
+5 (= 3+2*1) times, excludes min and max results, and calculates averages
+from 3 results.</li>
+</ul>
+<p>Example (ex4.py):</p>
+<pre class="literal-block">
 from benchmarker import Benchmarker
 
-s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-<strong>for bm in</strong> Benchmarker(width=25, loop=1000*1000, <strong>cycle=3, extra=1</strong>):
-    for _ in bm.empty():
-        pass
-    for _ in bm('join'):
-        sos = ''.join((s1, s2, s3, s4, s5))
-    for _ in bm('concat'):
-        sos = s1 + s2 + s3 + s4 + s5
-    for _ in bm('format'):
-        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+with Benchmarker(1000*1000, width=25, <strong>cycle=3, extra=1</strong>) as bench:
+    s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+    @bench(None)
+    def _(bm):
+        for i in bm:
+            pass
+
+    @bench("join")
+    def _(bm):
+        for i in bm:    ## !!!!! instead of xrange(N)
+            sos = ''.join((s1, s2, s3, s4, s5))
+
+    @bench("concat")
+    def _(bm):
+        for i in bm:
+            sos = s1 + s2 + s3 + s4 + s5
+
+    @bench("format")
+    def _(bm):
+        for i in bm:
+            sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
 </pre>
+<p>Output Example:</p>
+<pre class="literal-block">
+$ python ex4.py     # or python ex4.py <strong>-c 3 -x 1</strong>
+## benchmarker:         release 0.0.0 (for python)
+## python version:      3.4.2
+## python compiler:     GCC 4.8.2
+## python platform:     Linux-3.13.0-36-generic-x86_64-with-debian-jessie-sid
+## python executable:   /opt/vs/python/3.4.2/bin/python
+## cpu model:           Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz  # 2494.050 MHz
+## parameters:          loop=1000000, cycle=3, extra=1
 
-      <div class="terminal_caption">
-        Output Example
-      </div>
-      <pre class="terminal">
-$ python ex4.py
-## benchmarker:       release 3.0.0 (for python)
-## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5664)]
-## python version:    2.7.1
-## python executable: /usr/local/python/2.7.1/bin/python
+## <strong>(#1)</strong>                        real    (total    = user    + sys)
+(Empty)                      0.0246    0.0300    0.0300    0.0000
+join                         0.2705    0.2600    0.2600    0.0000
+concat                       0.3776    0.3800    0.3800    0.0000
+format                       0.4102    0.4000    0.4000    0.0000
 
-## (#1)                       user       sys     total      real
-(Empty)                     0.1600    0.0000    0.1600    0.1562
-join                        0.6500    0.0000    0.6500    0.6591
-concat                      0.5600    0.0000    0.5600    0.5626
-format                      0.7500    0.0000    0.7500    0.7662
+## <strong>(#2)</strong>                        real    (total    = user    + sys)
+(Empty)                      0.0243    0.0200    0.0200    0.0000
+join                         0.2737    0.2800    0.2800    0.0000
+concat                       0.3791    0.3900    0.3900    0.0000
+format                       0.4087    0.4100    0.4100    0.0000
 
-## (#2)                       user       sys     total      real
-(Empty)                     0.1600    0.0000    0.1600    0.1561
-join                        0.6500    0.0000    0.6500    0.6520
-concat                      0.5500    0.0000    0.5500    0.5571
-format                      0.7500    0.0000    0.7500    0.7524
+## <strong>(#3)</strong>                        real    (total    = user    + sys)
+(Empty)                      0.0237    0.0200    0.0200    0.0000
+join                         0.2686    0.2700    0.2700    0.0000
+concat                       0.3719    0.3800    0.3800    0.0000
+format                       0.4047    0.4100    0.4100    0.0000
 
-## (#3)                       user       sys     total      real
-(Empty)                     0.1500    0.0000    0.1500    0.1555
-join                        0.6600    0.0000    0.6600    0.6563
-concat                      0.5600    0.0000    0.5600    0.5593
-format                      0.7500    0.0000    0.7500    0.7536
+## <strong>(#4)</strong>                        real    (total    = user    + sys)
+(Empty)                      0.0236    0.0200    0.0200    0.0000
+join                         0.2660    0.2700    0.2700    0.0000
+concat                       0.3749    0.3800    0.3800    0.0000
+format                       0.4083    0.4100    0.4100    0.0000
 
-## (#4)                       user       sys     total      real
-(Empty)                     0.1600    0.0000    0.1600    0.1585
-join                        0.6500    0.0000    0.6500    0.6518
-concat                      0.5500    0.0000    0.5500    0.5597
-format                      0.7500    0.0000    0.7500    0.7539
+## <strong>(#5)</strong>                        real    (total    = user    + sys)
+(Empty)                      0.0246    0.0300    0.0300    0.0000
+join                         0.2720    0.2600    0.2600    0.0000
+concat                       0.3754    0.3700    0.3700    0.0000
+format                       0.4132    0.4100    0.4100    0.0000
 
-## (#5)                       user       sys     total      real
-(Empty)                     0.1600    0.0000    0.1600    0.1601
-join                        0.6500    0.0000    0.6500    0.6482
-concat                      0.5600    0.0000    0.5600    0.5703
-format                      0.7400    0.0000    0.7400    0.7463
+<strong>## Ignore min &amp; max             min     cycle       max     cycle</strong>
+<strong>join                         0.2660      (#4)    0.2737      (#2)</strong>
+<strong>concat                       0.3719      (#3)    0.3791      (#2)</strong>
+<strong>format                       0.4047      (#3)    0.4132      (#5)</strong>
 
-## Remove min &amp; max            min     cycle       max     cycle
-join                        0.6482      (#5)    0.6591      (#1)
-concat                      0.5571      (#2)    0.5703      (#5)
-format                      0.7463      (#5)    0.7662      (#1)
+<strong>## Average of 3 (=5-2*1)       real    (total    = user    + sys)</strong>
+<strong>join                         0.2704    0.2633    0.2633    0.0000</strong>
+<strong>concat                       0.3759    0.3767    0.3767    0.0000</strong>
+<strong>format                       0.4091    0.4067    0.4067    0.0000</strong>
 
-## Average of 3 (=5-2*1)      user       sys     total      real
-join                        0.6533    0.0000    0.6533    0.6534
-concat                      0.5567    0.0000    0.5567    0.5605
-format                      0.7500    0.0000    0.7500    0.7533
+## Ranking                     real
+join                         0.2704  (100.0) ********************
+concat                       0.3759  ( 71.9) **************
+format                       0.4091  ( 66.1) *************
 
-## Ranking                    real
-concat                      0.5605 (100.0%) *************************
-join                        0.6534 ( 85.8%) *********************
-format                      0.7533 ( 74.4%) *******************
-
-## Ratio Matrix               real    [01]    [02]    [03]
-[01] concat                 0.5605  100.0%  116.6%  134.4%
-[02] join                   0.6534   85.8%  100.0%  115.3%
-[03] format                 0.7533   74.4%   86.7%  100.0%
+## Matrix                      real    [01]    [02]    [03]
+[01] join                    0.2704   100.0   139.1   151.3
+[02] concat                  0.3759    71.9   100.0   108.8
+[03] format                  0.4091    66.1    91.9   100.0
 </pre>
-
-      <p>You can see that average time are calculated automatically after minimun and maximum values are removed.</p>
-
-      <p>If you prefer to print only average time, pass <code>verbose=False</code> to <code>Benchmark()</code>.</p>
-      <pre class="program">
-for bm in Benchmark(loop=1000*1000, cycle=3, extra=1, <strong>verbose=False</strong>):
-    ....
+</div>
+</div>
+<div class="section" id="advanced-topics">
+<h1>Advanced Topics</h1>
+<div class="section" id="output-in-json-format">
+<h2>Output in JSON format</h2>
+<p>Command-line <tt class="docutils literal"><span class="pre">-o</span> file</tt> option will output benchmark data into <tt class="docutils literal">file</tt>
+in JSON format.</p>
+<pre class="literal-block">
+$ python mybench.py <strong>-o result.json</strong>
+....(snip)...
+$ less result.json
 </pre>
-
-      <p>Or just ignore standard error.</p>
-      <pre class="terminal">
-$ python ex4.py 2&gt;/dev/null
-</pre>
-
-      <p>Hint: You can specify <code>cycle</code> and <code>extra</code> parameter by <code>-c</code> and <code>-X</code> command-line option.</p><br>
-      <a name="Command-line Options"></a>
-
-      <h3 class="section2">Command-line Options</h3>
-
-      <p>Calling <code>benchmarker.cmdopt.parse()</code>, you can specify parameters in command-line.</p><a name="ex5.py" id="ex5.py"></a>
-
-      <div class="program_caption">
-        ex5.py
-      </div>
-      <pre class="program">
-<strong>import benchmarker</strong>
-from benchmarker import Benchmarker
-<strong>benchmarker.cmdopt.parse()</strong>
-
-s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
-for bm in Benchmarker(width=25, loop=1000*1000, cycle=3, extra=1):
-    for _ in bm.empty():
-        pass
-    for _ in bm('join'):
-        sos = ''.join((s1, s2, s3, s4, s5))
-    for _ in bm('concat'):
-        sos = s1 + s2 + s3 + s4 + s5
-    for _ in bm('format'):
-        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
-</pre>
-
-      <div class="terminal_caption">
-        Command-line option example
-      </div>
-      <pre class="terminal">
-### show help
-$ python ex5.py -h
-
-### cycle all benchmarks 5 times with 1000,000 loop
-$ python ex5.py -c 5 -n 1000000
-
-### invoke bench1, bench2, and so on
-$ python ex5.py 'bench*'
-
-### invoke al benchmarks except bench1, bench2, and bench3
-$ python ex5.py -x '^bench[1-3]$'
-
-### invoke all branches with user-defined options
-$ python ex5.py --name1 --name2=value2
-</pre>
-
-      <p>You can get user-defined options via <code>benchmarker.cmdopt</code> in your script.</p>
-      <pre class="program">
-import benchmarker
-benchmarker.cmdopt.parse()
-print(<strong>benchmarker.cmdopt['name1']</strong>)   #=&gt; True
-print(<strong>benchmarker.cmdopt['name2']</strong>)   #=&gt; 'value2'
-</pre><br>
-      <a name="Function" id="Function"></a>
-
-      <h3 class="section2">Function</h3>
-
-      <p>You can write benchmark code as function.</p><a name="ex6.py" id="ex6.py"></a>
-
-      <div class="program_caption">
-        ex6.py
-      </div>
-      <pre class="program">
+</div>
+<div class="section" id="setup-and-teardown">
+<h2>Setup and Teardown</h2>
+<p>If each benchmark requires setup or teardown code which takes long time,
+wrap true-benchmark block by <tt class="docutils literal">with bm:</tt> in order to exclude setup and
+teardown time.</p>
+<p>Example:</p>
+<pre class="literal-block">
 from benchmarker import Benchmarker
 
-s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+with Benchmarker(1000) as bench:
 
-def f1(n):
-    """join"""
-    for _ in xrange(n):
-        sos = ''.join((s1, s2, s3, s4, s5))
-def f2(n):
-    """concat"""
-    for _ in xrange(n):
-        sos = s1 + s2 + s3 + s4 + s5
-def f3(n):
-    """format"""
-    for _ in xrange(loop):
-        sos = '%s%s%s%s%s' % (s1, s2, s3, s4, s5)
+    @bench("Django template engine"):
+    def _(bm):
+        ## setup
+        import django
+        import django.template
+        with open("example.html") as f:
+            tmpl = django.template.Template(f.read())
+        context = django.template.Context({"items": ["A", "B", "C"]})
 
-loop = 1000 * 1000
-for bm in Benchmarker(width=25, cycle=3, extra=1):
-    <strong>bm.run(f1, loop)   # or bm('join').run(f1, loop)</strong>
-    <strong>bm.run(f2, loop)   # or bm('concat').run(f2, loop)</strong>
-    <strong>bm.run(f3, loop)   # or bm('format').run(f3, loop)</strong>
+        ## run benchmark, excluding setup and teardown time
+        <strong>with bm:</strong>            # !!!!!
+            for _ in bm:
+                output = tmpl.render(context)
+
+        ## teardown
+        with open("example.expected") as f:
+            expected = f.read()
+        assert output == expected
 </pre>
+</div>
+<div class="section" id="skip-benchmarks">
+<h2>Skip Benchmarks</h2>
+<p>You can skip benchmark if you want.
+If you want skip benchmark, return a string (= reason to skip).</p>
+<p>Example:</p>
+<pre class="literal-block">
+from benchmarker import Benchmarker
 
-      <p>Benchmarker uses document string of function as a label of benchmark. If function doesn't have a document string, Benchmarker uses function name as label instead of document string.</p>
-      <pre class="program">
-## This code...
-bm.run(func, arg1, arg2)
-## is same as:
-bm(func.__doc__ or func.__name__).run(func, arg1, arg2)
-</pre><br>
-      <br>
-      <a name="Tips" id="Tips"></a>
+with Benchmarker(1000) as bench:
 
-      <h2 class="section1">Tips</h2><a name="Output Format"></a>
+    @bench("Django template engine"):
+    def _(bm):
+        ## setup
+        try:
+            import django
+            import django.template
+        except ImportError:
+            <strong>return "skip because not installed"</strong>    # !!!!!
+        ...
+        ...
+        ...
+</pre>
+</div>
+<div class="section" id="filter-benchmarks">
+<h2>Filter Benchmarks</h2>
+<p>Using command-line option <tt class="docutils literal"><span class="pre">-f</span></tt>, you can filter benchmarks by name.</p>
+<p>Example:</p>
+<pre class="literal-block">
+$ python mybench.py <strong>-f 'name==foo'</strong>    # select benchmarks by name
+$ python mybench.py <strong>-f 'name!=foo'</strong>    # reject benchmarks by name
+$ python mybench.py <strong>-f 'name=~^foo$'</strong>  # select by pattern (regexp)
+$ python mybench.py <strong>-f 'name!~^foo$'</strong>  # reject by pattern (regexp)
+</pre>
+</div>
+<div class="section" id="user-defined-tags">
+<h2>User-Defined Tags</h2>
+<p><tt class="docutils literal">@bench()</tt> decorator can take user-defined tags.
+They can be string or tuple of strings.</p>
+<p>Example:</p>
+<pre class="literal-block">
+from benchmarker import Benchmarker
 
-      <h3 class="section2">Output Format</h3>
+with Benchmarker(1000*1000) as bench:
 
-      <p>Benchmarker allows you to customize output format through <code>benchmarker.format</code> object.</p>
-      <pre class="program">
-from benchmarker import format
-format.label_width = 30       # same as Benchmark(width=30)
-format.time        = '%9.4f'
-</pre><br>
-      <a name="Benchmark Results"></a>
+    @bench("Kid template engine", <strong>tag="tooslow"</strong>):
+    def _(bm):
+        for i in bm:
+            ....
 
-      <h3 class="section2">Benchmark Results</h3>
+    @bench("Tenjin template engine", <strong>tag=("fast","autoescape")</strong>):
+    def _(bm):
+        for i in bm:
+            ....
 
-      <p>You can get benchmark results by <code>bm.results</code> or <code>bm.all_results</code>.</p>
-      <pre class="program">
-for result in bm.results:
-    print(result.label)
-    print(result.user)
-    print(result.sys)
-    print(result.total)
-    print(result.real)
-</pre><br>
-      <a name="Alternative of with-statement in Python 2.4"></a>
-
-      <h3 class="section2">Alternative of with-statement in Python 2.4</h3>
-
-      <p>As you know, with-statement is not available in Python 2.4. But don't worry, Benchmarker provides an alternative way.</p>
-      <pre class="program">
-## Instead of with-statement,
-with Benchmarker() as bm:
-    bm('bench1').run(func, arg1, arg2)
-    bm('bench2').run(func, arg3, arg4)
-
-## for-statement is available!
-<strong>for bm in Benchmarker():</strong>
-    bm('bench1').run(func, arg1, arg2)
-    bm('bench2').run(func, arg3, arg4)
-
-## Above is almost same as:
-bm = Benchmarker(width=20)
-<strong>bm.__enter__()</strong>
-bm('bench1').run(func, arg1, arg2)
-bm('bench2').run(func, arg3, arg4)
-<strong>bm.__exit__()</strong>
-</pre><br>
-      <br>
-    </div>
-  </blockquote>
+    @bench("Django template engine"):
+    def _(bm):
+        for i in bm:
+            ....
+</pre>
+<p>You can filter benchmarks by user-defined tags by <tt class="docutils literal"><span class="pre">-f</span></tt> option.</p>
+<p>Example:</p>
+<pre class="literal-block">
+$ python mybench.py <strong>-f 'tag==fast'</strong>     # select only tagged as 'fast'
+$ python mybench.py <strong>-f 'tag!=tooslow'</strong>  # reject all tagged as 'tooslow'
+$ python mybench.py <strong>-f 'tag=~^fast$'</strong>   # select by pattern
+$ python mybench.py <strong>-f 'tag!~^tooslo$'</strong> # reject by pattern
+</pre>
+</div>
+</div>
+</div>
 </body>
 </html>
