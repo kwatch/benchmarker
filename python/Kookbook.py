@@ -56,7 +56,7 @@ def task_test(c, *args, **kwargs):
 
 @recipe
 def task_clean(c):
-    rm_rf('*.pyc', '*/*.pyc', 'dist')
+    rm_rf('*.pyc', '*/*.pyc', 'dist', 'index.html')
 
 
 @recipe
@@ -201,9 +201,10 @@ def task_examples(c, **kwargs):
 @ingreds('README.html', 'style.css')
 def file_website_zip(c):
     """create zip file for https://pythonhosted.org/"""
+    cp('README.html', 'index.html')
     replacer = [
         (r'Release: 0\.0\.0', 'Release: %s' % release),
         (r'X\.X\.X', release),
     ]
-    edit(c.ingred, by=replacer)
-    system(c%"zip $(product) $(ingreds)")
+    edit('index.html', by=replacer)
+    system(c%"zip $(product) index.html style.css")
