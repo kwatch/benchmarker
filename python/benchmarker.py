@@ -2,7 +2,7 @@
 ###
 ### $Release: 0.0.0 $
 ### $Copyright: copyright(c) 2010-2014 kuwata-lab.com all rights reserved $
-### $License: MIT License $
+### $License: Public Domain $
 ###
 
 r"""

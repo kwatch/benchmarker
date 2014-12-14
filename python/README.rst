@@ -4,7 +4,7 @@ Benchmarker.py README
 
 
 | $Release: 0.0.0 $
-| $License: MIT License $
+| $License: Public Domain $
 | $Copyright: copyright(c) 2010-2014 kuwata-lab.com all rights reserved. $
 
 
