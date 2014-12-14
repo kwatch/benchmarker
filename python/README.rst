@@ -17,6 +17,8 @@ Benchmarker.py is an awesome benchmarking tool for Python.
 * Pretty good output (including JSON format)
 * Available on Python >= 2.5 and >= 3.0
 
+ATTENTION: I'm sorry, Benchmarker.py ver 4 is not compatible with ver 3.
+
 
 Install
 -------
@@ -374,7 +376,6 @@ Skip Benchmarks
 You can skip benchmark if you want.
 If you want skip benchmark, return a string (= reason to skip).
 
-
 Example::
 
     from benchmarker import Benchmarker
@@ -405,6 +406,11 @@ Example::
     $ python mybench.py {{*-f 'name!=foo'*}}    # reject benchmarks by name
     $ python mybench.py {{*-f 'name=~^foo$'*}}  # select by pattern (regexp)
     $ python mybench.py {{*-f 'name!~^foo$'*}}  # reject by pattern (regexp)
+
+It is possible to specify default filter::
+
+    with Benchmarker(filter="name!=foo") as bench:
+        ....
 
 
 User-Defined Tags
@@ -443,10 +449,25 @@ Example::
     $ python mybench.py {{*-f 'tag=~^fast$'*}}   # select by pattern
     $ python mybench.py {{*-f 'tag!~^tooslo$'*}} # reject by pattern
 
+It is very useful to skip heavy benchmarks by default::
+
+    ## skip benchmarks tagged as 'heavy'
+    with Benchmarker(filter="tag!=heavy") as bench:
+
+        @bench("too heavy benchmark", tag=("heaby",))   # skipped by default
+	def _(bm):
+	    # do heavy benchmark
+
 
 
 Changelog
 =========
+
+
+Release 4.0.0 (2014-12-14)
+--------------------------
+
+* Rewrited entirely.
 
 
 Release 3.0.1 (2011-02-13)
@@ -459,7 +480,6 @@ Release 3.0.1 (2011-02-13)
 * Fix a bug that 'for _ in bm()' raised error when loop count was not specified.
 
 * Fix a bug that 'for _ in bm()' raised RuntimeError on Python 3.
-
 
 
 Release 3.0.0 (2011-01-29)
@@ -501,7 +521,6 @@ Release 3.0.0 (2011-01-29)
   * Benchmark.stat
   * Benchmark.compared_matrix()
   * Benchmark.print_compared_matrix()
-
 
 
 Release 2.0.0 (2010-10-28)
@@ -581,7 +600,6 @@ Release 2.0.0 (2010-10-28)
       bm.run(fib, 30)    # same as bm("fibonacchi").run(fib, 30)
 
 * Default format of times is changed from '%9.3f' to '%9.4f'.
-
 
 
 Release 1.1.0 (2010-06-26)

@@ -25,6 +25,7 @@
 <li>Pretty good output (including JSON format)</li>
 <li>Available on Python &gt;= 2.5 and &gt;= 3.0</li>
 </ul>
+<p>ATTENTION: I'm sorry, Benchmarker.py ver 4 is not compatible with ver 3.</p>
 <div class="section" id="install">
 <h2>Install</h2>
 <p><a class="reference external" href="http://pypi.python.org/pypi/Benchmarker/">http://pypi.python.org/pypi/Benchmarker/</a></p>
@@ -391,6 +392,11 @@ $ python mybench.py <strong>-f 'name!=foo'</strong>    # reject benchmarks by na
 $ python mybench.py <strong>-f 'name=~^foo$'</strong>  # select by pattern (regexp)
 $ python mybench.py <strong>-f 'name!~^foo$'</strong>  # reject by pattern (regexp)
 </pre>
+<p>It is possible to specify default filter:</p>
+<pre class="literal-block">
+with Benchmarker(filter="name!=foo") as bench:
+    ....
+</pre>
 </div>
 <div class="section" id="user-defined-tags">
 <h2>User-Defined Tags</h2>
@@ -425,6 +431,225 @@ $ python mybench.py <strong>-f 'tag!=tooslow'</strong>  # reject all tagged as '
 $ python mybench.py <strong>-f 'tag=~^fast$'</strong>   # select by pattern
 $ python mybench.py <strong>-f 'tag!~^tooslo$'</strong> # reject by pattern
 </pre>
+<p>It is very useful to skip heavy benchmarks by default:</p>
+<pre class="literal-block">
+## skip benchmarks tagged as 'heavy'
+with Benchmarker(filter="tag!=heavy") as bench:
+
+    @bench("too heavy benchmark", tag=("heaby",))   # skipped by default
+    def _(bm):
+        # do heavy benchmark
+</pre>
+</div>
+</div>
+<div class="section" id="changelog">
+<h1>Changelog</h1>
+<div class="section" id="release-4-0-0-2014-12-14">
+<h2>Release 4.0.0 (2014-12-14)</h2>
+<ul class="simple">
+<li>Rewrited entirely.</li>
+</ul>
+</div>
+<div class="section" id="release-3-0-1-2011-02-13">
+<h2>Release 3.0.1 (2011-02-13)</h2>
+<ul class="simple">
+<li>License is changed again to Public Domain.</li>
+<li>Change Task class to pass 1-origin index to yield block when 'for _ in bm()' .</li>
+<li>Fix a bug that 'for _ in bm()' raised error when loop count was not specified.</li>
+<li>Fix a bug that 'for _ in bm()' raised RuntimeError on Python 3.</li>
+</ul>
+</div>
+<div class="section" id="release-3-0-0-2011-01-29">
+<h2>Release 3.0.0 (2011-01-29)</h2>
+<ul>
+<li><p class="first">Rewrite entirely.</p>
+</li>
+<li><p class="first">License is changed to MIT License.</p>
+</li>
+<li><p class="first">Enhanced to support command-line options.</p>
+<pre class="literal-block">
+import benchmarker
+benchmarker.cmdopt.parse()
+</pre>
+<p>You can show all command-line options by <tt class="docutils literal">python file.py <span class="pre">-h</span></tt>.
+See README file for details.</p>
+</li>
+<li><p class="first">Benchmarker.repeat() is obsolete.</p>
+<pre class="literal-block">
+## Old (obsolete)
+with Benchmarker() as bm:
+    for b in bm.repeat(5, 1):
+        with b('bench1'):
+            ....
+
+## New
+for bm in Benchmarker(cycle=5, extra=1):
+    with bm('bench1'):
+        ....
+</pre>
+</li>
+<li><p class="first">Changed to specify time (second) format.</p>
+<pre class="literal-block">
+import benchmarker
+benchmarker.format.label_with = 30
+benchmarker.format.time       = '%9.4f'
+</pre>
+</li>
+<li><p class="first">Followings are removed.</p>
+<ul class="simple">
+<li>Benchmark.stat</li>
+<li>Benchmark.compared_matrix()</li>
+<li>Benchmark.print_compared_matrix()</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="release-2-0-0-2010-10-28">
+<h2>Release 2.0.0 (2010-10-28)</h2>
+<ul>
+<li><p class="first">Rewrited entirely.</p>
+</li>
+<li><p class="first">Enhance to support empty loop. Result of empty loop is subtracted
+automatically  automatically from other benchmark result.</p>
+<pre class="literal-block">
+bm = Benchmarker()
+with bm.empty():
+  for i in xrange(1000*1000):
+    pass
+with bm('my benchmark 1'):
+  #... do something ...
+</pre>
+</li>
+<li><p class="first">Enhance to support for-statement.</p>
+<pre class="literal-block">
+bm = Benchmarker(loop=1000*1000)
+for i in bm('example'):
+  #... do something ...
+
+## the above is same as:
+bm = Benchmarker()
+with bm('example'):
+  for i in xrange(1000*1000):
+    #... do something ...
+</pre>
+</li>
+<li><p class="first">Enhance to support new feature to repeat benchmarks.</p>
+<pre class="literal-block">
+bm = Benchmarker()
+for b in bm.repeat(5):   # repeat benchmark 5 times
+  with b('example1'):
+    #... do something ...
+  with b('example2'):
+    #... do something ...
+</pre>
+</li>
+<li><p class="first">'compared_matrix()' is replaced by 'stat.all()'.
+'stat.all()' shows benchmark ranking and ratio matrix.</p>
+<pre class="literal-block">
+bm = Benchmarker()
+with bm('example'):
+   # ....
+print(bm.stat.all())   # ranking and ratio matrix
+</pre>
+</li>
+<li><p class="first">Enhance to support 'Benchmark.platform()' which gives you platform
+information.</p>
+<pre class="literal-block">
+print bm.platform()
+#### output example
+## benchmarker:       release 2.0.0 (for python)
+## python platform:   darwin [GCC 4.2.1 (Apple Inc. build 5659)]
+## python version:    2.5.5
+## python executable: /usr/local/python/2.5.5/bin/python2.5
+</pre>
+</li>
+<li><p class="first">'with-statement' for benchmarker object prints platform info and statistics
+automatically.</p>
+<pre class="literal-block">
+with Benchmarker() as bm:
+  wtih bm('fib(30)'):
+    fib(30)
+#### the above is same as:
+# bm = Benchmarker()
+# print(bm.platform())
+# with bm('fib(30)'):
+#   fib(30)
+# print(bm.stat.all())
+</pre>
+</li>
+<li><p class="first">Enhance Benchmarker.run() to use function docment (__doc__) as benchmark
+label when label is not specified.</p>
+<pre class="literal-block">
+def fib(n):
+  """fibonacchi"""
+  return n &lt;= 2 and 1 or fib(n-1) + fib(n-2)
+bm = Benchmarker()
+bm.run(fib, 30)    # same as bm("fibonacchi").run(fib, 30)
+</pre>
+</li>
+<li><p class="first">Default format of times is changed from '%9.3f' to '%9.4f'.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="release-1-1-0-2010-06-26">
+<h2>Release 1.1.0 (2010-06-26)</h2>
+<ul>
+<li><p class="first">Enhance Benchmarker.run() to take function args.</p>
+<pre class="literal-block">
+bm = Benchmarker()
+bm('fib(34)').run(fib, 34)   # same as .run(lambda: fib(34))
+</pre>
+</li>
+<li><p class="first">(experimental) Enhance Benchmarker.run() to use function name as title
+if title is not specified.</p>
+<pre class="literal-block">
+def fib34(): fib(34)
+bm = Benchmarker()
+bm.run(fib34)     # same as bm('fib34').run(fib34)
+</pre>
+</li>
+<li><p class="first">Enhanced to support compared matrix of benchmark results.</p>
+<pre class="literal-block">
+bm = Benchmarker(9)
+bm('fib(30)').run(fib, 30)
+bm('fib(31)').run(fib, 31)
+bm('fib(32)').run(fib, 32)
+bm.print_compared_matrix(sort=False, transpose=False)
+## output example
+#                 utime     stime     total      real
+#fib(30)          0.440     0.000     0.440     0.449
+#fib(31)          0.720     0.000     0.720     0.722
+#fib(32)          1.180     0.000     1.180     1.197
+#--------------------------------------------------------------------------
+#                    real      [01]     [02]     [03]
+#[01] fib(30)     0.4487s        -     60.9%   166.7%
+#[02] fib(31)     0.7222s    -37.9%       -     65.7%
+#[03] fib(32)     1.1967s    -62.5%   -39.6%       -
+</pre>
+</li>
+<li><p class="first">Benchmark results are stored into Benchmarker.results as a list of tuples.</p>
+<pre class="literal-block">
+bm = Benchmarker()
+bm('fib(34)').run(fib, 34)
+bm('fib(35)').run(fib, 35)
+for result in bm.results:
+    print result
+## output example:
+#('fib(34)', 4.37, 0.02, 4.39, 4.9449)
+#('fib(35)', 7.15, 0.05, 7.20, 8.0643)
+</pre>
+</li>
+<li><p class="first">Time format is changed from '%10.4f' to '%9.3f'</p>
+</li>
+<li><p class="first">Changed to run full-GC for each benchmarks</p>
+</li>
+</ul>
+</div>
+<div class="section" id="release-1-0-0-2010-05-16">
+<h2>Release 1.0.0 (2010-05-16)</h2>
+<ul class="simple">
+<li>public release</li>
+</ul>
 </div>
 </div>
 </div>
