@@ -1,756 +1,707 @@
 # -*- coding: utf-8 -*-
-
 ###
-### $Release: $
-### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
-### $License: Public Domain $
+### $Release: 0.0.0 $
+### $Copyright: copyright(c) 2010-2014 kuwata-lab.com all rights reserved $
+### $License: MIT License $
 ###
 
-import sys, os, re, time, gc
-from os   import times as _os_times
-from time import time  as _time_time
+r"""
+benchmarker.py -- benchmark utility for Python
+
+ex:
+
+    from benchmarker import Benchmarker
+
+    with Benchmarker(1000*1000, width=20, cycle=5, extra=1) as bench:
+
+        s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+        @bench(None)
+        def _(bm):
+            for _ in bm:
+                pass
+
+        @bench("'+' op")
+        def _(bm):
+            for _ in bm:
+                s = s1 + s2 + s3 + s4 + s5
+
+        @bench("join()")
+        def _(bm):
+            for _ in bm:
+                s = "".join((s1, s2, s3, s4, s5))
+
+        @bench("'%' op")
+        def _(bm):
+            for _ in bm:
+                s = "%s%s%s%s%s" % (s1, s2, s3, s4, s5)
+
+        @bench("format()")
+        def _(bm):
+            for _ in bm:
+                s = "{}{}{}{}{}".format(s1, s2, s3, s4, s5)
+"""
+
+from __future__ import with_statement
+
+
+__all__ = ('Benchmarker',)
+__version__ = '$Release: 0.0.0 $'.split()[1]
+
+import sys, os, re
+from os import times as _os_times
+from time import time as _time_time
 
 python2 = sys.version_info[0] == 2
 python3 = sys.version_info[0] == 3
 
-if python2:
-    from StringIO import StringIO
 if python3:
-    basestring = str
     xrange = range
-    from io import StringIO
-
-__all__     = ('Benchmarker', )
-__version__ = "$Release: 0.0.0 $".split(' ')[1]
-
-
-class Format(object):
-
-    def __init__(self):
-        #: sets 'label_width' property.
-        self.label_width  = 30
-        #self.label       = '%-30s'
-        #: sets 'time' property.
-        self.time         = '%9.4f'
-        #self.times       = '%9.4f %9.4f %9.4f %9.4f'
-        #self.time_label  = '%9s'
-        #self.times_label = '%9s %9s %9s %9s'
-
-    def _get_label_width(self):
-        #: returns '__label_with' attribute.
-        return self.__label_width
-
-    def _set_label_width(self, width):
-        #: sets both '__label_width' and 'label' attributes.
-        self.__label_width = width
-        self.label = '%-' + str(width) + 's'
-
-    label_width = property(_get_label_width, _set_label_width)
-
-    def _get_time(self):
-        #: returns '__time' attribute.
-        return self.__time
-
-    def _set_time(self, fmt):
-        #: sets '__time', 'time_label', 'times' and 'times_label' attrs.
-        sfmt = re.sub(r'\.\d+f', 's', fmt)   # ex. '%9.4f' -> '%9s'
-        self.__time      = fmt
-        self.time_label  = sfmt
-        self.times       = ' '.join((fmt, fmt, fmt, fmt))
-        self.times_label = ' '.join((sfmt, sfmt, sfmt, sfmt))
-
-    time = property(_get_time, _set_time)
-
-
-format = Format()
-
-
-class Echo(object):
-
-    def __init__(self, out):
-        self._out = out
-        self.prev = ''
-
-    @classmethod
-    def create_dummy(cls):
-        #: returns Echo object with dummy I/O.
-        return cls(StringIO())
-
-    def flush(self):
-        #: calls _out.flush() only if _out has 'flush' method.
-        if hasattr(self._out, 'flush'):
-            self._out.flush()
-
-    def str(self, string):
-        #: does nothing if argument is empty.
-        if not string:
-            return
-        #: writes argument and keep it to prev attribute.
-        self._out.write(string)
-        self.prev = string
-
-    __call__ = str
-
-    def text(self, string):
-        #: does nothing if argument is empty.
-        if not string:
-            return
-        #: adds '\n' at the end of argument if it doesn't end with '\n'.
-        if not string.endswith("\n"):
-            string += "\n"
-        #: writes argument and keep it to prev attribute.
-        self.str(string)
-
-    def separator(self):
-        prev = self.prev
-        #: prints an empty line if nothing is printed.
-        if   not prev:               self.str("\n")
-        #: prints nothing if prev is empty line.
-        elif prev.endswith("\n\n"):  pass
-        #: print an empty line elsewhere.
-        elif prev.endswith("\n"):    self.str("\n")
-        else:                        self.str("\n\n")
-
-    def section_title(self, title, head1='user', head2='sys', head3='total', head4='real'):
-        #: prints separator.
-        self.separator()
-        #: prints title and headers.
-        self.str(format.label % title)
-        self.str(format.times_label % (head1, head2, head3, head4))
-        self.str("\n")
-
-    def task_label(self, label):
-        #: shrinks too long label.
-        if len(label) > format.label_width:
-            label = label[:format.label_width - 3] + '...'
-        #: prints label.
-        self.str(format.label % label)
-        #: flushes output.
-        self.flush()
-
-    def task_times(self, user, sys, total, real):
-        #: prints times.
-        self.str(format.times % (user, sys, total, real))
-        self.str("\n")
-
-    def task_message(self, message):
-        #: prints message instead of times.
-        self.str(message + "\n")
-
-
-echo       = Echo(sys.stdout)
-echo_error = Echo(sys.stderr)
 
 
 class Benchmarker(object):
 
-    verbose = True
-
-    def __init__(self, width=None, loop=1, cycle=1, extra=0, verbose=None):
-        #: sets format.label_with if 'wdith' option is specified.
-        if width:
-            format.label_width = width
-        #: sets 'loop', 'cycle', and 'extra' attributes.
-        self.loop   = loop
-        self.cycle  = cycle
-        self.extra  = extra
-        #: sets 'verbose' attribute if its option is specified.
-        if verbose is not None:  self.verbose = verbose
-        #
-        self._setup("##")
-        self.all_results = None
-        #: creates Statistics object using STATISTICS variable.
-        self.stats = STATISTICS()
-        #: overrides by command-line option.
-        global cmdopt
-        if cmdopt.verbose is not None:  self.verbose = cmdopt.verbose
-        if cmdopt.loop    is not None:  self.loop    = cmdopt.loop
-        if cmdopt.cycle   is not None:  self.cycle   = cmdopt.cycle
-        if cmdopt.extra   is not None:  self.extra   = cmdopt.extra
-
-    def _setup(self, section_title):
-        self._section_title = section_title
-        self.results = []
-        self._current_empty_result = None
+    def __init__(self, loop=1, width=35, cycle=1, extra=0, filter=None,
+                 outfile=None, argv=None, reporter=None):
+        self.loop    = loop
+        self.width   = width
+        self.cycle   = cycle
+        self.extra   = extra
+        self.filter  = filter
+        self.outfile = outfile
+        self.argv    = argv
+        self.benchmarks = []
+        self.results = None
+        self.reporter = reporter or Reporter(width)
+        self.properties = {}    # user-defined key-values, specified by '--key=val'
 
     def __enter__(self):
-        #: prints platform information.
-        echo.text(self.platform())
-        #: returns self.
+        argv = self.argv
+        if argv is None or argv is True:
+            argv = sys.argv
+        if argv is not False:
+            _main(self, argv)
         return self
 
     def __exit__(self, *args):
-        #results = self.results[:]
-        #results.sort(key=lambda x: x.real)
-        results = self.results
-        #: prints separator and ranking.
-        echo.separator()
-        echo.text(self.stats.ranking(results))
-        #: prints separator and ratio matrix.
-        echo.separator()
-        echo.text(self.stats.ratio_matrix(results))
+        raised = args and args[0]
+        if not raised:
+            self.run()
 
-    def __call__(self, label):
-        #: prints section title if called at the first time.
-        is_first = not self.results and self._current_empty_result is None
-        if is_first:
-            echo.section_title(self._section_title)
-        #: creates new Result object.
-        result = Result(label)
-        #: saves created Result object except that label is specified to skip in command-line.
-        if not cmdopt.should_skip(label):
-            self.results.append(result)
-        #: returns Task object with Result object.
-        #: passes current empty result to task object.
-        return Task(result, loop=self.loop, _empty=self._current_empty_result)
+    def __call__(self, name, **tags):
+        return self._new_benchmark(name, **tags)
 
-    def empty(self):
-        #: creates a task for empty loop and keeps it.
-        task = self.__call__('(Empty)')
-        self._current_empty_result = task.result
-        #: created task should not be included in self.results.
-        assert self.results[-1] is task.result
-        self.results.pop()
-        #: returns a Task object.
-        return task
+    def _new_benchmark(self, name, **tags):
+        bm = Benchmark(name, self.loop, **tags)
+        self.benchmarks.append(bm)
+        return bm
 
-    def __iter__(self):
-        #: calls _repeat_block().
-        return self._repeat_block(self.cycle, self.extra, True)
-
-    def repeat(self, cycle, extra=0):
-        #: calls _repeat_block().
-        return self._repeat_block(cycle, extra, False)
-
-    def _repeat_block(self, cycle, extra, emulate_with_stmt):
-        #: calls __enter__() if emulate_with_stmt is True.
-        if emulate_with_stmt:
-            self.__enter__()
-        #: if cycle is 1 and extra is 0 then just behave like with-statement.
-        if cycle == 1 and extra == 0:
-            yield self
-        else:
-            #: replaces 'echo' object to stderr temporarily if verbose.
-            #: replaces 'echo' object to dummy I/O temporarily if not verbose.
-            global echo, echo_error
-            echo_bkup = echo
-            echo = self.verbose and echo_error or Echo.create_dummy()
-            #: invokes block for 'cycle + 2*extra' times.
-            self.all_results = []
-            for i in xrange(cycle + 2 * extra):
-                #: resets some properties for each repetition.
-                self._setup("## (#%d)" % (i+1))
-                #: keeps all results.
-                self.all_results.append(self.results)
-                yield self
-            #: restores 'echo' object after block.
-            echo = echo_bkup
-            #: calculates average of results.
-            avg_results = self._calc_average_results(self.all_results, extra)
-            self.results = avg_results
-            #: prints averaged results.
-            self._echo_average_section(avg_results, extra, len(self.all_results))
-        #: calls __eixt__() if emulate_with_stmt is True.
-        if emulate_with_stmt:
-            self.__exit__()
-
-    def _calc_average_results(self, all_results, extra):
-        #: prints min-max section title if extra is specified.
-        if extra:
-            #echo.section_title('## Remove min & max', 'min', '(#N)', 'max', '(#N)')
-            echo.section_title('## Remove min & max', 'min', 'cycle', 'max', 'cycle')
-        #: calculates average of results and returns it.
-        avg_results = []
-        if self.all_results:
-            for i in xrange(len(all_results[0])):
-                results = [ arr[i] for arr in all_results ]
-                #: prints min-max section if extra is specified.
-                if extra:
-                    results = self._remove_min_and_max(results, extra)
-                #
-                result = Result.average(results)
-                avg_results.append(result)
-        return avg_results
-
-    def _echo_average_section(self, avg_results, extra, n):
-        #: prints average section title.
-        title = extra and '## Average of %s (=%s-2*%s)' % (n-2*extra, n, extra) \
-                      or  '## Average of %s' % n
-        echo.section_title(title)
-        #: prints averaged results.
-        for r in avg_results:
-            echo.task_label(r.label)
-            echo.task_times(*r.to_tuple())
-
-    def _remove_min_and_max(self, results, extra):
-        #: removes min and max result.
-        results  = results[:]
-        id2index = dict([ (id(r), i) for i, r in enumerate(results) ])
-        sorted   = results[:]
-        sorted.sort(key=lambda r: r.real)
-        s1, s2 = format.time, format.time_label
-        fmt     = s1 + ' ' + s2 + ' ' + s1 + ' ' + s2 + '\n'
-        label   = results[0].label
-        indices = []
-        for i in xrange(extra):
-            r_min = sorted[i]
-            r_max = sorted[-i-1]
-            i_min = id2index[id(r_min)]
-            i_max = id2index[id(r_max)]
-            s_min = '(#%s)' % (i_min+1)
-            s_max = '(#%s)' % (i_max+1)
-            indices.extend((i_min, i_max))
-            #: prints removed data.
-            echo.task_label(label)
-            echo.str(fmt % (r_min.real, s_min, r_max.real, s_max))
-            label = ''
-        indices.sort(reverse=True)
-        for i in indices:
-            del results[i]
-        #: returns new results.
-        return results
-
-    def run(self, func, *args):   # **kwargs
-        #: uses func doc string or name as label.
-        label = func.__doc__ or func.__name__
-        #: same as 'self.__call__(label).run(func)'.
-        return self(label).run(func, *args)   # **kwargs
-
-    def skip(self, label_or_func, message='(skipped)'):
-        #: accepts label string or function object.
-        if isinstance(label_or_func, basestring):
-            label = label_or_func
-        else:
-            func = label_or_func
-            label = func.__doc__ or func.__name__
-        #: prints task label and message.
-        echo.task_label(label)
-        echo.task_message(message)
-
-    @staticmethod
-    def platform():
-        #: returns platform information.
-        buf = []
-        a = buf.append
-        a("## benchmarker:       release %s (for python)\n" % (__version__, ))
-        a("## python platform:   %s %s\n" % (sys.platform, sys.version.splitlines()[1]))
-        a("## python version:    %s\n"    % (sys.version.split(' ')[0], ))
-        a("## python executable: %s\n"    % (sys.executable))
-        return ''.join(buf)
-
-
-class Result(object):
-
-    def __init__(self, label):
-        #: takes label argument.
-        self.label = label
-        self.user = self.sys = self.total = self.real = 0.0
-
-    def _set(self, user, sys, total, real):
-        #: sets times values as attributes.
-        self.user  = user
-        self.sys   = sys
-        self.total = total
-        self.real  = real
-        #: returns self.
-        return self
-
-    def __repr__(self):
-        #: returns represented string.
-        name = self.__class__.__name__
-        f = lambda x: '%.3f' % x
-        return '<%s label=%r user=%s sys=%s total=%s real=%s>' % \
-                  (name, self.label, f(self.user), f(self.sys), f(self.total), f(self.real))
-
-    def to_tuple(self):
-        #: returns a tuple with times.
-        return (self.user, self.sys, self.total, self.real)
-
-    @classmethod
-    def average(cls, results):
-        #: calculates averaged result from results.
-        if not results:
-            return None
-        label = results[0].label
-        avg = cls(label)
-        for r in results:
-            assert r.label == label
-            avg.user  += r.user
-            avg.sys   += r.sys
-            avg.total += r.total
-            avg.real  += r.real
-        n = len(results)
-        avg.user  /= n
-        avg.sys   /= n
-        avg.total /= n
-        avg.real  /= n
-        #: returns averaged result.
-        return avg
-
-
-class Task(object):
-
-    def __init__(self, result, loop=1, _empty=None):
-        #: takes a Result object, loop, and _empty result.
-        self.result = result
-        self.loop   = loop or 1
-        self._empty = _empty
-
-    def __enter__(self):
-        #: prints task label.
-        echo.task_label(self.result.label)
-        #: starts full-GC.
-        gc.collect()
-        #: saves current timestamp.
-        self._times = _os_times()
-        self._time  = _time_time()
-        #: returns self.
-        return self
-
-    def __exit__(self, *args):
-        #: calculates user, sys, total and real times.
-        time  = _time_time()
-        times = _os_times()
-        r = self.result
-        r.user  = times[0] - self._times[0]
-        r.sys   = times[1] - self._times[1]
-        r.total = r.user + r.sys
-        r.real  = time - self._time
-        del self._times, self._time
-        #: removes empty loop data if they are specified.
-        if self._empty:
-            r.user  -= self._empty.user
-            r.sys   -= self._empty.sys
-            r.total -= self._empty.total
-            r.real  -= self._empty.real
-        #: prints times.
-        echo.task_times(*r.to_tuple())
-
-    def run(self, func, *args):   # **kwargs
-        #: just returns if task is specified to skip in command-line.
-        if cmdopt.should_skip(self.result.label):
-            return self
-        #
-        loop = self.loop
-        #: calls __enter__() to simulate with-statement.
-        self.__enter__()
-        #: calls function with arguments.
-        try:
-            #: calls functions N times if 'loop' is specified.
-            if loop > 1:
-                for i in xrange(loop):
-                    func(*args)   # **kwargs
+    def _filter_benchmarks(self, benchmarks, filter_opt):
+        m = _parse_filter(filter_opt)
+        assert m, "** %r: invalid filter" % (filter_opt,)
+        key, op, expected = m.groups()
+        if op == '=':
+            op = '=='
+        def is_empty(bm):
+            return bm.name is None
+        def judge(bm, fn, key=key, expected=expected):
+            v = (bm.name   if key == 'name' else
+                 bm.tags.get(key))
+            if isinstance(v, (list, tuple, set)):
+                return any( fn(expected, x) for x in v )
             else:
-                func(*args)       # **kwargs
-        #: calls __exit__() to simulate with-statement.
-        finally:
-            self.__exit__(*sys.exc_info())
-        #: returns self.
-        return self
+                return fn(expected, v)
+        def fn_eq(expeced, val):
+            return expected == val
+        def fn_mc(expected, val):
+            return (False   if val is None else
+                    bool(re.search(expected, str(val))))
+        if   op == '==':  fn, flag = fn_eq, True
+        elif op == '!=':  fn, flag = fn_eq, False
+        elif op == '=~':  fn, flag = fn_mc, True
+        elif op == '!~':  fn, flag = fn_mc, False
+        else:
+            assert False, "** op=%r" % (op,)
+        filtered = [ bm for bm in benchmarks if is_empty(bm) or judge(bm, fn) is flag ]
+        #only_empty = len(filtered) == 1 and is_empty(filtered[0])
+        #if not filtered or only_empty:
+        #    raise ValueError("-f %s: no benchmark matched" % filter_opt)
+        return filtered
+
+    def _write(self, msg):
+        sys.stdout.write(msg)
+        sys.stdout.flush()
+
+    def _ntimes(self):
+        return (self.cycle or 1) + 2 * (self.extra or 0)
+
+    def run(self):
+        self._setup()
+        self._run_body()
+        self._teardown()
+
+    def _setup(self):
+        rep = self.reporter
+        self._write(rep.report_begin())
+        self._write(rep.report_environment(self))
+
+    def _run_body(self):
+        ntimes = self._ntimes()
+        write = self._write
+        rep = self.reporter
+        benchmarks = self.benchmarks
+        if self.filter:
+            benchmarks = self._filter_benchmarks(benchmarks, self.filter)
+            self.benchmarks = benchmarks
+        write(rep.report_bench_begin())
+        for cycle in xrange(1, ntimes+1):
+            write(rep.report_bench_header(None if ntimes == 1 else cycle))
+            empty_bench_elapsed = None
+            for i, bm in enumerate(benchmarks):
+                is_empty_bench = bm.name is None
+                if is_empty_bench:
+                    if i != 0:
+                        raise BenchmarkerError("Empty benchmark should be the first of all.")
+                write(rep.report_bench_name(bm.name or "(Empty)"))
+                elapsed, skipped = bm.run(empty_bench_elapsed)
+                if skipped:
+                    if is_empty_bench:
+                        raise BenchmarkerError("Empty benchmark should not be skipped.")
+                    write(rep.report_bench_skipped(skipped))
+                else:
+                    write(rep.report_bench_elapsed(elapsed))
+                if is_empty_bench and not skipped:
+                    empty_bench_elapsed = elapsed
+            write(rep.report_bench_footer())
+        if self.extra:
+            for benchmark in self.benchmarks:
+                benchmark._exclude_min_max(self.extra)
+        write(rep.report_bench_end())
+
+    def _teardown(self):
+        benchmarks = [ bm for bm in self.benchmarks
+                           if not bm.skipped and bm.name is not None ]
+        rep = self.reporter
+        write = self._write
+        write(rep.report_results(benchmarks))
+        if self.extra:
+            write(rep.report_ignores(benchmarks))
+        if self._ntimes() > 1:
+            write(rep.report_averages(benchmarks, self.cycle, self.extra))
+        write(rep.report_ranking(benchmarks))
+        write(rep.report_matrix(benchmarks))
+        write(rep.report_end())
+        if self.outfile:
+            self._write_outfile(self.outfile, rep.json_data)
+
+    def _write_outfile(self, outfile, json_data):
+        import json
+        s = json.dumps(json_data, ensure_ascii=False, indent=2)
+        with open(outfile, 'w') as f:
+            f.write(s)
+
+
+class BenchmarkerError(Exception):
+    pass
+
+
+class DeprecatedUsageError(Exception):
+
+    MESSAGE = ("Benchmarker ver.4 is not compatible with older version. "
+               "See https://pypi.python.org/pypi/Benchmarker/ for new usage.")
+
+    def __init__(self, message=None):
+        Exception.__init__(self, message or self.MESSAGE)
+
+
+class Benchmark(object):
+
+    def __init__(self, name, loop, **tags):
+        self.name        = name
+        self._loop       = loop
+        self.tags        = tags
+        self.results     = []
+        self.skipped     = None
+        self._extra_mins = []
+        self._extra_maxs = []
+        self._average    = None
+        self._start_at   = self._end_at = None
+        self._not_yet    = True
+
+    def __call__(self, func):   # decorator
+        self.func = func
+        return self   # not func
 
     def __iter__(self):
-        #: just returns if task is specified to skip in command-line.
-        if cmdopt.should_skip(self.result.label):
+        if self._not_yet:
+            raise DeprecatedUsageError()
+        return iter(xrange(self._loop))
+
+    def __enter__(self):
+        if self._not_yet:
+            raise DeprecatedUsageError()
+        self._start_at = (_os_times(), _time_time())
+        return self
+
+    def __exit__(self, *args):
+        self._end_at = (_os_times(), _time_time())
+        if self._not_yet:
+            elapsed = self._calc_elapsed(self._start_at, self._end_at)
+            self._start_at = self._end_at = None
+            self.results.append(elapsed)
+
+    def run(self, empty_bench_elapsed=None):
+        self._not_yet = False
+        self._start_at = self._end_at = None
+        start_at = (_os_times(), _time_time())
+        skipped = self.func(self)
+        end_at = (_os_times(), _time_time())
+        if skipped:
+            elapsed = None
+            self.skipped = skipped
+        else:
+            if self._start_at and self._end_at:
+                start_at, end_at = self._start_at, self._end_at
+            elapsed = self._calc_elapsed(start_at, end_at, empty_bench_elapsed)
+            self.results.append(elapsed)
+        self._start_at = self._end_at = None
+        return elapsed, skipped
+
+    def _calc_elapsed(self, start_at, end_at, empty_bench_elapsed):
+        user_time = end_at[0][0] - start_at[0][0]
+        sys_time  = end_at[0][1] - start_at[0][1]
+        real_time = end_at[1]    - start_at[1]
+        if empty_bench_elapsed:
+            user_time -= empty_bench_elapsed.user_time
+            sys_time  -= empty_bench_elapsed.sys_time
+            real_time -= empty_bench_elapsed.real_time
+        return Elapsed(real_time, user_time, sys_time, user_time+sys_time)
+
+    def _exclude_min_max(self, extra):
+        if not extra:
             return
-        #
-        loop = self.loop
-        raised = False
-        #: calls __enter__() to simulate with-statement.
-        self.__enter__()
-        #
-        try:
-            #: executes block for N times if 'loop' is specified.
-            if loop > 1:
-                for i in xrange(1, loop+1):
-                    yield i
-            #: executes block only once if 'loop' is not specified.
-            else:
-                yield 1
-        except Exception:
-            raised = True
-        #: calls __exit__() to simulate with-statement.
-        self.__exit__(*sys.exc_info())
-        if raised:
-            raise
-
-
-class Statistics(object):
-
-    KEY        = 'real'
-    SORT       = True
-    REVERSE    = False
-    COMPENSATE = 0.0     # or -100.0
-
-    def _sorted(self, results):
-        #: not modify passed results.
-        sorted = results[:]
-        #: returns sorted results.
-        sorted.sort(key=lambda x: getattr(x, self.KEY), reverse=self.REVERSE)
-        return sorted
-
-    def ranking(self, results):
-        #: returns ranking as string.
-        buf = []; b = buf.append
-        ## header
-        b(format.label % "## Ranking")
-        b(format.time_label % "real")
-        b("\n")
-        ## body
-        #: returns empty ranking if results is empty.
-        if not results:
-            return ''.join(buf)
-        key = self.KEY
-        sorted = self._sorted(results)
-        fastest = sorted[self.REVERSE and -1 or 0]
-        base = getattr(fastest, key)
-        if self.SORT:  results = sorted
-        for result in results:
-            val   = getattr(result, key)
-            ratio = 100.0 * base / val
-            chart = '*' * int(round(ratio / 4))
-            b(format.label % result.label)
-            b(format.time % val)
-            b(" (%5.1f%%) %s\n" % (ratio, chart))
-        ##
-        return ''.join(buf)
-
-    def ratio_matrix(self, results):
-        #: returns ratio matrix as string.
-        buf = []; b = buf.append
-        ## cell width
-        if results:
-            reals = [ result.real for result in results ]
-            reals.sort()
-            max_ratio = 100 * reals[-1] / reals[0]
-            width = len(str(int(max_ratio))) + 2
-            if width < 6: width = 6
-        else:
-            width = 6
-        ## header
-        b(format.label % "## Ratio Matrix")
-        b(format.time_label % "real")
-        fmt = "  %" + str(width) + "s"      # ex. " %7s "
-        for i in xrange(len(results)):
-            label = "[%02d]" % (i+1)
-            b(fmt % label)
-        b("\n")
-        ## matrix
-        #: returns empty ranking if results is empty.
-        if not results:
-            return ''.join(buf)
-        key = self.KEY
-        if self.SORT:  results = self._sorted(results)
-        compensate = self.COMPENSATE
-        fmt = " %" + str(width) + ".1f%%"   # ex. " %7.1f%%"
-        for i, result in enumerate(results):
-            label = "[%02d] %s" % (i+1, result.label)
-            base = getattr(result, key)
-            b(format.label % label)
-            b(format.time % base)
-            for r in results:
-                ratio = 100.0 * getattr(r, key) / base + compensate
-                b(fmt % ratio)
-            b("\n")
-        ##
-        return ''.join(buf)
-
-
-STATISTICS = Statistics
-
-
-class CommandOption(object):
-
-    def __init__(self):
-        self.verbose = None
-        self.loop    = None
-        self.cycle   = None
-        self.extra   = None
-        self.exclude = None
-        self.args    = []
-        self._exclude_rexps = []
-        self._include_rexps = []
-        self._user_option_dict = {}
-        self.__parser = None
-
-    def __getitem__(self, name):
-        #: returns user option value if exists.
-        #: returns None if not exist.
-        return self._user_option_dict.get(name, None)
-
-    def __setitem__(self, name, value):
-        #: sets user option value.
-        self._user_option_dict[name] = value
-
-    def get(self, name, default=None):
-        #: returns user option value if exists.
-        #: returns default value if not exist.
-        return self._user_option_dict.get(name, default)
+        if self.skipped:
+            return
+        if self.name is None:
+            return
+        pairs = [ (cycle, elapsed.real_time)
+                      for cycle, elapsed in enumerate(self.results, 1) ]
+        pairs.sort(key=lambda t: t[1])
+        self._extra_mins = pairs[:extra]
+        self._extra_maxs = pairs[-extra:]
+        self._extra_maxs.reverse()
 
     @property
-    def parser(self):
-        # creates new option parser object when it is not set.
-        if not self.__parser:
-            self.__parser = self._new_option_parser()
-        #: returns an option parser object.
-        return self.__parser
+    def average(self):
+        if self._average is None:
+            elapseds = self.results[:]
+            if self._extra_mins and self._extra_maxs:
+                indeces = set([ cycle for cycle, _ in self._extra_mins + self._extra_maxs ])
+                elapseds = [ el for cycle, el in enumerate(elapseds, 1)
+                                 if cycle not in indeces ]
+            num = float(len(elapseds))
+            self._average = Elapsed(
+                sum( el.real_time  for el in elapseds ) / num,
+                sum( el.user_time  for el in elapseds ) / num,
+                sum( el.sys_time   for el in elapseds ) / num,
+                sum( el.total_time for el in elapseds ) / num,
+            )
+        return self._average
 
-    def _new_option_parser(self):
-        #: returns an OptionParser object.
-        import optparse
-        usage = 'Usage: %prog [options] [labels...]'
-        parser = optparse.OptionParser(usage=usage, version=__version__, conflict_handler="resolve")
-        add = parser.add_option
-        add("-h", "--help",    dest="help",    action="store_true",     help="show help")
-        add("-v", "--version", dest="version", action="store_true",     help="show version")
-        add("-q", None,        dest="quiet",   action="store_true",     help="quiet (not verbose)    # same as Benchmarker(verbose=False)")
-        add("-n", None,        dest="loop",    metavar="N", type="int", help="loop each benchmark    # same as Benchmarker(loop=N)")
-        add("-c", None,        dest="cycle",   metavar="N", type="int", help="cycle all benchmarks   # same as Benchmarker(cycle=N)")
-        add("-X", None,        dest="extra",   metavar="N", type="int", help="ignore N of min/max    # same as Benchmarker(extra=N)")
-        add("-x", None,        dest="exclude", metavar="regexp",        help="skip benchmarks matched to regexp pattern")
-        return parser
 
-    def _separate_user_options(self, argv):
-        #: separates args which starts with '--' from argv.
-        new_argv = []
-        user_options = []
-        for arg in argv:
-            if arg.startswith("--") and arg not in ("--help", "--version"):
-                user_options.append(arg)
-            else:
-                new_argv.append(arg)
-        return new_argv, user_options
+class Elapsed(object):
 
-    def _populate_opts(self, opts, args):
-        #: sets attributes according to options.
-        if opts.quiet   is not None:  self.verbose = False
-        if opts.loop    is not None:  self.loop    = int(opts.loop)
-        if opts.cycle   is not None:  self.cycle   = int(opts.cycle)
-        if opts.extra   is not None:  self.extra   = int(opts.extra)
-        if opts.exclude is not None:  self.exclude = opts.exclude
-        self.args = args
-        #: converts patterns into regexps.
-        self._exclude_rexps = opts.exclude and [re.compile(opts.exclude)] or []
-        self._include_rexps = [ re.compile(_meta2rexp(arg)) for arg in self.args ]
+    def __init__(self, real_time, user_time, sys_time, total_time):
+        self.real_time  = real_time
+        self.user_time  = user_time
+        self.sys_time   = sys_time
+        self.total_time = total_time
 
-    def _parse_user_options(self, user_options):
-        d = {}
-        for option in user_options:
-            #: raises ValueError if user option is invalid format.
-            m = re.match('^--([-\w]+)(=.*)?$', option)
+    def __iter__(self):
+        return iter((self.real_time, self.total_time, self.user_time, self.sys_time))
+
+
+class Float(float):
+    """
+    ex:
+       >>> json.dumps([3.3])
+       '[3.2999999999999998]'
+       >>> json.dumps([Float('3.3')])
+       '[3.3]'
+    """
+    def __init__(self, string):
+        self._value = string
+    def __str__(self):
+        return self._value
+    def __repr__(self):
+        return self._value
+
+
+class Reporter(object):
+
+    def __init__(self, width):
+        self.width = width
+        self._header_format = "%-" + str(self.width) + "s"
+        self.json_data = {}
+
+    def report_begin(self):
+        return ''
+
+    def report_end(self):
+        return ''
+
+    def report_bench_begin(self):
+        return ''
+
+    def report_bench_end(self):
+        return ''
+
+    def report_bench_header(self, cycle):
+        if cycle is None:
+            s = self._header_format % "##"
+        else:
+            s = self._header_format % ("## (#%s)" % cycle)
+        return s + "      real    (total    = user    + sys)\n"
+
+    def report_bench_name(self, name):
+        return self._header_format % name
+
+    def report_bench_elapsed(self, elapsed):
+        return " %9.4f %9.4f %9.4f %9.4f\n" % tuple(elapsed)
+
+    def report_bench_skipped(self, skipped):
+        return "    ## %s\n" % (skipped,)
+
+    def report_bench_footer(self):
+        return "\n"
+
+    def report_environment(self, benchmarker):
+        b = benchmarker
+        import platform
+        items = [
+            ("benchmarker"      , "release %s (for python)" % __version__),
+            ("python version"   , platform.python_version()),
+            ("python compiler"  , platform.python_compiler()),
+            ("python platform"  , platform.platform()),
+            ("python executable", sys.executable),
+            ("cpu model"        , _get_cpu_model() or "-"),
+            ("parameters"       , dict(loop=b.loop, cycle=b.cycle, extra=b.extra)),
+        ]
+        self.json_data["Environment"] = dict(items)
+        #
+        buf = []; add = buf.append
+        for k, v in items:
+            if k == "parameters":
+                v = "loop=%s, cycle=%s, extra=%s" % (v['loop'], v['cycle'], v['extra'])
+            add("## %-20s %s\n" % (k+":", v))
+        add("\n")
+        return "".join(buf)
+
+    def report_results(self, benchmarks):
+        items = []
+        for bm in benchmarks:
+            if bm.skipped:
+                continue
+            elapseds = bm.results
+            items.append({
+                "name" : bm.name,
+                "real" : [ Float('%.4f' % el.real_time)  for el in elapseds ],
+                "total": [ Float('%.4f' % el.total_time) for el in elapseds ],
+                "user" : [ Float('%.4f' % el.user_time)  for el in elapseds ],
+                "sys"  : [ Float('%.4f' % el.sys_time)   for el in elapseds ],
+            })
+        self.json_data["Result"] = items
+        #
+        return ""
+
+    def report_ignores(self, benchmarks):
+        items = []
+        for bm in benchmarks:
+            if bm.skipped:
+                continue
+            mins = [ {"real": Float("%.4f" % real_time), "cycle": cycle}
+                         for cycle, real_time in bm._extra_mins ]
+            maxs = [ {"real": Float("%.4f" % real_time), "cycle": cycle}
+                         for cycle, real_time in bm._extra_maxs ]
+            items.append({
+                "name": bm.name,
+                "min":  mins,
+                "max":  maxs,
+            })
+        self.json_data["Ignore"] = items
+        #
+        buf = []; add = buf.append
+        s = "## Ignore min & max"
+        if len(s) > self.width:
+            s = "## Ignore"
+        add(self._header_format % s)
+        add("       min     cycle       max     cycle\n")
+        fmt = " %9.4f %9s"
+        for d in items:
+            name = d['name']
+            for min_d, max_d in zip(d['min'], d['max']):
+                add(self._header_format % name)
+                add(fmt % (min_d['real'], "(#%s)" % min_d['cycle']))
+                add(fmt % (max_d['real'], "(#%s)" % max_d['cycle']))
+                add("\n")
+                name = ""
+        add("\n")
+        return "".join(buf)
+
+    def report_averages(self, benchmarks, cycle, extra):
+        items = []
+        for bm in benchmarks:
+            if bm.skipped:
+                continue
+            avg = bm.average
+            items.append({
+                "name":  bm.name,
+                "real":  Float('%.4f' % avg.real_time),
+                "total": Float('%.4f' % avg.total_time),
+                "user":  Float('%.4f' % avg.user_time),
+                "sys":   Float('%.4f' % avg.sys_time),
+            })
+        self.json_data["Average"] = items
+        #
+        buf = []; add = buf.append
+        s = "## Average of %s (=%s-2*%s)" % (cycle, cycle + 2 * extra, extra)
+        if self.width < 20:
+            s = "## Average of %s" % (cycle,)
+        if len(s) <= self.width:
+            add(self._header_format % s)
+            add("      real    (total    = user    + sys)\n")
+        else:
+            n = self.width + 10 - max(self.width, len(s)) - len(" real")
+            add(s); add(" " * max(n, 0)); add (" real")
+            add("    (total    = user    + sys)\n")
+        for d in items:
+            add(self._header_format % d['name'])
+            add(" %9s %9s %9s %9s\n" % (d['real'], d['total'], d['user'], d['sys']))
+        add("\n")
+        return "".join(buf)
+
+    def report_ranking(self, benchmarks):
+        pairs = [ (bm.name, bm.average.real_time)
+                      for bm in benchmarks if not bm.skipped ]
+        pairs.sort(key=lambda t: t[1])
+        base_time = pairs[0][1] if pairs else None
+        items = []
+        for name, real_time in pairs:
+            ratio = base_time / real_time
+            items.append({
+                "name":  name,
+                "real":  Float("%.4f" % real_time),
+                "ratio": Float("%.1f" % (ratio * 100.0)),
+                "bar":   "*" * int(round(ratio * 20.0)),
+            })
+        self.json_data["Ranking"] = items
+        #
+        buf = []; add = buf.append
+        add(self._header_format % "## Ranking")
+        add("      real\n")
+        for d in items:
+            add(self._header_format % d['name'])
+            add(" %9s  (%5s) %s\n" % (d['real'], d['ratio'], d['bar']))
+        add("\n")
+        return "".join(buf)
+
+    def report_matrix(self, benchmarks):
+        items = []
+        pairs = [ (bm.name, bm.average.real_time)
+                      for bm in benchmarks if not bm.skipped ]
+        pairs.sort(key=lambda t: t[1])
+        for name, real_time in pairs:
+            base_time = real_time
+            cols = [ Float('%.1f' % (100.0 * r_time / base_time))
+                         for _, r_time in pairs ]
+            items.append({
+                "name": name,
+                "real": Float("%.4f" % real_time),
+                "cols": cols,
+            })
+        self.json_data["Matrix"] = items
+        #
+        buf = []; add = buf.append
+        add(self._header_format % "## Matrix")
+        add("      real")
+        for i in xrange(1, len(benchmarks)+1):
+            add("%8s" % ("[%02d]" % i))
+        add("\n")
+        i = 0
+        for d in items:
+            i += 1
+            add(self._header_format % ("[%02d] %s" % (i, d['name'])))
+            add(" %9s" % d['real'])
+            for col in d['cols']:
+                add(" %7s" % col)
+            add("\n")
+        add("\n")
+        return "".join(buf)
+
+
+def _get_cpu_model():
+    import platform
+    system = platform.system()
+    #
+    if system == "Linux":
+        with open("/proc/cpuinfo") as f:
+            content = f.read()
+        #if python3:
+        #    content = content.decode('us-ascii')
+        m = re.search(r'\nmodel name\s*:(.*)', content)
+        if m:
+            model_name = re.sub(r'\s+', ' ', m.group(1).strip())
+            m = re.search(r'\ncpu MHz\s*:(.*)', content)
+            if m:
+                model_name += "  # %s MHz" % m.group(1).strip()
+            return model_name
+        return None
+    #
+    if system == "Darwin":
+        from subprocess import Popen, PIPE
+        command = ["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"]
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
+        output, error = p.communicate()  # or p.communicate("input string")
+        if python3:
+            output = output.decode('us-ascii')
+        return re.sub(r'\s+', ' ', output)
+    #
+    if os.path.exists("/usr/sbin/sysctl"):
+        from subprocess import Popen, PIPE
+        if system == "Darwin":
+            command = ["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"]
+        else:
+            command = ["/usr/sbin/sysctl", "-n", "hw.model"]
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
+        output, error = p.communicate()  # or p.communicate("input string")
+        if python3:
+            output = output.decode('us-ascii')
+        return re.sub(r'\s+', ' ', output)
+    #
+    if system == "Windows":
+        return platform.processor()
+    #
+    return None
+
+
+###
+
+
+class CommandOptionError(Exception):
+    pass
+
+
+def _main(benchmarker, argv=None):
+    if argv is None:
+        argv = sys.argv
+    try:
+        script, short_opts, long_opts, args = _parse_cmdopts(argv)
+    except CommandOptionError as ex:
+        sys.stderr.write(str(ex))
+        sys.stderr.write("\n")
+        sys.exit(1)
+    if 'h' in short_opts:
+        sys.stdout.write(_usage(script, benchmarker))
+        sys.exit(0)
+    if 'v' in short_opts:
+        sys.stdout.write(__version__)
+        sys.stdout.write("\n")
+        sys.exit(0)
+    if 'n' in short_opts:
+        benchmarker.loop = int(short_opts['n'])
+    if 'c' in short_opts:
+        benchmarker.cycle = int(short_opts['c'])
+    if 'x' in short_opts:
+        benchmarker.extra = int(short_opts['x'])
+    if 'o' in short_opts:
+        benchmarker.outfile = short_opts['o']
+    if 'f' in short_opts:
+        benchmarker.filter = short_opts['f']
+    benchmarker.properties = long_opts
+
+
+def _usage(script, benchmarker):
+    loop  = benchmarker.loop
+    cycle = benchmarker.cycle
+    extra = benchmarker.extra
+    return r"""
+Usage: python %(script)s [options]
+  -h             : help
+  -v             : print Benchmarker version
+  -n N           : loop N times in each benchmark (N=%(loop)s)
+  -c N           : cycle benchmarks N times (N=%(cycle)s)
+  -x N           : ignore worst N results and best N results (N=%(extra)s)
+  -o result.json : output file in JSON format
+  -f name=...    : filter by benchmark name   (op: '==', '!=', '=~', '!~')
+  -f tag=...     : filter by user-defined tag (op: '==', '!=', '=~', '!~')
+  --key[=value]  : user-defined properties
+
+Tips:
+  * Filtering benchmarks by name
+      $ python test1.py -f 'name==...'   # filter by name ('==' or '!=')
+      $ python test1.py -f 'name=~...'   # filter by regexp ('=~' or '!~')
+  * Filtering benchmarks by user-defined tag
+      with Benchmarker() as bench:
+          @bench("example1", tag="A", label="x") # user-defined tag
+          def _(bm):
+              ...
+          @bench("example2", tag=["A","B","C"])  # user-defined tag
+          def _(bm):
+              ...
+      $ python test1.py -f 'tag==A'      # filter by tag name
+      $ python test1.py -f 'tag=~^A$'    # filter by regexp
+  * Default filter
+      with Benchmarker(filter="tag!=heavy"):   # default filter
+          @bench("takes too long", tag="heavy"):
+          def _(bm):
+              ...
+      $ python test1.py                  # ignores heavy benchmarks
+      $ python test1.py -f 'tag=~.'      # runs all, including heavy ones
+"""[1:] % {'script': script, 'loop': loop, 'cycle': cycle, 'extra': extra}
+
+
+def _parse_cmdopts(argv=None):
+    if argv is None:
+        argv = sys.argv
+    argv = argv[:]
+    short_opts = {}
+    long_opts = {}
+    script = os.path.basename(argv[0])
+    args = sys.argv[1:]
+    while args and args[0].startswith("-"):
+        arg = args.pop(0)
+        if arg == "--":
+            break
+        if arg.startswith("--"):
+            m = re.match(r'^([-\w]+)(?:=(.*))?', arg)
             if not m:
-                raise ValueError("%s: invalid format user option." % option)
-            name  = m.group(1)
-            #: if value is not specified then uses True instead.
-            value = not m.group(2) and True or m.group(2)[1:]
-            d[name] = value
-        #: returns a dictionary object.
-        return d
-
-    def _help_message(self, parser=None):
-        #: returns help message.
-        if parser is None:  parser = self._new_option_parser()
-        msg = parser.format_help()
-        msg += r"""
-  --name[=val]   user-defined option
-                 ex.
-                     # get value of user-defined option
-                     from benchmarker import cmdopt
-                     print(repr(cmdopt['name']))  #=> 'val'
-
-Examples:
-
-  ### cycle all benchmarks 5 times with 1000,000 loop
-  $ python %(file)s -c 5 -n 1000000
-
-  ### invoke bench1, bench2, and so on
-  $ python %(file)s 'bench*'
-
-  ### invoke al benchmarks except bench1, bench2, and bench3
-  $ python %(file)s -x '^bench[1-3]$'
-
-  ### invoke all benchmarks with user-defined options
-  $ python %(file)s --name1 --name2=value2
-"""[1:] % {'file': sys.argv and os.path.basename(sys.argv[0]) or 'foo.py'}
-        return msg
-
-    def parse(self, argv=None):
-        #: uses sys.argv when argv is not specified.
-        if argv is None: argv = sys.argv
-        #: parses command line options and sets attributes.
-        argv, user_options = self._separate_user_options(argv)
-        opts, args = self.parser.parse_args(argv)
-        args = args[1:]
-        self._populate_opts(opts, args)
-        self._user_option_dict = self._parse_user_options(user_options)
-        #: if '-h' or '--help' specified then print help message and exit.
-        if opts.help:
-            print(self._help_message(self.parser))
-            sys.exit()
-        #: if '-v' or '--version' specified then print version and exit.
-        if opts.version:
-            print(__version__)
-            sys.exit()
-
-    def should_skip(self, task_label):
-        #: returns False if task is for empty loop.
-        if task_label == '(Empty)':
-            return False
-        #: returns True if task label matches to exclude pattern.
-        if self._exclude_rexps:
-            for rexp in self._exclude_rexps:
-                if rexp.search(task_label):
-                    return True
-        #: when labels are specified in command-line...
-        if self.args:
-            #: returns False if task label matches to them.
-            assert self._include_rexps
-            for rexp in self._include_rexps:
-                if rexp.search(task_label):
-                    return False
-            #: returns True if task label doesn't match to them.
-            return True
-        #: returns False if no labels specified in command-line.
+                raise CommandOptionError("%s: invalid option." % arg)
+            key, val = m.groups()
+            if val is None:
+                val = True
+            long_opts[key] = val
         else:
-            return False
+            for i in xrange(1, len(arg)):
+                ch = arg[i]
+                if ch in "hv":
+                    short_opts[ch] = True
+                elif ch in "ncxof":
+                    optarg = arg[i+1:]
+                    if not optarg:
+                        if not args:
+                            raise CommandOptionError("-%s: argument required." % ch)
+                        optarg = args.pop(0)
+                    if ch in "ncx" and not optarg.isdigit():
+                        raise CommandOptionError("-%s %s: integer expected." % (ch, optarg))
+                    if ch == "f" and not _parse_filter(optarg):
+                        raise CommandOptionError("-%s %s: invalid argument." % (ch, optarg))
+                    short_opts[ch] = optarg
+                    break
+                else:
+                    raise CommandOptionError("-%s: unknown option." % ch)
+    #
+    return script, short_opts, long_opts, args
 
 
-cmdopt = CommandOption()
-
-
-def _meta2rexp(metastr):
-    #: converts a string containing metacharacters into regexp string.
-    buf = []; b = buf.append
-    b('^')
-    i = 0
-    n = len(metastr)
-    while i < n:
-        ch = metastr[i]
-        #: converts '*' into '.*'.
-        if ch == '*':
-            b('.*')
-        #: converts '?' into '.'.
-        elif ch == '?':
-            b('.')
-        #: converts '{aa,bb,(cc)}' into '(aa|bb|\(cc\))'.
-        elif ch == '{':
-            j = i + 1
-            while j < n and metastr[j] != '}':
-                j += 1
-            if j == n:
-                raise ValueError("%s: '{' is not closed by '}'." % metastr)
-            assert metastr[j] == '}'
-            s = '('
-            for word in metastr[i+1:j].split(','):
-                b(s)
-                b(re.escape(word))
-                s = '|'
-            if s == '(':
-                raise ValueError("%s: '{}' is empty.")
-            b(')')
-            i = j
-        #: escapes characters with re.escape().
-        else:
-            b(re.escape(ch))
-        i += 1
-    b('$')
-    return ''.join(buf)
+def _parse_filter(filter_opt):
+    return re.match(r'^(\w+)(=[=~]?|![=~])(.+)$', filter_opt)
