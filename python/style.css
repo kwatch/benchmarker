@@ -11,7 +11,7 @@ body {
 	padding: 0;
 }
 div.document {
-	max-width: 750px;
+	max-width: 800px;
 	margin: 0 auto;
 	padding: 0;
 }
@@ -95,6 +95,10 @@ dl.docutils dd {
 	font: sanserif;
 }
 
+
+table.docutils {
+	min-width: 280px;
+}
 
 th.field-name {
 	text-align: left;
