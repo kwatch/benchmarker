@@ -77,7 +77,7 @@ def task_edit(c):
     edit('setup.py', by=replacer)
 
 @recipe
-@spices('-a: create all egg packages for 2.4~2.7')
+@spices('-a: create src dist file')
 def task_package(c, *args, **kwargs):
     """create package"""
     ## remove files
@@ -115,22 +115,8 @@ def task_package(c, *args, **kwargs):
         #tar_czf(c%"$(dir).tar.gz", dir)
         system(c%"tar -cf $(dir).tar $(dir)")
         system(c%"gzip -f9 $(dir).tar")
-        ## create *.egg file
-        opt_a = kwargs.get('a')
-        with chdir(dir):
-            if opt_a:
-                pythons = [
-                    '/opt/local/bin/python2.7',
-                    '/opt/local/bin/python2.6',
-                    '/opt/local/bin/python2.5',
-                    '/opt/local/bin/python2.4',
-                ]
-            else:
-                pythons = [ python ]
-            for py in pythons:
-                system(c%'$(py) setup.py bdist_egg')
-                mv("dist/*.egg", "..")
-                rm_rf("build", "dist")
+    #
+    print(c%"** created: dist/$(package)-$(release).tar.gz")
 
 
 @recipe
