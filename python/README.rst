@@ -471,6 +471,23 @@ Command-line example::
     $ python mybench.py -f 'tag=~.'   # runs all benchmarks
 
 
+User-Defined Properties
+-----------------------
+
+Long options in command-line are regarded as user-defined properties,
+and you can access them via Benchmarker object::
+
+    from benchmarker import Benchmarker
+    with Benchmarker() as bench:
+        print("properties=%r" % {{*bench.properties*}})
+
+Command-line example::
+
+    $ python mybench.py {{*--key1=val1 --key2*}}
+    properties={{*{'key1': 'val1', 'key2': True}*}}
+    ...
+
+
 
 Command-line Options
 ====================

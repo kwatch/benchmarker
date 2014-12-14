@@ -462,6 +462,22 @@ $ python mybench.py               # skips heavy benchmarks
 $ python mybench.py -f 'tag=~.'   # runs all benchmarks
 </pre>
 </div>
+<div class="section" id="user-defined-properties">
+<h2>User-Defined Properties</h2>
+<p>Long options in command-line are regarded as user-defined properties,
+and you can access them via Benchmarker object:</p>
+<pre class="literal-block">
+from benchmarker import Benchmarker
+with Benchmarker() as bench:
+    print("properties=%r" % <strong>bench.properties</strong>)
+</pre>
+<p>Command-line example:</p>
+<pre class="literal-block">
+$ python mybench.py <strong>--key1=val1 --key2</strong>
+properties=<strong>{'key1': 'val1', 'key2': True}</strong>
+...
+</pre>
+</div>
 </div>
 <div class="section" id="command-line-options">
 <h1>Command-line Options</h1>
