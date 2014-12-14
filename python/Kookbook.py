@@ -152,21 +152,41 @@ def oktest(c):
 
 @recipe
 @product('README.html')
-@ingreds('README.txt')
+#@ingreds('README.txt')
+@ingreds('README.rst')
 def file_README_html(c):
-    """generate README.html"""
-    #system(c%"rst2html.py -i utf-8 -o utf-8 -l en --stylesheet-path=style.css $(ingred) > $(product)")
+    """generate README.html from README.rst"""
+    rst2html = 'rst2html-2.7.py'
+    #system(c%"$(rst2html) -i utf-8 -o utf-8 -l en --stylesheet-path=style.css $(ingred) > $(product)")
+    system(c%"$(rst2html) -i utf-8 -o utf-8 -l en --stylesheet=style.css --link-stylesheet $(ingred) > $(product)")
+    #system(c%"$(rst2html) -i utf-8 -o utf-8 -l en $(ingred) > $(product)")
+    with open(c.product, 'r+') as f:
+        s = f.read()
+        s = s.replace('{{*', '<strong>')
+        s = s.replace('*}}', '</strong>')
+        s = s.replace('&quot;', '"')
+        s = s.replace('&#64;', '@')
+        meta_charset = '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />'
+        meta_viewport = '<meta name="viewport" content="width=device-width; initial-scale=1.0" />'
+        s = s.replace(meta_charset, meta_charset + '\n' + meta_viewport)
+        f.seek(0)
+        f.truncate(0)
+        f.write(s)
+    #system(c%"perl -pi -e 's/\{\{\*/<strong>/g;s/\*\}\}/<\/strong>/g;' $(product)")
+    #system(c%"perl -pi -e 's/\&quot;/\"/g;s/\&#64;/\@/g;' $(product)")
     #system(c%"rst2html.py -i utf-8 -o utf-8 -l en $(ingred) > $(product)")
-    system_f(c%'kwaser -t html-css $(ingred) > $(product)')
-    system_f(c%'tidy -q -m -utf8 -i -w 0 $(product)')
+    #system_f(c%'kwaser -t html-css $(ingred) > $(product)')
+    #system_f(c%'tidy -q -m -utf8 -i -w 0 $(product)')
 
 
 @recipe
-def task_examples(c):
-    """retrieve example files from README.txt"""
+@spices('-f README.rst: filename')
+def task_examples(c, **kwargs):
+    """retrieve example files from README.rst"""
+    readme_file = kwargs.get('f') or 'README.rst'
     script_name = None
     lines = None
-    for line in open('README.txt'):
+    for line in open(readme_file):
         import sys
         if script_name:
             m1 = re.match('^    (.*\n)', line)
@@ -178,7 +198,10 @@ def task_examples(c):
                 lines.append("\n")
                 continue
             else:
-                open(script_name, 'w').write(''.join(lines))
+                content = ''.join(lines)
+                content = re.sub(r'\{\{\*(.*?)\*\}\}', r'\1', content)
+                open(script_name, 'w').write(content)
+                print("- %s" % script_name)
                 script_name = None
                 lines = None
                 #continue
