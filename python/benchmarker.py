@@ -39,7 +39,7 @@ ex:
         @bench("format()")
         def _(bm):
             for _ in bm:
-                s = "{}{}{}{}{}".format(s1, s2, s3, s4, s5)
+                s = "{0}{1}{2}{3}{4}".format(s1, s2, s3, s4, s5)
 """
 
 from __future__ import with_statement
