@@ -16,7 +16,7 @@ else:
 
 
 name     = 'Benchmarker'
-version  = '4.0.0'
+version  = '4.0.1'
 author   = 'makoto kuwata'
 email    = 'kwa@kuwata-lab.com'
 maintainer = author
