@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import sys, os, re
+python2 = sys.version_info[0] == 2
+python3 = sys.version_info[0] == 3
 import unittest
 try:
     import json
@@ -34,7 +36,17 @@ def run_command(command, input=None):
         if input:
             stdin.write(input)
         stdin.close()
-        return stdout.read(), stderr.read()
+        sout = stdout.read()
+        serr = stderr.read()
+        if python2:
+            assert isinstance(sout, str)
+            assert isinstance(serr, str)
+        if python3:
+            assert isinstance(sout, bytes)
+            assert isinstance(serr, bytes)
+            sout = sout.decode('utf-8')
+            serr = serr.decode('utf-8')
+        return sout, serr
     finally:
         stdout.close()
         stderr.close()
