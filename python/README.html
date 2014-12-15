@@ -23,7 +23,7 @@
 <ul class="simple">
 <li>Easy to use</li>
 <li>Pretty good output (including JSON format)</li>
-<li>Available on Python &gt;= 2.5 and &gt;= 3.0</li>
+<li>Available on both Python2 (&gt;= 2.5) and Python3 (&gt;= 3.0)</li>
 </ul>
 <p>ATTENTION: I'm sorry, Benchmarker.py ver 4 is not compatible with ver 3.</p>
 <div class="section" id="install">
@@ -378,7 +378,7 @@ with Benchmarker(1000) as bench:
 </div>
 <div class="section" id="skip-benchmarks">
 <h2>Skip Benchmarks</h2>
-<p>You can skip benchmark by raising <tt class="docutils literal">benchmark.Skip</tt> exception.</p>
+<p>You can skip benchmark by raising <tt class="docutils literal">benchmarker.Skip</tt> exception.</p>
 <p>Example:</p>
 <pre class="literal-block">
 from benchmarker import Benchmarker, <strong>Skip</strong>
@@ -450,16 +450,16 @@ $ python mybench.py <strong>-f 'tag!~^tooslo$'</strong> # reject by pattern
 <p>It is very useful to skip heavy benchmarks by default:</p>
 <pre class="literal-block">
 ## skip benchmarks tagged as 'heavy'
-with Benchmarker(filter="tag!=heavy") as bench:
+with Benchmarker(<strong>filter="tag!=heavy"</strong>) as bench:
 
-    @bench("too heavy benchmark", tag=("heaby",))   # skipped by default
+    @bench("too heavy benchmark", <strong>tag=("heaby",)</strong>)   # skipped by default
     def _(bm):
         # do heavy benchmark
 </pre>
 <p>Command-line example:</p>
 <pre class="literal-block">
 $ python mybench.py               # skips heavy benchmarks
-$ python mybench.py -f 'tag=~.'   # runs all benchmarks
+$ python mybench.py <strong>-f 'tag=~.'</strong>   # runs all benchmarks
 </pre>
 </div>
 <div class="section" id="user-defined-properties">

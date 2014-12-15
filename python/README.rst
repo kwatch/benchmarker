@@ -15,7 +15,7 @@ Benchmarker.py is an awesome benchmarking tool for Python.
 
 * Easy to use
 * Pretty good output (including JSON format)
-* Available on Python >= 2.5 and >= 3.0
+* Available on both Python2 (>= 2.5) and Python3 (>= 3.0)
 
 ATTENTION: I'm sorry, Benchmarker.py ver 4 is not compatible with ver 3.
 
@@ -381,7 +381,7 @@ Example::
 Skip Benchmarks
 ---------------
 
-You can skip benchmark by raising ``benchmark.Skip`` exception.
+You can skip benchmark by raising ``benchmarker.Skip`` exception.
 
 Example::
 
@@ -459,16 +459,16 @@ Example::
 It is very useful to skip heavy benchmarks by default::
 
     ## skip benchmarks tagged as 'heavy'
-    with Benchmarker(filter="tag!=heavy") as bench:
+    with Benchmarker({{*filter="tag!=heavy"*}}) as bench:
 
-        @bench("too heavy benchmark", tag=("heaby",))   # skipped by default
-	def _(bm):
-	    # do heavy benchmark
+        @bench("too heavy benchmark", {{*tag=("heaby",)*}})   # skipped by default
+        def _(bm):
+            # do heavy benchmark
 
 Command-line example::
 
     $ python mybench.py               # skips heavy benchmarks
-    $ python mybench.py -f 'tag=~.'   # runs all benchmarks
+    $ python mybench.py {{*-f 'tag=~.'*}}   # runs all benchmarks
 
 
 User-Defined Properties
