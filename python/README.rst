@@ -510,6 +510,18 @@ Changelog
 =========
 
 
+Release 4.0.1 (2014-12-15)
+--------------------------
+
+* [bugfix] Fix to parse user-defined properties in command-line.
+
+* [bugfix] Add description about user-defined properties.
+
+* [bugfix] Fix example code to work on Python 2.6.
+
+* [bugfix] Fix test script.
+
+
 Release 4.0.0 (2014-12-14)
 --------------------------
 
