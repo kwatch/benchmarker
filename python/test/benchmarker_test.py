@@ -9,7 +9,7 @@ try:
 except LoadError:
     json = None
 
-from oktest import ok, test, subject, situation, skip
+from oktest import ok, test, subject, situation, skip, at_end
 from oktest.dummy import dummy_file, dummy_io
 
 from benchmarker import Benchmarker, Benchmark
@@ -264,9 +264,11 @@ class Benchmarker_TC(unittest.TestCase):
     @test("'-o' outputs JSON string")
     @skip.when(json is None, "failed to import json module")
     def _(self, sample_file):
+        jsonfile = "_result.json"
+        @at_end
+        def _(): os.path.exists(jsonfile) and os.unlink(jsonfile)
         s = EXPECTED_OUTPUT
         expected_pattern = output2pattern(s)
-        jsonfile = "_result.json"
         if os.path.exists(jsonfile): os.unlink(jsonfile)
         ok (jsonfile).not_exist()
         sout, serr = run_command("%s %s -o _result.json" % (sys.executable, sample_file))
