@@ -58,7 +58,7 @@ Example code (example.py)::
 
 Output Example::
 
-    $ python example.py -h
+    $ python example.py -h              # show help
     $ python example.py -o result.json
     ## benchmarker:         release 4.0.0 (for python)
     ## python version:      3.4.2
@@ -84,7 +84,7 @@ Output Example::
     [02] concat             0.3792    73.3   100.0   111.6
     [03] format             0.4233    65.6    89.6   100.0
 
-See ``python example.py -h`` for details.
+See https://pythonhosted.org/Benchmarker/ for details.
 '''
 license  = "Public Domain"
 platforms = 'any'
