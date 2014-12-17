@@ -510,8 +510,10 @@ Changelog
 =========
 
 
-Release 4.0.1 (2014-12-15)
+Release 4.0.1 (2014-12-17)
 --------------------------
+
+* [bugfix] Fix 'setup.py' not to import 'ez_setup'
 
 * [bugfix] Fix to parse user-defined properties in command-line.
 
