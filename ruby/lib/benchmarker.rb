@@ -27,11 +27,35 @@ module Benchmarker
   def self.platform()
     #: returns platform information.
     return <<END
-benchmarker.rb:   release #{VERSION}
-RUBY_VERSION:     #{RUBY_VERSION}
-RUBY_PATCHLEVEL:  #{RUBY_PATCHLEVEL}
-RUBY_PLATFORM:    #{RUBY_PLATFORM}
+## benchmarker:      release #{VERSION}
+## ruby version:     #{RUBY_VERSION} (patch level: #{RUBY_PATCHLEVEL})
+## ruby engine:      #{RUBY_ENGINE} (engine version: #{RUBY_ENGINE_VERSION})
+## ruby platform:    #{RUBY_PLATFORM}
+## ruby path:        #{RbConfig.ruby}
+## cpu model:        #{cpu_model()}
 END
+  end
+
+  def self.cpu_model()
+    if File.exist?("/usr/sbin/sysctl")        # macOS
+      output = `/usr/sbin/sysctl machdep.cpu.brand_string`
+      output =~ /^machdep\.cpu\.brand_string: (.*)/
+      return $1
+    elsif File.exist?("/proc/cpuinfo")        # Linux
+      output = `cat /proc/cpuinfo`
+      output =~ /^model name\s*: (.*)/
+      return $1
+    elsif File.exist?("/var/run/dmesg.boot")  # FreeBSD
+      output = `grep ^CPU: /var/run/dmesg.boot`
+      output =~ /^CPU: (.*)/
+      return $1
+    elsif RUBY_PLATFORM =~ /win/              # Windows
+      output = `systeminfo`
+      output =~ /^\s+\[01\]: (.*)/    # TODO: not tested yet
+      return $1
+    else
+      return nil
+    end
   end
 
 
