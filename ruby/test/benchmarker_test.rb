@@ -19,6 +19,86 @@ class Benchmarker_TC
       ret = Benchmarker.new
       ok {ret}.is_a?(Benchmarker::RUNNER)
     end
+    spec "[!348ip] parses command-line options." do
+      bkup = ARGV.dup
+      ARGV[0..-1] = ["-n10", "-c20", "-x2"]
+      begin
+        bm = Benchmarker.new()
+        ok {bm.instance_variable_get('@loop')}  == 10
+        ok {bm.instance_variable_get('@cycle')} == 20
+        ok {bm.instance_variable_get('@extra')} == 2
+      ensure
+        ARGV[0..-1] = bkup
+      end
+    end
+    spec "[!p3b93] prints help message if '-h' option specified." do
+      bkup = ARGV.dup
+      ARGV[0..-1] = ["-h"]
+      begin
+        sout, serr = dummy_io() do
+          Benchmarker.new()
+        end
+        ok {serr} == ""
+        ok {sout} == <<'END'
+Usage: benchmarker_test.rb [<options>]
+  -h           : help message
+  -v           : print Benchmarker version
+  -n <N>       : loop N times in each benchmark (default: 1)
+  -c <N>       : cycle benchmarks N times (default: 1)
+  -x <N>       : ignore worst N results and best N results (default: 0)
+  -o <file>    : output file in JSON format
+  -F name=<...>: filter benchmark by name (operator: '=' or '!=')
+  -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
+END
+      ensure
+        ARGV[0..-1] = bkup
+      end
+    end
+    spec "[!iaryj] prints version number if '-v' option specified." do
+      bkup = ARGV.dup
+      ARGV[0..-1] = ["-v"]
+      begin
+        sout, serr = dummy_io() do
+          Benchmarker.new()
+        end
+        ok {serr} == ""
+        ok {sout} == Benchmarker::VERSION + "\n"
+      ensure
+        ARGV[0..-1] = bkup
+      end
+    end
+    spec "[!3khc4] sets global variables if long option specified." do
+      bkup = ARGV.dup
+      ARGV[0..-1] = ["--aa=bb", "--cc"]
+      begin
+        ok {$aa} == nil
+        ok {$cc} == nil
+        sout, serr = dummy_io() do
+          Benchmarker.new()
+        end
+        ok {$aa} == "bb"
+        ok {$cc} == true
+      ensure
+        ARGV[0..-1] = bkup
+      end
+    end
+    spec "[!s7y6x] overwrites existing values by command-line options." do
+      bm = Benchmarker.new(loop: 10, cycle: 20, extra: 1)
+      ok {bm.instance_variable_get('@loop')}  == 10
+      ok {bm.instance_variable_get('@cycle')} == 20
+      ok {bm.instance_variable_get('@extra')} == 1
+      #
+      bkup = ARGV.dup
+      ARGV[0..-1] = ["-n11", "-c21", "-x3", "-F", "tag=curr"]
+      begin
+        bm = Benchmarker.new(loop: 10, cycle: 20, extra: 1)
+        ok {bm.instance_variable_get('@loop')}  == 11
+        ok {bm.instance_variable_get('@cycle')} == 21
+        ok {bm.instance_variable_get('@extra')} == 3
+      ensure
+        ARGV[0..-1] = bkup
+      end
+    end
   end
 
   def test_SELF_platform
@@ -35,6 +115,82 @@ class Benchmarker_TC
       i = 0
       s.each_line {|line| i += 1 }
       ok {i} == 6
+    end
+  end
+
+end
+
+
+class Benchmarker::OptionParser_TC
+  include Oktest::TestCase
+
+  def before
+    @parser = Benchmarker::OptionParser.new("hv", "ncxF")
+  end
+
+  def test_parse()
+    spec "[!2gq7g] returns options and keyvals." do
+      opts, kvs = @parser.parse(["-h"])
+      ok {opts} == {'h'=>true}
+      ok {kvs}  == {}
+    end
+    spec "[!ulfpu] stops parsing when '--' found." do
+      argv = ["-hvn10", "--", "-c", "20", "--foo=bar", "--baz"]
+      opts, kvs = @parser.parse(argv)
+      ok {opts} == {'h'=>true, 'v'=>true, 'n'=>'10'}
+      ok {kvs}  == {}
+      ok {argv} == ["-c", "20", "--foo=bar", "--baz"]
+    end
+    spec "[!8f085] regards '--long=option' as key-value." do
+      argv = ["--foo=bar", "--baz"]
+      opts, kvs = @parser.parse(argv)
+      ok {opts} == {}
+      ok {kvs} == {"foo"=>"bar", "baz"=>true}
+    end
+    spec "[!dkq1u] parses short options." do
+      argv = ["-hvn10", "-c", "20"]
+      opts, kvs = @parser.parse(argv)
+      ok {opts} == {'h'=>true, 'v'=>true, 'n'=>'10', 'c'=>'20'}
+      ok {kvs}  == {}
+      ok {argv} == []
+    end
+  end
+
+  def test_SELF_parse_options()
+    spec "[!frfz2] yields error message when argument of '-n/c/x' is not an integer." do
+      errmsg = nil
+      Benchmarker::OptionParser.parse_options(["-n", "abc"]) do |x| errmsg = x end
+      ok {errmsg} == "-n abc: integer expected."
+      #
+      errmsg = nil
+      Benchmarker::OptionParser.parse_options(["-c", "abc"]) do |x| errmsg = x end
+      ok {errmsg} == "-c abc: integer expected."
+      #
+      errmsg = nil
+      Benchmarker::OptionParser.parse_options(["-x", "abc"]) do |x| errmsg = x end
+      ok {errmsg} == "-x abc: integer expected."
+    end
+    spec "[!emavm] yields error message when argumetn of '-F' option is invalid." do
+      errmsg = nil
+      Benchmarker::OptionParser.parse_options(["-F", "name==foo"]) do |x| errmsg = x end
+      ok {errmsg} == "-F name==foo: expected operator is '=' or '!='."
+    end
+  end
+
+  def test_SELF_help_message()
+    spec "[!jnm2w] returns help message." do
+      msg = Benchmarker::OptionParser.help_message("bench.rb")
+      ok {msg} == <<'END'
+Usage: bench.rb [<options>]
+  -h           : help message
+  -v           : print Benchmarker version
+  -n <N>       : loop N times in each benchmark (default: 1)
+  -c <N>       : cycle benchmarks N times (default: 1)
+  -x <N>       : ignore worst N results and best N results (default: 0)
+  -o <file>    : output file in JSON format
+  -F name=<...>: filter benchmark by name (operator: '=' or '!=')
+  -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
+END
     end
   end
 
@@ -61,6 +217,26 @@ class Benchmarker::Runner_TC
       runner = Benchmarker::RUNNER.new   # should be inside dummy_io() block!
       ret = runner.task("label1") { called = true }
       runner.task("label2", :skip=>"# not installed.") { nil }
+    end
+    spec "[!r0v4d] returns immediately if task not matched to filter." do
+      ret1 = ret2 = false
+      dummy_io do
+        r = Benchmarker::RUNNER.new(filter: "tag=cu*")
+        ret1 = r.task("label1") { nil }
+        ret2 = r.task("label2", tag: "curr") { nil }
+      end
+      ok {ret1} == nil
+      ok {ret2}.is_a?(Benchmarker::Task)
+    end
+    spec "[!um9pe] supports negative filter." do
+      ret1 = ret2 = false
+      dummy_io do
+        r = Benchmarker::RUNNER.new(filter: "name!=*2")
+        ret1 = r.task("label1") { nil }
+        ret2 = r.task("label2") { nil }
+      end
+      ok {ret1}.is_a?(Benchmarker::Task)
+      ok {ret2} == nil
     end
     spec "prints section title if not printed yet." do
       ok {sout} =~ /\A\n## {28}      user       sys     total      real\n.*\n/

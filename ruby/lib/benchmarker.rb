@@ -18,17 +18,21 @@ module Benchmarker
     end
 
     def parse(argv)
+      #; [!2gq7g] returns options and keyvals.
       options = {}; keyvals = {}
       while !argv.empty? && argv[0] =~ /^-/
         argstr = argv.shift
         case argstr
+        #; [!ulfpu] stops parsing when '--' found.
         when '--'
           break
+        #; [!8f085] regards '--long=option' as key-value.
         when /^--/
           argstr =~ /^--(\w[-\w]*)(?:=(.*))?$/  or
             yield "#{argstr}: invalid option."
           key = $1; val = $2
           keyvals[key] = val || true
+        #; [!dkq1u] parses short options.
         when /^-/
           i = 1
           while i < argstr.length
@@ -59,11 +63,13 @@ module Benchmarker
       options, keyvals = parser.parse(argv, &b)
       "ncx".each_char do |c|
         next unless options[c]
+        #; [!frfz2] yields error message when argument of '-n/c/x' is not an integer.
         options[c] =~ /\A\d+\z/  or
           yield "-#{c} #{options[c]}: integer expected."
         options[c] = options[c].to_i
       end
       if options['F']
+        #; [!emavm] yields error message when argumetn of '-F' option is invalid.
         options['F'] =~ /^\w+(=|!=)[^=]/  or
           yield "-F #{options['F']}: expected operator is '=' or '!='."
       end
@@ -71,6 +77,7 @@ module Benchmarker
     end
 
     def self.help_message(command=nil)
+      #; [!jnm2w] returns help message.
       command ||= File.basename($0)
       return <<"END"
 Usage: #{command} [<options>]
@@ -89,21 +96,24 @@ END
 
 
   def self.new(**opts, &block)
+    #; [!348ip] parses command-line options.
     options, keyvals = OptionParser.parse_options() do |errmsg|
       $stderr.puts errmsg
       exit 1
     end
+    #; [!p3b93] prints help message if '-h' option specified.
     if options['h']
       puts OptionParser.help_message()
       return
     end
+    #; [!iaryj] prints version number if '-v' option specified.
     if options['v']
       puts VERSION
       return
     end
-    #
+    #; [!3khc4] sets global variables if long option specified.
     keyvals.each {|k, v| eval "$#{k} = #{v.inspect}" }
-    #
+    #; [!s7y6x] overwrites existing values by command-line options.
     opts[:loop]   = options['n'] if options['n']
     opts[:cycle]  = options['c'] if options['c']
     opts[:extra]  = options['x'] if options['x']
@@ -180,8 +190,10 @@ END
     attr_accessor :tasks, :report, :stats
 
     def task(label, **opts, &block)
+      #; [!r0v4d] returns immediately if task not matched to filter.
+      #; [!um9pe] supports negative filter.
       if @filter
-        return unless _filter_matched?(@filter, label, opts)
+        return nil unless _filter_matched?(@filter, label, opts)
       end
       #: prints section title if not printed yet.
       #: creates task objet and returns it.
