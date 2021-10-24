@@ -9,7 +9,105 @@ module Benchmarker
 
   VERSION = "$Release: 0.0.0 $".split(/ /)[1]
 
+
+  class OptionParser
+
+    def initialize(opts_noparam, opts_hasparam)
+      @opts_noparam = opts_noparam
+      @opts_hasparam = opts_hasparam
+    end
+
+    def parse(argv)
+      options = {}; keyvals = {}
+      while !argv.empty? && argv[0] =~ /^-/
+        argstr = argv.shift
+        case argstr
+        when '--'
+          break
+        when /^--/
+          argstr =~ /^--(\w[-\w]*)(?:=(.*))?$/  or
+            yield "#{argstr}: invalid option."
+          key = $1; val = $2
+          keyvals[key] = val || true
+        when /^-/
+          i = 1
+          while i < argstr.length
+            c = argstr[i]
+            if @opts_noparam.include?(c)
+              options[c] = true
+              i += 1
+            elsif @opts_hasparam.include?(c)
+              if i + 1 == argstr.length
+                val = argv.shift()  or
+                  yield "-#{c}: argument required."
+              else
+                val = argstr[(i+1)..-1]
+              end
+              options[c] = val
+              break
+            end
+          end
+        else
+          raise "** internall error"
+        end
+      end
+      return options, keyvals
+    end
+
+    def self.parse_options(argv=ARGV, &b)
+      parser = self.new("hv", "ncxF")
+      options, keyvals = parser.parse(argv, &b)
+      "ncx".each_char do |c|
+        next unless options[c]
+        options[c] =~ /\A\d+\z/  or
+          yield "-#{c} #{options[c]}: integer expected."
+        options[c] = options[c].to_i
+      end
+      if options['F']
+        options['F'] =~ /^\w+(=|!=)[^=]/  or
+          yield "-F #{options['F']}: expected operator is '=' or '!='."
+      end
+      return options, keyvals
+    end
+
+    def self.help_message(command=nil)
+      command ||= File.basename($0)
+      return <<"END"
+Usage: #{command} [<options>]
+  -h           : help message
+  -v           : print Benchmarker version
+  -n <N>       : loop N times in each benchmark (default: 1)
+  -c <N>       : cycle benchmarks N times (default: 1)
+  -x <N>       : ignore worst N results and best N results (default: 0)
+  -o <file>    : output file in JSON format
+  -F name=<...>: filter benchmark by name (operator: '=' or '!=')
+  -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
+END
+    end
+
+  end
+
+
   def self.new(**opts, &block)
+    options, keyvals = OptionParser.parse_options() do |errmsg|
+      $stderr.puts errmsg
+      exit 1
+    end
+    if options['h']
+      puts OptionParser.help_message()
+      return
+    end
+    if options['v']
+      puts VERSION
+      return
+    end
+    #
+    keyvals.each {|k, v| eval "$#{k} = #{v.inspect}" }
+    #
+    opts[:loop]   = options['n'] if options['n']
+    opts[:cycle]  = options['c'] if options['c']
+    opts[:extra]  = options['x'] if options['x']
+    opts[:filter] = options['F'] if options['F']
     #: creates runner object and returns it.
     runner = RUNNER.new(**opts)
     if block
@@ -66,6 +164,11 @@ END
       @loop  = opts[:loop]
       @cycle = opts[:cycle]
       @extra = opts[:extra]
+      if opts[:filter]
+        opts[:filter] =~ /^(\w+)(=|!=)(.*)$/  or
+          raise "** internal error: opts[:filter]=#{opts[:filter]}"
+        @filter = [$1, $2, $3]
+      end
       #:
       @tasks = []
       @report = REPORTER.new(**opts)
@@ -77,6 +180,9 @@ END
     attr_accessor :tasks, :report, :stats
 
     def task(label, **opts, &block)
+      if @filter
+        return unless _filter_matched?(@filter, label, opts)
+      end
       #: prints section title if not printed yet.
       #: creates task objet and returns it.
       #: runs task when :skip option is not specified.
@@ -102,6 +208,21 @@ END
       @_empty_task = t
       t
     end
+
+    def _filter_matched?(filter, label, opts)   #:nodoc:
+      key, op, pat = filter
+      val = (key == 'name' ? label : \
+             key == 'tag'  ? opts[:tag] : opts[key.intern])
+      matched = false
+      case val
+      when String; matched = File.fnmatch(pat, val, File::FNM_EXTGLOB)
+      when Array ; matched = val.any? {|s| File.fnmatch(pat, s, File::FNM_EXTGLOB) }
+      end
+      return matched if op == '='
+      return !matched if op == '!='
+      raise "** internal error"
+    end
+    private :_filter_matched?
 
     #--
     #def skip_task(label, message="   ** skipped **")
