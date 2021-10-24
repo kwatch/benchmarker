@@ -9,9 +9,9 @@ module Benchmarker
 
   VERSION = "$Release: 0.0.0 $".split(/ /)[1]
 
-  def self.new(opts={}, &block)
+  def self.new(**opts, &block)
     #: creates runner object and returns it.
-    runner = RUNNER.new(opts)
+    runner = RUNNER.new(**opts)
     if block
       runner._before_all()
       runner._run(&block)
@@ -61,22 +61,22 @@ END
 
   class Runner
 
-    def initialize(opts={})
+    def initialize(**opts)
       #: takes :loop, :cycle, and :extra options.
       @loop  = opts[:loop]
       @cycle = opts[:cycle]
       @extra = opts[:extra]
       #:
       @tasks = []
-      @report = REPORTER.new(opts)
-      @stats  = STATS.new(@report, opts)
+      @report = REPORTER.new(**opts)
+      @stats  = STATS.new(@report, **opts)
       @_section_title = ""
       @_section_started = false
     end
 
     attr_accessor :tasks, :report, :stats
 
-    def task(label, opts={}, &block)
+    def task(label, **opts, &block)
       #: prints section title if not printed yet.
       #: creates task objet and returns it.
       #: runs task when :skip option is not specified.
@@ -344,7 +344,7 @@ END
 
   class Reporter
 
-    def initialize(opts={})
+    def initialize(**opts)
       #: takes :out, :err, :width, and :format options.
       @out = opts[:out] || $stdout
       @err = opts[:err] || $stderr
@@ -461,7 +461,7 @@ END
 
   class Stats
 
-    def initialize(reporter, opts={})
+    def initialize(reporter, **opts)
       #: takes reporter object.
       @report   = reporter
       @key      = opts[:key] || 'real'
