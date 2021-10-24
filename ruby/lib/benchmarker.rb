@@ -27,7 +27,7 @@ module Benchmarker
   def self.platform()
     #: returns platform information.
     return <<END
-## benchmarker:      release #{VERSION}
+## benchmarker.rb:   release #{VERSION}
 ## ruby version:     #{RUBY_VERSION} (patch level: #{RUBY_PATCHLEVEL})
 ## ruby engine:      #{RUBY_ENGINE} (engine version: #{RUBY_ENGINE_VERSION})
 ## ruby platform:    #{RUBY_PLATFORM}
