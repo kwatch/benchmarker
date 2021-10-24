@@ -15,7 +15,7 @@ class Benchmarker_TC
   include Oktest::TestCase
 
   def test_SELF_new
-    spec "creates runner object and returns it." do
+    spec "[!uo4qd] creates runner object and returns it." do
       ret = Benchmarker.new
       ok {ret}.is_a?(Benchmarker::RUNNER)
     end
@@ -102,7 +102,7 @@ END
   end
 
   def test_SELF_platform
-    spec "returns platform information." do
+    spec "[!ils8t] returns platform information." do
       s = Benchmarker.platform()
       ok {s} =~ /^\#\# benchmarker\.rb:\s+release \d+\.\d+\.\d+$/
       rexp = /^\#\# ruby version:\s+(.*) \(patch level: (.*?)\)$/
@@ -201,7 +201,7 @@ class Benchmarker::Runner_TC
   include Oktest::TestCase
 
   def test_initialize
-    spec "takes :loop, :cycle, and :extra options." do
+    spec "[!asupa] takes :loop, :cycle, and :extra options." do
       runner = Benchmarker::RUNNER.new(:loop=>10, :cycle=>20, :extra=>30)
       ok {runner.instance_variable_get('@loop')}  == 10
       ok {runner.instance_variable_get('@cycle')} == 20
@@ -238,25 +238,25 @@ class Benchmarker::Runner_TC
       ok {ret1}.is_a?(Benchmarker::Task)
       ok {ret2} == nil
     end
-    spec "prints section title if not printed yet." do
+    spec "[!xwgpx] prints section title if not printed yet." do
       ok {sout} =~ /\A\n## {28}      user       sys     total      real\n.*\n/
       ok {serr} == ""
     end
-    spec "creates task objet and returns it." do
+    spec "[!a41a9] creates task objet and returns it." do
       ok {ret}.is_a?(Benchmarker::TASK)
     end
-    spec "saves created task object unless :skip optin is not specified." do
+    spec "[!kq3sv] saves created task object unless :skip optin is not specified." do
       task = ret
       ok {runner.tasks} == [task]
     end
-    spec "runs task when :skip option is not specified." do
+    spec "[!53zit] runs task when :skip option is not specified." do
       ok {called} == true
       ok {sout} =~ /\A\n.*\nlabel1                            0\.\d+    0\.\d+    0\.\d+    0\.\d+\n/
     end
-    spec "skip block and prints message when :skip option is specified." do
+    spec "[!5xvgt] skip block and prints message when :skip option is specified." do
       ok {sout} =~ /^label2 *\# not installed\.\n/
     end
-    spec "subtracts times of empty task if exists." do
+    spec "[!dhdrp] subtracts times of empty task if exists." do
       empty_task = runner.empty_task { nil }
       empty_task.user  = 10.0
       empty_task.sys   =  5.0
@@ -272,7 +272,7 @@ class Benchmarker::Runner_TC
 
   def test_empty_task
     runner = task = sout = nil
-    spec "creates empty task object and returns it." do
+    spec "[!68v26] creates empty task object and returns it." do
       sout, serr = dummy_io() do
         runner = Benchmarker::RUNNER.new    # should be inside dummy_io() block!
         task = runner.empty_task { nil }
@@ -280,16 +280,16 @@ class Benchmarker::Runner_TC
       ok {task}.is_a?(Benchmarker::TASK)
       ok {task.label} == "(Empty)"
     end
-    spec "prints section title if not printed yet." do
+    spec "[!lt9od] prints section title if not printed yet." do
       ok {sout} =~ /^## +user +sys +total +real\n/
     end
-    spec "saves empty task object." do
+    spec "[!65p26] saves empty task object." do
       ok {runner.instance_variable_get('@_empty_task')} == task
     end
-    spec "don't add empty task to @tasks." do
+    spec "[!xqmzu] don't add empty task to @tasks." do
       ok {runner.tasks} == []
     end
-    spec "clear @_empty_task." do
+    spec "[!x5pfs] clear @_empty_task." do
       # pass
     end
   end
@@ -302,21 +302,21 @@ class Benchmarker::Runner_TC
   #    runner.skip_task("bench1", "-- not installed --")
   #    runner.skip_task("bench2", "** not supported **")
   #  end
-  #  spec "prints headers if they are not printed." do
+  #  spec "[!8b03l] prints headers if they are not printed." do
   #    ok {sout} =~ /^## +user +sys +total +real\n/
   #  end
-  #  spec "prints task label and message instead of times." do
+  #  spec "[!cigi9] prints task label and message instead of times." do
   #    ok {sout} =~ /^bench1 +\-\- not installed \-\-\n/
   #    ok {sout} =~ /^bench2 +\*\* not supported \*\*\n/
   #  end
-  #  spec "don't change @tasks." do
+  #  spec "[!yxep1] don't change @tasks." do
   #    ok {runner.instance_variable_get('@tasks')} == []
   #  end
   #end
   #++
 
   def test__before_all
-    spec "prints platform information." do
+    spec "[!wt867] prints platform information." do
       sout, serr = dummy_io() do
         runner = Benchmarker::RUNNER.new
         runner._before_all()
@@ -326,7 +326,7 @@ class Benchmarker::Runner_TC
   end
 
   def test__after_all
-    spec "prints statistics of benchmarks." do
+    spec "[!wt867] prints statistics of benchmarks." do
       tr = tracer()
       sout, serr = dummy_io() do
         runner = Benchmarker::RUNNER.new
@@ -342,9 +342,9 @@ class Benchmarker::Runner_TC
   end
 
   def test__run
-    spec "when @cycle > 1..." do
+    spec "[!rvcl5] when @cycle > 1..." do
       runner = sout = serr = block_param = nil
-      spec "yields block @cycle times when @extra is not specified." do
+      spec "[!2ysx9] yields block @cycle times when @extra is not specified." do
         i = 0
         sout, serr = dummy_io() do
           runner = Benchmarker::RUNNER.new(:cycle=>2)
@@ -358,7 +358,7 @@ class Benchmarker::Runner_TC
         ok {i} == 2
       end
       runner2 = sout2 = serr2 = block_param2 = nil
-      spec "yields block @cycle + 2*@extra times when @extra is specified." do
+      spec "[!q1l7k] yields block @cycle + 2*@extra times when @extra is specified." do
         i = 0
         sout2, serr2 = dummy_io() do
           runner2 = Benchmarker::RUNNER.new(:cycle=>5, :extra=>1)
@@ -371,7 +371,7 @@ class Benchmarker::Runner_TC
         end
         ok {i} == 7
       end
-      spec "prints output of cycle into stderr." do
+      spec "[!zcg2x] prints output of cycle into stderr." do
         not_ok {sout} =~ /^## \(#1\)/
         not_ok {sout} =~ /^## \(#2\)/
         ok {serr} =~ /^## \(#1\)/
@@ -381,18 +381,18 @@ class Benchmarker::Runner_TC
         ok {serr2} =~ /^## \(#1\)/
         ok {serr2} =~ /^## \(#2\)/
       end
-      spec "yields block with self as block paramter." do
+      spec "[!af3yf] yields block with self as block paramter." do
         ok {block_param}.same?(runner)
         ok {block_param2}.same?(runner2)
       end
-      spec "reports average of results." do
+      spec "[!gkgmb] reports average of results." do
         ok {sout}  =~ /^## Average of 2/
         ok {sout2} =~ /^## Average of 5 \(=7-2\*1\)/
       end
     end
-    spec "when @cycle == 0 or not specified..." do
+    spec "[!lo2qc] when @cycle == 0 or not specified..." do
       runner = sout = block_param = nil
-      spec "yields block only once." do
+      spec "[!wmixt] yields block only once." do
         i = 0
         sout, serr = dummy_io() do
           runner = Benchmarker::RUNNER.new()
@@ -406,7 +406,7 @@ class Benchmarker::Runner_TC
         ok {i} == 1
         ok {sout} =~ /^## *user/
       end
-      spec "yields block with self as block paramter." do
+      spec "[!8737l] yields block with self as block paramter." do
         ok {block_param}.same?(runner)
       end
     end
@@ -484,7 +484,7 @@ Itsuki                           12.1000    0.2000   12.3000   12.4500
 Kyon                             13.1000    0.2000   13.3000   13.3500
 END
     #
-    spec "calculates average times of tasks." do
+    spec "[!hbb4u] calculates average times of tasks." do
       avg_tasks = nil
       sout, serr = dummy_io() do
         runner = Benchmarker::RUNNER.new(:cycle=>2)
@@ -496,12 +496,12 @@ END
   end
 
   def test__get_average_section_title
-    spec "returns 'Average of N (=x-2*y)' string if label width is enough wide." do
+    spec "[!6efqb] returns 'Average of N (=x-2*y)' string if label width is enough wide." do
       runner = Benchmarker::RUNNER.new(:width=>24, :cycle=>5, :extra=>1)
       title = runner.__send__(:_get_average_section_title)
       ok {title} == "Average of 5 (=7-2*1)"
     end
-    spec "returns 'Average of N' string if label width is not enough wide." do
+    spec "[!a6tqp] returns 'Average of N' string if label width is not enough wide." do
       runner = Benchmarker::RUNNER.new(:width=>23, :cycle=>5, :extra=>1)
       title = runner.__send__(:_get_average_section_title)
       ok {title} == "Average of 5"
@@ -529,12 +529,12 @@ class Benchmarker::Task_TC
 
   def test_initialize
     t = nil
-    spec "takes label and loop." do
+    spec "[!7c1i9] takes label and loop." do
       t = Benchmarker::TASK.new("label1", 123)
       ok {t.label} == "label1"
       ok {t.loop}  == 123
     end
-    spec "sets all times to zero." do
+    spec "[!t556m] sets all times to zero." do
       ok {t.user}  == 0.0
       ok {t.sys}   == 0.0
       ok {t.total} == 0.0
@@ -543,7 +543,7 @@ class Benchmarker::Task_TC
   end
 
   def test_run
-    spec "yields block for @loop times." do
+    spec "[!y50r1] yields block for @loop times." do
       task = Benchmarker::TASK.new("label2")
       i = 0
       task.run { i += 1 }
@@ -553,7 +553,7 @@ class Benchmarker::Task_TC
       task.run { i += 1 }
       ok {i} == 3
     end
-    spec "measures times." do
+    spec "[!bl209] measures times." do
       task = Benchmarker::TASK.new("label2")
       task.user = task.sys = task.total = task.real = -1.0
       task.run { nil }
@@ -566,10 +566,10 @@ class Benchmarker::Task_TC
   end
 
   def test_add
-    spec "returns self." do
+    spec "[!bz1wk] returns self." do
       ok {@task1.add(@task2)}.same?(@task1)
     end
-    spec "adds other's times into self." do
+    spec "[!v11p8] adds other's times into self." do
       ok {@task1.user } == 2.625
       ok {@task1.sys  } == 0.75
       ok {@task1.total} == 3.375
@@ -578,10 +578,10 @@ class Benchmarker::Task_TC
   end
 
   def test_sub
-    spec "returns self." do
+    spec "[!6ru0l] returns self." do
       ok {@task1.sub(@task2)}.same?(@task1)
     end
-    spec "substracts other's times from self." do
+    spec "[!neebc] substracts other's times from self." do
       ok {@task1.user } == 0.375
       ok {@task1.sys  } == 0.25
       ok {@task1.total} == 0.625
@@ -590,10 +590,10 @@ class Benchmarker::Task_TC
   end
 
   def test_mul
-    spec "returns self." do
+    spec "[!jyyyv] returns self." do
       ok {@task1.mul(2)}.same?(@task1)
     end
-    spec "multiplies times with n." do
+    spec "[!yoxsn] multiplies times with n." do
       ok {@task1.user } == 3.0
       ok {@task1.sys  } == 1.0
       ok {@task1.total} == 4.0
@@ -602,10 +602,10 @@ class Benchmarker::Task_TC
   end
 
   def test_div
-    spec "returns self." do
+    spec "[!ibgia] returns self." do
       ok {@task1.div(2)}.same?(@task1)
     end
-    spec "divides times by n." do
+    spec "[!lu7js] divides times by n." do
       ok {@task1.user } == 0.75
       ok {@task1.sys  } == 0.25
       ok {@task1.total} == 1.0
@@ -615,17 +615,17 @@ class Benchmarker::Task_TC
 
   def test_SELF_average
     klass = Benchmarker::TASK
-    spec "returns empty task when argument is empty." do
+    spec "[!liw73] returns empty task when argument is empty." do
       t = klass.average([])
       ok {t.label} == nil
       ok {t.user} == 0.0
     end
-    spec "create new task with label." do
+    spec "[!vdm4j] create new task with label." do
       t = klass.average([@task1, @task2])
       ok {t.label} == @task1.label
       not_ok {t.label}.same?(@task1)
     end
-    spec "returns averaged task." do
+    spec "[!ppo1s] returns averaged task." do
       t = klass.average([@task1, @task2, @task1, @task2])
       ok {t.user } == (@task1.user  + @task2.user ) / 2
       ok {t.sys  } == (@task1.sys   + @task2.sys  ) / 2
@@ -646,7 +646,7 @@ class Benchmarker::Reporter_TC
   end
 
   def test_initialize
-    spec "takes :out, :err, :width, and :format options." do
+    spec "[!jlnlm] takes :out, :err, :width, and :format options." do
       r = Benchmarker::Reporter.new(:out=>$stderr, :err=>$stdout, :width=>123, :format=>"%10.1f")
       ok {r.out}.same?($stderr)
       ok {r.err}.same?($stdout)
@@ -656,7 +656,7 @@ class Benchmarker::Reporter_TC
   end
 
   def test__switch_out_to_err
-    spec "switches @out to @err temporarily." do
+    spec "[!6o2v7] switches @out to @err temporarily." do
       sout, serr = dummy_io() do
         r = Benchmarker::Reporter.new()
         r.write("Haruhi\n")
@@ -671,47 +671,47 @@ class Benchmarker::Reporter_TC
   end
 
   def test_label_width=()
-    spec "sets @label_width." do
+    spec "[!asqgk] sets @label_width." do
       @r.label_width = 123
       ok {@r.label_width} == 123
     end
-    spec "sets @format_label, too." do
+    spec "[!e7hwb] sets @format_label, too." do
       ok {@r.instance_variable_get('@format_label')} == "%-123s"
     end
   end
 
   def test_format_time=()
-    spec "sets @format_time." do
+    spec "[!5pir3] sets @format_time." do
       @r.format_time = "%10.2f"
       ok {@r.format_time} == "%10.2f"
     end
-    spec "sets @format_header, too." do
+    spec "[!726he] sets @format_header, too." do
       ok {@r.instance_variable_get('@format_header')} == "%10s"
     end
   end
 
   def test_write
-    spec "writes arguments to @out with '<<' operator." do
+    spec "[!aktow] writes arguments to @out with '<<' operator." do
       @r.write("Haruhi", nil, 32)
       ok {@buf} == "Haruhi32"
     end
-    spec "saves the last argument." do
+    spec "[!gf5rd] saves the last argument." do
       ok {@r.instance_variable_get('@_prev')} == 32
     end
-    spec "returns self." do
+    spec "[!r2wzc] returns self." do
       ok {@r.write()}.same?(@r)
     end
   end
 
   def test_report_section_title
     ret = @r.report_section_title("SOS")
-    spec "prints newline at first." do
+    spec "[!mpne7] prints newline at first." do
       ok {@buf} =~ /\A\n/
     end
-    spec "prints section title with @format_label." do
+    spec "[!ikes2] prints section title with @format_label." do
       ok {@buf} =~ /\A\n## SOS {24}/
     end
-    spec "returns self." do
+    spec "[!1q0yj] returns self." do
       ok {ret}.same?(@r)
     end
   end
@@ -719,61 +719,61 @@ class Benchmarker::Reporter_TC
   def test_report_section_headers
     args = ["user", "sys", "total", "real"]
     ret = @r.report_section_headers(*args)
-    spec "prints headers." do
+    spec "[!61qm7] prints headers." do
       ok {@buf} == "      user       sys     total      real\n"
     end
-    spec "prints newline at end." do
+    spec "[!t5ye0] prints newline at end." do
       ok {@buf} =~ /\n\z/
     end
-    spec "returns self." do
+    spec "[!kbshe] returns self." do
       ok {ret}.same?(@r)
     end
   end
 
   def test_report_section_header
     ret = @r.report_section_header("Haruhi")
-    spec "prints header with @format_header." do
+    spec "[!88zjk] prints header with @format_header." do
       ok {@buf} == "    Haruhi"
       @buf[0..-1] = ""
       @r.format_time = "%5.2f"
       @r.report_section_header("SOS")
       ok {@buf} == "   SOS"
     end
-    spec "returns self." do
+    spec "[!v01al] returns self." do
       ok {ret}.same?(@r)
     end
   end
 
   def test_report_task_label
     ret = @r.report_task_label("Sasaki")
-    spec "prints task label with @format_label." do
+    spec "[!ajtkj] prints task label with @format_label." do
       ok {@buf} == "Sasaki                        "
       @buf[0..-1] = ""
       @r.instance_variable_set('@format_label', "%-12s")
       @r.report_task_label("Sasakisan")
       ok {@buf} == "Sasakisan   "
     end
-    spec "returns self." do
+    spec "[!slxrv] returns self." do
       ok {ret}.same?(@r)
     end
   end
 
   def test_report_task_times
     ret = @r.report_task_times(1.1, 1.2, 1.3, 1.4)
-    spec "prints task times with @format_time." do
+    spec "[!q36l4] prints task times with @format_time." do
       ok {@buf} == "    1.1000    1.2000    1.3000    1.4000\n"
     end
-    spec "returns self." do
+    spec "[!tt8h0] returns self." do
       ok {ret}.same?(@r)
     end
   end
 
   def test_report_task_time
     ret = @r.report_task_time(12.3)
-    spec "prints task time with @format_time." do
+    spec "[!lrcds] prints task time with @format_time." do
       ok {@buf} == "   12.3000"
     end
-    spec "returns self." do
+    spec "[!emwdl] returns self." do
       ok {ret}.same?(@r)
     end
   end
@@ -805,7 +805,7 @@ class Benchmarker::Stats_TC
   def test_initialize
     r = Benchmarker::Reporter.new
     stats = Benchmarker::Stats.new(r)
-    spec "takes reporter object." do
+    spec "[!pky6r] takes reporter object." do
       ok {stats.instance_variable_get('@report')} == r
     end
     #spec "takes :real, :barchar, and :loop options." do
@@ -831,12 +831,12 @@ Itsuki                           12.5000 ( 84.0%)     80000.00 per sec
 Kyon                             13.5000 ( 77.8%)     74074.07 per sec
 Mikuru                           14.5000 ( 72.4%)     68965.52 per sec
 END
-    spec "prints ranking." do
-      spec "prints barchart if @numerator is not specified." do
+    spec "[!16hg8] prints ranking." do
+      spec "[!dhnaa] prints barchart if @numerator is not specified." do
         @stats.ranking(@tasks)
         ok {@out} == expected1
       end
-      spec "prints inverse number if @numerator specified." do
+      spec "[!amvhe] prints inverse number if @numerator specified." do
         @out = ""
         @r = Benchmarker::Reporter.new(:out=>@out)
         @stats = Benchmarker::Stats.new(@r, :numerator=>1000*1000)
@@ -856,7 +856,7 @@ END
 [04] Kyon                        13.5000    77.8%    85.2%    92.6%   100.0%   107.4%
 [05] Mikuru                      14.5000    72.4%    79.3%    86.2%    93.1%   100.0%
 END
-    spec "prints matrix." do
+    spec "[!71nfp] prints matrix." do
       @stats.ratio_matrix(@tasks)
       ok {@out} == expected
     end
