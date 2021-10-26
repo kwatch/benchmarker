@@ -619,22 +619,32 @@ END
       tasks = tasks.sort_by {|t| t.__send__(@sort_key) } if @sort_key
       #; [!16hg8] prints ranking.
       key = @key
-      @report.section_title("Ranking").section_headers(key.to_s)
       #base = tasks.min_by {|t| t.__send__(key) }.__send__(key)  # min_by() is available since 1.8.7
       base = tasks.collect {|t| t.__send__(key) }.min
+      rows = []
       tasks.each do |task|
         sec = task.__send__(key).to_f
         val = 100.0 * base / sec
-        @report.task_label(task.label).task_time(sec).text(" (%5.1f%%) " % val)
+        percent = '%.1f%%' % val
         #; [!dhnaa] prints barchart if @numerator is not specified.
+        bar = '*' * (val / 5.0).round
         if ! @numerator
-          bar = '*' * (val / 5.0).round
-          @report.text(bar).text("\n")
+          n_per_sec = nil
         #; [!amvhe] prints inverse number if @numerator specified.
         else
-          @report.text("%12.2f per sec" % (@numerator/ sec)).text("\n")
+          n_per_sec = '%12.2f per sec' % (@numerator / sec)
         end
+        #
+        rows << [task.label, ('%.6f' % sec).to_f, percent, bar, n_per_sec]
       end
+      #
+      @report.section_title("Ranking").section_headers(key.to_s)
+      rows.each do |label, sec, percent, bar, n_per_sec|
+        @report.task_label(label).task_time(sec).text(" (%6s) " % percent)
+        @report.text(n_per_sec || bar).text("\n")
+      end
+      #
+      return rows
     end
 
     def ratio_matrix(tasks)
