@@ -325,7 +325,18 @@ END
       tasks_list = _transform_all_tasks(all_tasks)
       if extra
         @report.section_title("Remove Min & Max").section_headers("min", "cycle", "max", "cycle")
-        tasks_list = tasks_list.collect {|tasks| _remove_min_max(tasks, extra) }
+        new_tasks_list = []
+        tasks_list.each do |tasks|
+          remained_tasks, removed_tasks = _remove_min_max(tasks, extra)
+          removed_tasks.each_with_index do |(task_min, idx_min, task_max, idx_max), j|
+            @report.task_label(j == 0 ? task_min.label : '')
+            @report.task_time(task_min.real).task_index(idx_min+1)
+            @report.task_time(task_max.real).task_index(idx_max+1)
+            @report.text("\n")
+          end
+          new_tasks_list << remained_tasks
+        end
+        tasks_list = new_tasks_list
       end
       avg_tasks = tasks_list.collect {|tasks| Task.average(tasks) }
       avg_tasks
@@ -346,18 +357,14 @@ END
       idx = -1
       pairs = tasks.collect {|task| [task, idx+=1] }
       pairs = pairs.sort_by {|task, idx| task.real }   # 1.8 doesn't support sort_by!
-      j = -1
-      while (j += 1) < extra
-        @report.task_label(j == 0 ? pairs[j].first.label : '')
-        task, idx = pairs[j]      # min
-        @report.task_time(task.real).task_index(idx+1)
-        task, idx = pairs[-j-1]   # max
-        @report.task_time(task.real).task_index(idx+1)
-        @report.text("\n")
+      #
+      removed_tasks = []
+      extra.times do |j|
+        removed_tasks << [*pairs.shift(), *pairs.pop()]
       end
       #: removes min and max tasks, and returns remained tasks.
-      remained_tasks = pairs[extra...-extra].collect {|task, idx| task }
-      remained_tasks
+      remained_tasks = pairs.collect {|task, idx| task }
+      return remained_tasks, removed_tasks
     end
 
     def _report_average_section(tasks)
