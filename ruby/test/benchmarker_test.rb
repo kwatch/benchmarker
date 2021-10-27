@@ -330,12 +330,14 @@ class Benchmarker::Runner_TC
       tr = tracer()
       sout, serr = dummy_io() do
         runner = Benchmarker::RUNNER.new
-        tr.trace_method(runner.stats, :all)
+        tr.trace_method(runner.stats, :all, :ranking, :ratio_matrix)
         runner.task("label1") { nil }
         runner.task("label2") { nil }
         runner._after_all()
       end
-      ok {tr[0].name} == :all
+      #ok {tr[0].name} == :all
+      ok {tr[0].name} == :ranking
+      ok {tr[1].name} == :ratio_matrix
       ok {sout} =~ /^## Ranking/
       ok {sout} =~ /^## Matrix/
     end
