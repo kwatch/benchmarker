@@ -61,7 +61,7 @@ module Benchmarker
     end
 
     def self.parse_options(argv=ARGV, &b)
-      parser = self.new("hv", "ncxF")
+      parser = self.new("hv", "ncxoF")
       options, keyvals = parser.parse(argv, &b)
       "ncx".each_char do |c|
         next unless options[c]
@@ -126,8 +126,24 @@ END
       runner._before_all()
       runner._run(&block)
       runner._after_all()
+      if options['o']
+        _dump_json(runner.jdata, options['o'])
+      end
     end
     runner
+  end
+
+  def self._dump_json(jdata, filename)  # :nodoc:
+    require 'json'
+    jstr = JSON.pretty_generate(jdata, indent: '  ', space: ' ')
+    if filename == '-'
+      $stdout.puts(jstr)
+    else
+      File.write(filename, jstr)
+    end
+  end
+  class << self
+    private :_dump_json
   end
 
   def self.bm(width=30, &block)    # for compatibility with benchmark.rb
@@ -185,11 +201,12 @@ END
       @tasks = []
       @report = REPORTER.new(**opts)
       @stats  = STATS.new(@report, **opts)
+      @jdata  = {}
       @_section_title = ""
       @_section_started = false
     end
 
-    attr_accessor :tasks, :report, :stats
+    attr_reader :tasks, :report, :stats, :jdata
 
     def task(label, **opts, &block)
       #; [!r0v4d] returns immediately if task not matched to filter.
@@ -250,12 +267,22 @@ END
 
     def _before_all   # :nodoc:
       #; [!wt867] prints Benchmarker.platform().
-      print Benchmarker.platform()
+      string = Benchmarker.platform()
+      print string
+      @jdata[:Environment] = {}
+      string.scan(/^\#\# ([^:]+):\s+(\S.*)/) do
+        key = $1; val = $2
+        @jdata[:Environment][key] = val
+      end
     end
 
     def _after_all    # :nodoc:
       #; [!wt867] prints statistics out benchmarks.
-      @stats.all(@tasks)
+      #@stats.all(@tasks)
+      rows = @stats.ranking(tasks)
+      @jdata[:Ranking] = rows
+      rows = @stats.ratio_matrix(tasks)
+      @jdata[:Matrix] = rows
     end
 
     def _run   # :nodoc:
@@ -323,24 +350,41 @@ END
     end
 
     def _calc_averages(all_tasks, extra)
+      #;
+      @jdata[:Results] = all_tasks.collect {|ts|
+        fmt = "%.6f"
+        row = ts.collect {|t|
+          [t.label, (fmt % t.user).to_f, (fmt % t.sys).to_f, (fmt % t.total).to_f, (fmt % t.real).to_f]
+        }
+        row
+      }
       #; [!hbb4u] calculates average times of tasks.
       tasks_list = _transform_all_tasks(all_tasks)
+      fmt = '%.6f'
       if extra
         @report.section_title("Remove Min & Max").section_headers("min", "cycle", "max", "cycle")
         new_tasks_list = []
+        @jdata[:RemovedMinMax] = []
         tasks_list.each do |tasks|
           remained_tasks, removed_tasks = _remove_min_max(tasks, extra)
+          label = nil; rows = []
           removed_tasks.each_with_index do |(task_min, idx_min, task_max, idx_max), j|
+            label ||= task_min.label
             @report.task_label(j == 0 ? task_min.label : '')
             @report.task_time(task_min.real).task_index(idx_min+1)
             @report.task_time(task_max.real).task_index(idx_max+1)
             @report.text("\n")
+            rows << [(fmt % task_min.real).to_f, idx_min, (fmt % task_max.real).to_f, idx_max]
           end
           new_tasks_list << remained_tasks
+          @jdata[:RemovedMinMax] << {title: label, rows: rows}
         end
         tasks_list = new_tasks_list
       end
       avg_tasks = tasks_list.collect {|tasks| Task.average(tasks) }
+      @jdata[:Average] = avg_tasks.collect {|t|
+        [t.label, (fmt % t.user).to_f, (fmt % t.sys).to_f, (fmt % t.total).to_f, (fmt % t.real).to_f]
+      }
       avg_tasks
     end
 
