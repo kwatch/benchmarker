@@ -651,25 +651,33 @@ END
 
     def ratio_matrix(tasks)
       tasks = tasks.sort_by {|t| t.__send__(@sort_key) } if @sort_key
-      #; [!71nfp] prints matrix.
       key = @key
-      @report.section_title("Matrix").section_header("real")
-      tasks.each_with_index do |t, i|
-        @report.text(" %8s" % ("[%02d]" % (i+1)))
-      end
-      @report.text("\n")
+      rows = []
       i = 0
       tasks.each do |base_task|
         i += 1
         base = base_task.__send__(key).to_f
-        @report.task_label("[%02d] %s" % [i, base_task.label]).task_time(base)
+        row = ["[%02d] %s" % [i, base_task.label], ('%.6f' % base).to_f]
         tasks.each do |t|
           sec = t.__send__(key).to_f
           val = 100.0 * sec / base
-          @report.text(" %7.1f%%" % val)
+          row << ("%.1f%%" % val)
         end
+        rows << row
+      end
+      #; [!71nfp] prints matrix.
+      @report.section_title("Matrix").section_header("real")
+      (1..tasks.length).each do |i|
+        @report.text(" %8s" % ("[%02d]" % i))
+      end
+      @report.text("\n")
+      rows.each do |label, base, *values|
+        @report.task_label(label).task_time(base)
+        values.each {|val| @report.text(' %8s' % val) }
         @report.text("\n")
       end
+      #
+      return rows
     end
 
   end
