@@ -49,6 +49,8 @@ module Benchmarker
               end
               options[c] = val
               break
+            else
+              yield "-#{c}: unknown option."
             end
           end
         else
