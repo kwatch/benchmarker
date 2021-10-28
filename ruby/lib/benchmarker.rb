@@ -269,10 +269,10 @@ END
       #; [!wt867] prints Benchmarker.platform().
       string = Benchmarker.platform()
       print string
-      @jdata[:Environment] = {}
+      @jdata[:Platform] = {}
       string.scan(/^\#\# ([^:]+):\s+(\S.*)/) do
         key = $1; val = $2
-        @jdata[:Environment][key] = val
+        @jdata[:Platform][key] = val
       end
     end
 
