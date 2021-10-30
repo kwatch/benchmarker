@@ -267,7 +267,7 @@ class Benchmarker::Runner_TC
     sout, serr = dummy_io() do
       runner = Benchmarker::RUNNER.new   # should be inside dummy_io() block!
       ret = runner.task("label1") { called = true }
-      runner.task("label2", :skip=>"# not installed.") { nil }
+      runner.task("label2", :skip=>"not installed") { nil }
     end
     spec "[!r0v4d] returns immediately if task not matched to filter." do
       ret1 = ret2 = false
@@ -305,7 +305,7 @@ class Benchmarker::Runner_TC
       ok {sout} =~ /\A\n.*\nlabel1                            0\.\d+    0\.\d+    0\.\d+    0\.\d+\n/
     end
     spec "[!5xvgt] skip block and prints message when :skip option is specified." do
-      ok {sout} =~ /^label2 *\# not installed\.\n/
+      ok {sout} =~ /^label2 *\Skipped \(reason: not installed\)$/
     end
     spec "[!dhdrp] subtracts times of empty task if exists." do
       empty_task = runner.empty_task { nil }
@@ -463,6 +463,64 @@ class Benchmarker::Runner_TC
         ok {block_param}.same?(runner)
       end
     end
+  end
+
+  def test__new_task
+    spec "[!hxfwz] prints section title if not printed yet." do
+      sout, serr = dummy_io do
+        r = Benchmarker::Runner.new()
+        r.__send__(:_reset_section, "title1")
+      end
+      ok {serr} == ""
+      ok {sout} == ""
+      sout, serr = dummy_io do
+        r = Benchmarker::Runner.new()
+        r.__send__(:_reset_section, "title1")
+        r.__send__(:_new_task, "label1")
+        print "\n"
+      end
+      ok {serr} == ""
+      ok {sout} == <<'END'
+
+## title1                           user       sys     total      real
+label1                        
+END
+    end
+    spec "[!cnx65] creates task objet and returns it." do
+      ret = nil
+      sout, serr = dummy_io do
+        r = Benchmarker::Runner.new()
+        r.__send__(:_reset_section, "title1")
+        ret = r.__send__(:_new_task, "label1")
+      end
+      ok {ret}.is_a?(Benchmarker::Task)
+    end
+    spec "[!emnxz] skip block and prints message when :skip option is specified." do
+      sout, serr = dummy_io do
+        r = Benchmarker::Runner.new()
+        r.__send__(:_reset_section, "title1")
+        r.__send__(:_new_task, "label1", "reason1")
+      end
+      ok {sout} =~ /^label1 *Skipped \(reason: reason1\)$/
+      #
+      sout, serr = dummy_io do
+        Benchmarker.new do |bm|
+          bm.task "title7", skip: "reason7" do
+          end
+        end
+      end
+      ok {sout} =~ /^title7 *Skipped \(reason: reason7\)$/
+    end
+    spec "[!nwv00] runs task when :skip option is not specified." do
+      sout, serr = dummy_io do
+        Benchmarker.new do |bm|
+          bm.task "title8", skip: "reason8" do
+          end
+        end
+      end
+      ok {sout} !~ /Skipped/
+    end
+    spec "[!nu2m6] subtracts times of empty task if exists."
   end
 
   def test__calc_average

@@ -326,18 +326,18 @@ END
     end
 
     def _new_task(label, skip_message=nil, &block)
-      #: prints section title if not printed yet.
+      #; [!hxfwz] prints section title if not printed yet.
       _report_section_title_if_not_printed_yet()
-      #: creates task objet and returns it.
+      #; [!cnx65] creates task objet and returns it.
       t = TASK.new(label, @loop)
       @report.task_label(label)
-      #: skip block and prints message when :skip option is specified.
+      #; [!emnxz] skip block and prints message when :skip option is specified.
       if skip_message
-        @report.write(skip_message + "\n")
-      #: runs task when :skip option is not specified.
+        @report.write("Skipped (reason: #{skip_message})\n")
+      #; [!nwv00] runs task when :skip option is not specified.
       elsif block
         t.run(&block)
-        #: subtracts times of empty task if exists.
+        #; [!nu2m6] subtracts times of empty task if exists.
         t.sub(@_empty_task) if @_empty_task
         @report.task_times(t.user, t.sys, t.total, t.real)
       end
