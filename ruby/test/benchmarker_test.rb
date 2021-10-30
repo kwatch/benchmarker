@@ -71,6 +71,7 @@ Usage: benchmarker_test.rb [<options>]
   -n <N>       : loop N times in each benchmark (default: 1)
   -c <N>       : cycle benchmarks N times (default: 1)
   -x <N>       : ignore worst N results and best N results (default: 0)
+  -i <N>       : print inverse (= N/sec) instead of bar chart (= '***')
   -o <file>    : output file in JSON format
   -F name=<...>: filter benchmark by name (operator: '=' or '!=')
   -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
@@ -114,12 +115,13 @@ END
       ok {bm.instance_variable_get('@extra')} == 1
       #
       bkup = ARGV.dup
-      ARGV[0..-1] = ["-n11", "-c21", "-x3", "-F", "tag=curr"]
+      ARGV[0..-1] = ["-n11", "-c21", "-x3", "-i1000", "-F", "tag=curr"]
       begin
         bm = Benchmarker.new(loop: 10, cycle: 20, extra: 1)
         ok {bm.instance_variable_get('@loop')}  == 11
         ok {bm.instance_variable_get('@cycle')} == 21
         ok {bm.instance_variable_get('@extra')} == 3
+        ok {bm.stats.instance_variable_get('@inverse')} == 1000
       ensure
         ARGV[0..-1] = bkup
       end
@@ -235,6 +237,7 @@ Usage: bench.rb [<options>]
   -n <N>       : loop N times in each benchmark (default: 1)
   -c <N>       : cycle benchmarks N times (default: 1)
   -x <N>       : ignore worst N results and best N results (default: 0)
+  -i <N>       : print inverse (= N/sec) instead of bar chart (= '***')
   -o <file>    : output file in JSON format
   -F name=<...>: filter benchmark by name (operator: '=' or '!=')
   -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
@@ -882,14 +885,14 @@ Kyon                             13.5000 ( 77.8%)     74074.07 per sec
 Mikuru                           14.5000 ( 72.4%)     68965.52 per sec
 END
     spec "[!16hg8] prints ranking." do
-      spec "[!dhnaa] prints barchart if @numerator is not specified." do
+      spec "[!dhnaa] prints barchart if @inverse is not specified." do
         @stats.ranking(@tasks)
         ok {@out} == expected1
       end
-      spec "[!amvhe] prints inverse number if @numerator specified." do
+      spec "[!amvhe] prints inverse number if @inverse specified." do
         @out = ""
         @r = Benchmarker::Reporter.new(:out=>@out)
-        @stats = Benchmarker::Stats.new(@r, :numerator=>1000*1000)
+        @stats = Benchmarker::Stats.new(@r, :inverse=>1000*1000)
         @stats.ranking(@tasks)
         ok {@out} == expected2
       end

@@ -61,9 +61,9 @@ module Benchmarker
     end
 
     def self.parse_options(argv=ARGV, &b)
-      parser = self.new("hv", "ncxoF")
+      parser = self.new("hv", "ncxioF")
       options, keyvals = parser.parse(argv, &b)
-      "ncx".each_char do |c|
+      "ncxi".each_char do |c|
         next unless options[c]
         #; [!frfz2] yields error message when argument of '-n/c/x' is not an integer.
         options[c] =~ /\A\d+\z/  or
@@ -88,6 +88,7 @@ Usage: #{command} [<options>]
   -n <N>       : loop N times in each benchmark (default: 1)
   -c <N>       : cycle benchmarks N times (default: 1)
   -x <N>       : ignore worst N results and best N results (default: 0)
+  -i <N>       : print inverse (= N/sec) instead of bar chart (= '***')
   -o <file>    : output file in JSON format
   -F name=<...>: filter benchmark by name (operator: '=' or '!=')
   -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
@@ -120,6 +121,7 @@ END
     opts[:cycle]  = options['c'] if options['c']
     opts[:extra]  = options['x'] if options['x']
     opts[:filter] = options['F'] if options['F']
+    opts[:inverse] = options['i'] if options['i']
     #; [!uo4qd] creates runner object and returns it.
     runner = RUNNER.new(**opts)
     if block
@@ -654,7 +656,7 @@ END
       @key      = opts[:key] || 'real'
       @sort_key = opts[:sort_key] || 'real'
       @loop     = opts[:loop]
-      @numerator = opts[:numerator]
+      @inverse  = opts[:inverse]
     end
 
     def all(tasks)
@@ -673,13 +675,13 @@ END
         sec = task.__send__(key).to_f
         val = 100.0 * base / sec
         percent = '%.1f%%' % val
-        #; [!dhnaa] prints barchart if @numerator is not specified.
+        #; [!dhnaa] prints barchart if @inverse is not specified.
         bar = '*' * (val / 5.0).round
-        if ! @numerator
+        if ! @inverse
           n_per_sec = nil
-        #; [!amvhe] prints inverse number if @numerator specified.
+        #; [!amvhe] prints inverse number if @inverse specified.
         else
-          n_per_sec = '%12.2f per sec' % (@numerator / sec)
+          n_per_sec = '%12.2f per sec' % (@inverse / sec)
         end
         #
         rows << [task.label, ('%.6f' % sec).to_f, percent, bar, n_per_sec]
