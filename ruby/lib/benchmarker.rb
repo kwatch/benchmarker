@@ -126,6 +126,7 @@ END
       runner._before_all()
       runner._run(&block)
       runner._after_all()
+      #; [!95ln9] writes result into output file in JSON format if '-o' option specified.
       if options['o']
         _dump_json(runner.jdata, options['o'])
       end

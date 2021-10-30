@@ -15,6 +15,31 @@ class Benchmarker_TC
   include Oktest::TestCase
 
   def test_SELF_new
+    #
+    def _sample_benchmarks(**kwargs)
+      Benchmarker.new(**kwargs) do |bm|
+        nums = (1..10000).to_a
+        bm.empty_task do
+          nil
+        end
+        bm.task("each() & '+='") do
+          total = 0
+          nums.each {|n| total += n }
+        end
+        bm.task("inject()") do
+          total = nums.inject(0) {|t, n| t += n }
+        end
+        bm.task("while statement") do
+          i, len = 0, nums.length
+          total = 0
+          while i < len
+            total += nums[i]
+            i += 1
+          end
+        end
+      end
+    end
+    #
     spec "[!uo4qd] creates runner object and returns it." do
       ret = Benchmarker.new
       ok {ret}.is_a?(Benchmarker::RUNNER)
@@ -97,6 +122,29 @@ END
         ok {bm.instance_variable_get('@extra')} == 3
       ensure
         ARGV[0..-1] = bkup
+      end
+    end
+    spec "[!95ln9] writes result into output file in JSON format if '-o' option specified." do
+      outfile = "tmp1.json"
+      bkup = ARGV.dup
+      ARGV[0..-1] = ["-o", outfile]
+      File.unlink outfile if File.exist?(outfile)
+      begin
+        not_ok {outfile}.exist?
+        sout, serr = dummy_io do
+          _sample_benchmarks(loop: 10, cycle: 5, extra: 2)
+        end
+        ok {outfile}.exist?
+        jdata = JSON.load(File.read(outfile))
+        ok {jdata["Platform"]}.is_a?(Hash)
+        ok {jdata["Results"]}.is_a?(Array)
+        ok {jdata["Average"]}.is_a?(Array)
+        ok {jdata["RemovedMinMax"]}.is_a?(Array)
+        ok {jdata["Ranking"]}.is_a?(Array)
+        ok {jdata["Matrix"]}.is_a?(Array)
+      ensure
+        ARGV[0..-1] = bkup
+        File.unlink outfile if File.exist?(outfile)
       end
     end
   end
