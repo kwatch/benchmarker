@@ -98,30 +98,44 @@ END
   end
 
 
-  def self.new(**opts, &block)
+  CMDOPTS = {}
+
+  def self.parse_cmdopts(argv=ARGV)
     #; [!348ip] parses command-line options.
-    options, keyvals = OptionParser.parse_options() do |errmsg|
+    options, keyvals = OptionParser.parse_options(argv) do |errmsg|
       $stderr.puts errmsg
       exit 1
     end
     #; [!p3b93] prints help message if '-h' option specified.
     if options['h']
       puts OptionParser.help_message()
-      return
+      #return
+      exit 0
     end
     #; [!iaryj] prints version number if '-v' option specified.
     if options['v']
       puts VERSION
-      return
+      #return
+      exit 0
     end
+    #; [!s7y6x] overwrites existing values by command-line options.
+    CMDOPTS[:loop]    = options['n'] if options['n']
+    CMDOPTS[:cycle]   = options['c'] if options['c']
+    CMDOPTS[:extra]   = options['x'] if options['x']
+    CMDOPTS[:filter]  = options['F'] if options['F']
+    CMDOPTS[:inverse] = options['i'] if options['i']
+    CMDOPTS[:outfile] = options['o'] if options['o']
     #; [!3khc4] sets global variables if long option specified.
     keyvals.each {|k, v| eval "$#{k} = #{v.inspect}" }
-    #; [!s7y6x] overwrites existing values by command-line options.
-    opts[:loop]   = options['n'] if options['n']
-    opts[:cycle]  = options['c'] if options['c']
-    opts[:extra]  = options['x'] if options['x']
-    opts[:filter] = options['F'] if options['F']
-    opts[:inverse] = options['i'] if options['i']
+  end
+
+  unless defined?(::BENCHMARKER_IGNORE_CMDOPTS) && ::BENCHMARKER_IGNORE_CMDOPTS
+    self.parse_cmdopts(ARGV)
+  end
+
+
+  def self.new(**opts, &block)
+    opts.update(CMDOPTS)
     #; [!uo4qd] creates runner object and returns it.
     runner = RUNNER.new(**opts)
     if block
@@ -129,8 +143,8 @@ END
       runner._run(&block)
       runner._after_all()
       #; [!95ln9] writes result into output file in JSON format if '-o' option specified.
-      if options['o']
-        _dump_json(runner.jdata, options['o'])
+      if opts[:outfile]
+        _dump_json(runner.jdata, opts[:outfile])
       end
     end
     runner
