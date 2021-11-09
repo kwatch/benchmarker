@@ -9,49 +9,35 @@
 require 'rubygems'
 
 spec = Gem::Specification.new do |s|
-  ## package information
   s.name        = "benchmarker"
-  s.author      = "makoto kuwata"
-  s.email       = "kwa(at)kuwata-lab.com"
-  s.rubyforge_project = 'benchmarker'
-  s.version     = "$Release: 0.1.0 $".split(/ /)[1]
+  s.author      = "kwatch"
+  s.email       = "kwatch@gmail.com"
+  #s.rubyforge_project = 'benchmarker'
+  s.version     = "$Release: 0.0.0 $".split()[1]
   s.platform    = Gem::Platform::RUBY
-  #s.homepage    = "http://www.kuwata-lab.com/benchmarker/"
-  s.homepage    = "http://github.com/kwatch/benchmarker/"
-  s.summary     = "a small utility for benchmarking"
+  s.license     = 'CC-PDDC'  # public domain
+  #s.homepage    = "https://github.com/kwatch/benchmarker/"
+  s.homepage    = "https://kwatch.github.io/benchmarker/"
+  s.summary     = "pretty good benchmarking library"
   s.description = <<-'END'
-Benchmarker is a small utility for benchmarking.
-
-Quick Example (ex0.rb):
-
-    require 'rubygems'
-    require 'benchmarker'
-
-    Benchmarker.new(:width=>20, :loop=>100*1000, :cycle=>5, :extra=>1) do |bm|
-      range = 1..1000
-      bm.task("each") do
-        arr = []
-        range.each {|n| arr << n }
-      end
-      bm.task("collect") do
-        arr = range.collect {|n| n }
-      end
-      bm.task("inject") do
-        arr = range.inject([]) {|a, n| a << n; a }
-      end
-    end
+Benchmarker s a pretty good tool to benchmark Ruby program.
+Compared to `benchmark.rb` (standard library), Benchmarker has
+a lot of useful features.  See:
+https://kwatch.github.io/benchmarker/
 END
 
   ## files
   files = [
-    'benchmarker.rb',
+    'lib/benchmarker.rb',
     'test/**/*',
-    'examples/**/*',
-    'REAMDE.txt', 'CHANGES.txt',
+    #'examples/**/*',
+    'REAMDE.md', 'CHANGES.md',
     'setup.rb', 'benchmarker.gemspec',
   ]
   s.files       = files.collect {|pat| Dir.glob(pat) }.flatten
   s.test_file   = 'test/benchmarker_test.rb'
+  s.required_ruby_version = '>= 2.0'
+  s.add_development_dependency "oktest", '~> 1.0'
 end
 
 # Quick fix for Ruby 1.8.3 / YAML bug   (thanks to Ross Bamford)
