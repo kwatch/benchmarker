@@ -690,7 +690,7 @@ END
         val = 100.0 * base / sec
         percent = '%.1f%%' % val
         #; [!dhnaa] prints barchart if @inverse is not specified.
-        bar = '*' * (val / 5.0).round
+        bar = '*' * (val / 5.0).round    # max 20 chars (=100%)
         if ! @inverse
           n_per_sec = nil
         #; [!amvhe] prints inverse number if @inverse specified.
