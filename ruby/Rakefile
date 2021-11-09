@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 project   = "benchmarker"
-release   = "0.1.0"
+release   = "$Release: 0.0.0 $".split()[1]
 copyright = "copyright(c) 2010-2011 kuwata-lab.com all rights reserved"
 license   = "Public Domain"
 
@@ -16,7 +16,7 @@ task :default => :test
 
 def _do_test
   Dir.glob('test/*_test.rb').each do |fname|
-    sh "ruby #{fname}"
+    sh "ruby -r oktest -e 'Oktest.main' -- test -ss"
   end
 end
 
