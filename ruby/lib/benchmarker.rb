@@ -1,20 +1,540 @@
+# -*- coding: utf-8 -*-
+
 ###
 ### $Release: $
-### $Copyright: copyright(c) 2010-2011 kuwata-lab.com all rights reserved $
+### $Copyright: copyright(c) 2010-2021 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###
 
 
 module Benchmarker
 
-  VERSION = "$Release: 0.0.0 $".split(/ /)[1]
+
+  VERSION = "$Release: 0.0.0 $".split()[1]
+
+
+  OPTIONS = {}    # ex: {loop: 1000, iter: 10, extra: 2, inverse: true}
+
+  def self.new(title=nil, **kwargs, &b)
+    #; [!s7y6x] overwrites existing options by command-line options.
+    d = OPTIONS
+    kwargs.update(OPTIONS)
+    #; [!2zh7w] creates new Benchmark object wit options.
+    bm = Benchmark.new(title: title, **kwargs)
+    ## backward compatibility
+    #if block_given?()
+    #  bm.scope(&b)
+    #  bm.run()
+    #end
+    return bm
+  end
+
+  def self.scope(title=nil, **kwargs, &block)
+    #; [!4f695] creates Benchmark object, define tasks, and run them.
+    bm = self.new(title, **kwargs)
+    bm.scope(&block)
+    bm.run()
+    return bm
+  end
+
+
+  class Benchmark
+
+    def initialize(title: nil, width: 30, loop: 1, iter: 1, extra: 0, inverse: false, outfile: nil, quiet: false, filter: nil)
+      @title   = title
+      @width   = width   || 30
+      @loop    = loop    || 1
+      @iter    = iter    || 1
+      @extra   = extra   || 0
+      @inverse = inverse || false
+      @outfile = outfile
+      @quiet   = quiet   || false
+      @filter  = filter
+      if filter
+        #; [!0mz0f] error when filter string is invalid format.
+        filter =~ /^(task|tag)(!?=+)(.*)/  or
+          raise ArgumentError.new("#{filter}: invalid filter.")
+        #; [!xo7bq] error when filter operator is invalid.
+        $2 == '=' || $2 == '!='  or
+          raise ArgumentError.new("#{filter}: expected operator is '=' or '!='.")
+      end
+      @entries = []    # [[Task, Resutl]]
+      @jdata   = {}
+      @empty_task = nil
+    end
+
+    attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :filter
+
+    def scope(&block)
+      #; [!wrjy0] creates wrapper object and yields block with it as self.
+      #; [!6h24d] passes benchmark object as argument of block.
+      scope = Scope.new(self)
+      scope.instance_exec(self, &block)
+      #; [!y0uwr] returns self.
+      self
+    end
+
+    def define_empty_task(&block)   # :nodoc:
+      #; [!qzr1s] error when called more than once.
+      @empty_task.nil?  or
+        raise "cannot define empty task more than once."
+      #; [!w66xp] creates empty task.
+      @empty_task = TASK.new("(Empty)", &block)
+      return @empty_task
+    end
+
+    def define_task(label, tag: nil, &block)   # :nodoc:
+      #; [!re6b8] creates new task.
+      #; [!r8o0p] can take a tag.
+      task = TASK.new(label, tag: tag, &block)
+      @entries << [task, Result.new]
+      return task
+    end
+
+    def run()
+      #; [!0fo0l] runs benchmark tasks and reports result.
+      report_environment()
+      filter_tasks()
+      invoke_tasks()
+      ignore_skipped_tasks()
+      report_minmax()
+      report_average()
+      report_stats()
+      write_outfile()
+      nil
+    end
+
+    private
+
+    def filter_tasks()
+      #; [!g207d] do nothing when filter string is not provided.
+      if @filter
+        #; [!f1n1v] filters tasks by task name when filer string is 'task=...'.
+        #; [!m79cf] filters tasks by tag value when filer string is 'tag=...'.
+        @filter =~ /^(task|tag)(=|!=)(.*)/  or raise "** internal error"
+        key = $1; op = $2; pattern = $3
+        @entries = @entries.select {|task, _|
+          val = key == 'tag' ? task.tag : task.label
+          if val
+            bool = [val].flatten.any? {|v| File.fnmatch(pattern, v, File::FNM_EXTGLOB) }
+          else
+            bool = false
+          end
+          #; [!0in0q] supports negative filter by '!=' operator.
+          op == '!=' ? !bool : bool
+        }
+      end
+      nil
+    end
+
+    def invoke_tasks()
+      @jdata[:Results] = []
+      #; [!c8yak] invokes tasks once if 'iter' option not specified.
+      #; [!unond] invokes tasks multiple times if 'iter' option specified.
+      #; [!wzvdb] invokes tasks 16 times if 'iter' is 10 and 'extra' is 3.
+      n = @iter + 2 * @extra
+      (1..n).each do |i|
+        @jdata[:Results] << (rows = [])
+        #; [!5axhl] prints result even on quiet mode if no 'iter' nor 'extra'.
+        quiet = @quiet && n != 1
+        #; [!yg9i7] prints result unless quiet mode.
+        #; [!94916] suppresses result if quiet mode.
+        heading = n == 1 ? "##" : "## (##{i})"
+        puts "" unless quiet
+        puts "%-#{@width}s %9s %9s %9s %9s" % [heading, 'user', 'sys', 'total', 'real'] unless quiet
+        #; [!3hgos] invokes empty task at first if defined.
+        if @empty_task
+          print "%-#{@width}s " % @empty_task.label unless quiet
+          $stdin.flush()                            unless quiet
+          empty_timedata = t = @empty_task.invoke(@loop)
+          s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
+          puts s unless quiet
+          #; [!knjls] records result of empty loop into JSON data.
+          rows << [@empty_task.label] + s.split().collect(&:to_f)
+        else
+          empty_timedata = nil
+        end
+        #; [!xf84h] invokes all tasks.
+        @entries.each do |task, result|
+          print "%-#{@width}s " % task.label unless quiet
+          $stdin.flush()                     unless quiet
+          begin
+            timedata = task.invoke(@loop)
+          #; [!fv4cv] skips task invocation if `skip_when()` called.
+          rescue SkipTask => exc
+            puts "   # Skipped (reason: #{exc.message})" unless quiet
+            result.skipped = exc.message
+            next
+          end
+          #; [!513ok] subtract timedata of empty loop from timedata of each task.
+          timedata -= empty_timedata if empty_timedata
+          t = timedata
+          s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
+          puts s unless quiet
+          result.add(timedata)
+          #; [!ejxif] records result of each task into JSON data.
+          rows << [task.label] + s.split().collect(&:to_f)
+        end
+      end
+      nil
+    end
+
+    def ignore_skipped_tasks()
+      #; [!5gpo7] removes skipped tasks and leaves other tasks.
+      @entries = @entries.reject {|_, result| result.skipped? }
+      nil
+    end
+
+    def report_environment()
+      #; [!rx7nn] prints ruby version, platform, several options, and so on.
+      s = "loop=#{@loop.inspect}, iter=#{@iter.inspect}, extra=#{@extra.inspect}"
+      s += ", inverse=#{@inverse}" if @inverse
+      kvs = [["title", @title], ["options", s]] + Misc.environment_info()
+      puts kvs.collect {|k, v| "## %-16s %s\n" % ["#{k}:", v] }.join()
+      @jdata[:Environment] = Hash.new(kvs)
+      nil
+    end
+
+    def report_minmax()
+      if @extra > 0
+        rows = _remove_minmax()
+        puts _render_minmax(rows)
+      end
+    end
+
+    def _remove_minmax()
+      #; [!uxe7e] removes best and worst results if 'extra' option specified.
+      tuples = []
+      @entries.each do |task, result|
+        removed_list = result.remove_minmax(@extra)
+        tuples << [task.label, removed_list]
+      end
+      #; [!is6ll] returns removed min and max data.
+      rows = []
+      tuples.each do |task_label, removed_list|
+        removed_list.each_with_index do |(min_t, min_idx, max_t, max_idx), i|
+          task_label = nil if i > 0
+          min_t2 = ("%9.4f" % min_t).to_f
+          max_t2 = ("%9.4f" % max_t).to_f
+          rows << [task_label, min_t2, "(##{min_idx})", max_t2, "(##{max_idx})"]
+        end
+      end
+      #; [!xwddz] sets removed best and worst results into JSON data.
+      @jdata[:RemovedMinMax] = rows
+      return rows
+    end
+
+    def _render_minmax(rows)
+      #; [!p71ax] returns rendered string.
+      buf = ["\n"]
+      heading = "## Removed Min & Max"
+      buf << "%-#{@width+4}s %5s %9s %9s %9s\n" % [heading, 'min', 'iter', 'max', 'iter']
+      rows.each do |row|
+        buf << "%-#{@width}s %9.4f %9s %9.4f %9s\n" % row
+      end
+      return buf.join()
+    end
+
+    def report_average()
+      if @iter > 1 || @extra > 0
+        rows = _calc_average()
+        puts _render_average(rows)
+      end
+    end
+
+    def _calc_average()
+      #; [!qu29s] calculates average of real times for each task.
+      rows = @entries.collect {|task, result|
+        avg_timedata = result.calc_average()
+        [task.label] + avg_timedata.to_a.collect {|x| ("%9.4f" % x).to_f }
+      }
+      #; [!jxf28] sets average results into JSON data.
+      @jdata[:Average] = rows
+      return rows
+    end
+
+    def _render_average(rows)
+      #; [!j9wlv] returns rendered string.
+      buf = ["\n"]
+      heading = "## Average of #{@iter}"
+      heading += " (=#{@iter + 2 * @extra}-2*#{@extra})" if @extra > 0
+      buf << "%-#{@width+4}s %5s %9s %9s %9s\n" % [heading, 'user', 'sys', 'total', 'real']
+      rows.each do |row|
+        buf << "%-#{@width}s %9.4f %9.4f %9.4f %9.4f\n" % row
+      end
+      return buf.join()
+    end
+
+    def report_stats()
+      #; [!0jn7d] sorts results by real sec.
+      pairs = @entries.collect {|task, result|
+        #real = @iter > 1 || @extra > 0 ? result.calc_average().real : result[0].real
+        real = result.calc_average().real
+        [task.label, real]
+      }
+      pairs = pairs.sort_by {|_, real| real }
+      print _render_ranking(pairs)
+      print _render_matrix(pairs)
+    end
+
+    def _render_ranking(pairs)
+      #; [!2lu55] calculates ranking data and sets it into JSON data.
+      rows = []
+      base = nil
+      pairs.each do |task_label, sec|
+        base ||= sec
+        percent = 100.0 * base / sec
+        barchart = '*' * (percent / 5.0).round()   # max 20 chars (=100%)
+        loop = @inverse == true ? (@loop || 1) : (@inverse || @loop || 1)
+        rows << [task_label, ("%.4f" % sec).to_f, "%.1f%%" % percent,
+                 "%.2f times/sec" % (loop / sec), barchart]
+      end
+      @jdata[:Ranking] = rows
+      #; [!55x8r] returns rendered string of ranking.
+      buf = ["\n"]
+      heading = "## Ranking"
+      if @inverse
+        buf << "%-#{@width}s %9s%30s\n" % [heading, 'real', 'times/sec']
+      else
+        buf << "%-#{@width}s %9s\n"     % [heading, 'real']
+      end
+      rows.each do |task_label, sec, percent, inverse, barchart|
+        s = @inverse ? "%20s" % inverse.split()[0] : barchart
+        buf << "%-#{@width}s %9.4f (%6s) %s\n" % [task_label, sec, percent, s]
+      end
+      return buf.join()
+    end
+
+    def _render_matrix(pairs)
+      #; [!2lu55] calculates ranking data and sets it into JSON data.
+      rows = []
+      pairs.each_with_index do |(task_label, sec), i|
+        base = pairs[i][1]
+        row = ["[#{i+1}] #{task_label}", ("%9.4f" % sec).to_f]
+        pairs.each {|_, r| row << "%.1f%%" % (100.0 * r / base) }
+        rows << row
+      end
+      @jdata[:Matrix] = rows
+      #; [!rwfxu] returns rendered string of matrix.
+      buf = ["\n"]
+      heading = "## Matrix"
+      s = "%-#{@width}s %9s" % [heading, 'real']
+      (1..pairs.length).each {|i| s += " %8s" % "[#{i}]" }
+      buf << "#{s}\n"
+      rows.each do |task_label, real, *percents|
+        s = "%-#{@width}s %9.4f" % [task_label, real]
+        percents.each {|p| s += " %8s" % p }
+        buf << "#{s}\n"
+      end
+      return buf.join()
+    end
+
+    def write_outfile()
+      #; [!o8ah6] writes result data into JSON file if 'outfile' option specified.
+      if @outfile
+        filename = @outfile
+        require 'json'
+        jstr = JSON.pretty_generate(@jdata, indent: '  ', space: ' ')
+        if filename == '-'
+          $stdout.puts(jstr)
+        else
+          File.write(filename, jstr)
+        end
+        jstr
+      end
+    end
+
+  end
+
+
+  class Scope
+
+    def initialize(bm=nil)
+      @__bm = bm
+    end
+
+    def task(label, tag: nil, &block)
+      #; [!j6pmr] creates new task object.
+      return @__bm.define_task(label, tag: tag, &block)
+    end
+
+    def empty_task(&block)
+      #; [!ycoch] creates new empty-loop task object.
+      return @__bm.define_empty_task(&block)
+    end
+
+    def skip_when(cond, reason)
+      #; [!dva3z] raises SkipTask exception if cond is truthy.
+      #; [!srlnu] do nothing if cond is falthy.
+      raise SkipTask, reason if cond
+    end
+
+  end
+
+
+  class SkipTask < StandardError
+  end
+
+
+  class Task
+
+    def initialize(label, tag: nil, &block)
+      @label = label
+      @tag   = tag
+      @block = block
+    end
+
+    attr_reader :label, :tag, :block
+
+    def invoke(loop=1)
+      #; [!tgql6] invokes block N times.
+      block = @block
+      t1 = Process.times
+      start_t = Time.now
+      while (loop -= 1) >= 0
+        block.call()
+      end
+      end_t = Time.now
+      t2 = Process.times
+      #; [!9e5pr] returns TimeData object.
+      user  = t2.utime - t1.utime
+      sys   = t2.stime - t1.stime
+      total = user + sys
+      real  = end_t - start_t
+      return TimeData.new(user, sys, total, real)
+    end
+
+  end
+
+  TASK = Task
+
+
+  TimeData = Struct.new('TimeData', :user, :sys, :total, :real) do
+    def -(t)
+     #; [!cpwgf] returns new TimeData object.
+      user  = self.user  - t.user
+      sys   = self.sys   - t.sys
+      total = self.total - t.total
+      real  = self.real  - t.real
+      return TimeData.new(user, sys, total, real)
+    end
+  end
+
+
+  class Result
+
+    def initialize()
+      @iterations = []
+    end
+
+    def [](idx)
+      return @iterations[idx]
+    end
+
+    def each(&b)
+      @iterations.each(&b)
+    end
+
+    def add(timedata)
+      #; [!thyms] adds timedata and returns self.
+      @iterations << timedata
+      self
+    end
+
+    def skipped=(reason)
+      @reason = reason
+    end
+
+    def skipped?
+      #; [!bvzk9] returns true if reason has set, or returns false.
+      return !!@reason
+    end
+
+    def remove_minmax(extra, key=:real)
+      #; [!b55zh] removes best and worst timedata and returns them.
+      i = 0
+      pairs = @iterations.collect {|t| [t, i+=1] }
+      pairs = pairs.sort_by {|pair| pair[0].__send__(key) }
+      removed = []
+      extra.times do
+        min_timedata, min_idx = pairs.shift()
+        max_timedata, max_idx = pairs.pop()
+        min_t = min_timedata.__send__(key)
+        max_t = max_timedata.__send__(key)
+        removed << [min_t, min_idx, max_t, max_idx]
+      end
+      remained = pairs.sort_by {|_, i| i }.collect {|t, _| t }
+      @iterations = remained
+      return removed
+    end
+
+    def calc_average()
+      #; [!b91w3] returns average of timeddata.
+      user = sys = total = real = 0.0
+      @iterations.each do |t|
+        user  += t.user
+        sys   += t.sys
+        total += t.total
+        real  += t.real
+      end
+      n = @iterations.length
+      return TimeData.new(user/n, sys/n, total/n, real/n)
+    end
+
+  end
+
+
+  module Misc
+
+    module_function
+
+    def environment_info()
+      #; [!w1xfa] returns environment info in key-value list.
+      ruby_engine_version = (RUBY_ENGINE_VERSION rescue nil)
+      cc_version_msg = RbConfig::CONFIG['CC_VERSION_MESSAGE']
+      return [
+        ["benchmarker"   , "release #{VERSION}"],
+        ["ruby engine"   , "#{RUBY_ENGINE} (engine version #{ruby_engine_version})"],
+        ["ruby version"  , "#{RUBY_VERSION} (patch level #{RUBY_PATCHLEVEL})"],
+        ["ruby platform" , RUBY_PLATFORM],
+        ["ruby path"     , RbConfig.ruby],
+        ["compiler"      , cc_version_msg ? cc_version_msg.split(/\r?\n/)[0] : nil],
+        ["cpu model"     , cpu_model()],
+      ]
+    end
+
+    def cpu_model()
+      #; [!6ncgq] returns string representing cpu model.
+      if File.exist?("/usr/sbin/sysctl")        # macOS
+        output = `/usr/sbin/sysctl machdep.cpu.brand_string`
+        output =~ /^machdep\.cpu\.brand_string: (.*)/
+        return $1
+      elsif File.exist?("/proc/cpuinfo")        # Linux
+        output = `cat /proc/cpuinfo`
+        output =~ /^model name\s*: (.*)/
+        return $1
+      elsif File.exist?("/var/run/dmesg.boot")  # FreeBSD
+        output = `grep ^CPU: /var/run/dmesg.boot`
+        output =~ /^CPU: (.*)/
+        return $1
+      elsif RUBY_PLATFORM =~ /win/              # Windows
+        output = `systeminfo`
+        output =~ /^\s+\[01\]: (.*)/    # TODO: not tested yet
+        return $1
+      else
+        return nil
+      end
+    end
+
+  end
 
 
   class OptionParser
 
-    def initialize(opts_noparam, opts_hasparam)
-      @opts_noparam = opts_noparam
+    def initialize(opts_noparam, opts_hasparam, opts_mayparam="")
+      @opts_noparam  = opts_noparam
       @opts_hasparam = opts_hasparam
+      @opts_mayparam = opts_mayparam
     end
 
     def parse(argv)
@@ -41,16 +561,17 @@ module Benchmarker
               options[c] = true
               i += 1
             elsif @opts_hasparam.include?(c)
-              if i + 1 == argstr.length
-                val = argv.shift()  or
-                  yield "-#{c}: argument required."
-              else
-                val = argstr[(i+1)..-1]
-              end
-              options[c] = val
+              #; [!8xqla] error when required argument is not provided.
+              options[c] = i+1 < argstr.length ? argstr[(i+1)..-1] : argv.shift()  or
+                yield "-#{c}: argument required."
               break
+            elsif @opts_mayparam.include?(c)
+              options[c] = i+1 < argstr.length ? argstr[(i+1)..-1] : true
+              break
+            #; [!tmx6o] error when option is unknown.
             else
               yield "-#{c}: unknown option."
+              i += 1
             end
           end
         else
@@ -61,19 +582,24 @@ module Benchmarker
     end
 
     def self.parse_options(argv=ARGV, &b)
-      parser = self.new("hv", "ncxioF")
+      parser = self.new("hvq", "wnixoF", "I")
       options, keyvals = parser.parse(argv, &b)
-      "ncxi".each_char do |c|
-        next unless options[c]
-        #; [!frfz2] yields error message when argument of '-n/c/x' is not an integer.
+      #; [!v19y5] converts option argument into integer if necessary.
+      "wnixI".each_char do |c|
+        next if !options.key?(c)
+        next if options[c] == true
+        #; [!frfz2] yields error message when argument of '-n/i/x/I' is not an integer.
         options[c] =~ /\A\d+\z/  or
-          yield "-#{c} #{options[c]}: integer expected."
+          yield "-#{c}#{c == 'I' ? '' : ' '}#{options[c]}: integer expected."
         options[c] = options[c].to_i
       end
       if options['F']
         #; [!emavm] yields error message when argumetn of '-F' option is invalid.
-        options['F'] =~ /^\w+(=|!=)[^=]/  or
-          yield "-F #{options['F']}: expected operator is '=' or '!='."
+        if options['F'] !~ /^(\w+)(=|!=)[^=]/
+          yield "-F #{options['F']}: invalid filter (expected operator is '=' or '!=')."
+        elsif ! ($1 == 'task' || $1 == 'tag')
+          yield "-F #{options['F']}: expected 'task=...' or 'tag=...'."
+        end
       end
       return options, keyvals
     end
@@ -83,667 +609,67 @@ module Benchmarker
       command ||= File.basename($0)
       return <<"END"
 Usage: #{command} [<options>]
-  -h           : help message
-  -v           : print Benchmarker version
-  -n <N>       : loop N times in each benchmark (default: 1)
-  -c <N>       : cycle benchmarks N times (default: 1)
-  -x <N>       : ignore worst N results and best N results (default: 0)
-  -i <N>       : print inverse (= N/sec) instead of bar chart (= '***')
-  -o <file>    : output file in JSON format
-  -F name=<...>: filter benchmark by name (operator: '=' or '!=')
-  -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
+  -h, --help     : help message
+  -v             : print Benchmarker version
+  -w <N>         : width of task label (default: 30)
+  -n <N>         : loop N times in each benchmark (default: 1)
+  -i <N>         : iterates all benchmark tasks N times (default: 1)
+  -x <N>         : ignore worst N results and best N results (default: 0)
+  -I[<N>]        : print inverse number (= N/sec) (default: same as '-n')
+  -o <file>      : output file in JSON format
+  -q             : quiet a little (suppress output of each iteration)
+  -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
+  -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
+  --<key>[=<val>]: define global variable `$var = "val"`
 END
     end
 
   end
 
 
-  CMDOPTS = {}
-
   def self.parse_cmdopts(argv=ARGV)
     #; [!348ip] parses command-line options.
+    #; [!snqxo] exits with status code 1 if error in command option.
     options, keyvals = OptionParser.parse_options(argv) do |errmsg|
       $stderr.puts errmsg
       exit 1
     end
-    #; [!p3b93] prints help message if '-h' option specified.
-    if options['h']
+    #; [!p3b93] prints help message if '-h' or '--help' option specified.
+    if options['h'] || keyvals['help']
       puts OptionParser.help_message()
-      #return
       exit 0
     end
     #; [!iaryj] prints version number if '-v' option specified.
     if options['v']
       puts VERSION
-      #return
       exit 0
     end
-    #; [!s7y6x] overwrites existing values by command-line options.
-    CMDOPTS[:loop]    = options['n'] if options['n']
-    CMDOPTS[:cycle]   = options['c'] if options['c']
-    CMDOPTS[:extra]   = options['x'] if options['x']
-    CMDOPTS[:filter]  = options['F'] if options['F']
-    CMDOPTS[:inverse] = options['i'] if options['i']
-    CMDOPTS[:outfile] = options['o'] if options['o']
+    #; [!s7y6x] keeps command-line options in order to overwirte existing options.
+    #; [!nexi8] option '-w' specifies task label width.
+    #; [!raki9] option '-n' specifies count of loop.
+    #; [!mt7lw] option '-i' specifies number of iteration.
+    #; [!7f2k3] option '-x' specifies number of best/worst tasks removed.
+    #; [!r0439] option '-I' specifies inverse switch.
+    #; [!4c73x] option '-o' specifies outout JSON file.
+    #; [!02ml5] option '-q' specifies quiet mode.
+    #; [!muica] option '-F' specifies filter.
+    OPTIONS[:width]   = options['w'] if options['w']
+    OPTIONS[:loop]    = options['n'] if options['n']
+    OPTIONS[:iter]    = options['i'] if options['i']
+    OPTIONS[:extra]   = options['x'] if options['x']
+    OPTIONS[:inverse] = options['I'] if options['I']
+    OPTIONS[:outfile] = options['o'] if options['o']
+    OPTIONS[:quiet]   = options['q'] if options['q']
+    OPTIONS[:filter]  = options['F'] if options['F']
     #; [!3khc4] sets global variables if long option specified.
     keyvals.each {|k, v| eval "$#{k} = #{v.inspect}" }
+    #
+    return options, keyvals  # for testing
   end
 
   unless defined?(::BENCHMARKER_IGNORE_CMDOPTS) && ::BENCHMARKER_IGNORE_CMDOPTS
     self.parse_cmdopts(ARGV)
   end
-
-
-  def self.new(**opts, &block)
-    opts.update(CMDOPTS)
-    #; [!uo4qd] creates runner object and returns it.
-    runner = RUNNER.new(**opts)
-    if block
-      runner._before_all()
-      runner._run(&block)
-      runner._after_all()
-      #; [!95ln9] writes result into output file in JSON format if '-o' option specified.
-      if opts[:outfile]
-        _dump_json(runner.jdata, opts[:outfile])
-      end
-    end
-    runner
-  end
-
-  def self._dump_json(jdata, filename)  # :nodoc:
-    require 'json'
-    jstr = JSON.pretty_generate(jdata, indent: '  ', space: ' ')
-    if filename == '-'
-      $stdout.puts(jstr)
-    else
-      File.write(filename, jstr)
-    end
-  end
-  class << self
-    private :_dump_json
-  end
-
-  def self.bm(width=30, &block)    # for compatibility with benchmark.rb
-    return self.new(:width=>30, &block)
-  end
-
-  def self.platform()
-    #; [!ils8t] returns platform information.
-    return <<END
-## benchmarker.rb:   release #{VERSION}
-## ruby version:     #{RUBY_VERSION} (patch level: #{RUBY_PATCHLEVEL})
-## ruby engine:      #{RUBY_ENGINE} (engine version: #{RUBY_ENGINE_VERSION})
-## ruby platform:    #{RUBY_PLATFORM}
-## ruby path:        #{RbConfig.ruby}
-## cpu model:        #{cpu_model()}
-END
-  end
-
-  def self.cpu_model()
-    if File.exist?("/usr/sbin/sysctl")        # macOS
-      output = `/usr/sbin/sysctl machdep.cpu.brand_string`
-      output =~ /^machdep\.cpu\.brand_string: (.*)/
-      return $1
-    elsif File.exist?("/proc/cpuinfo")        # Linux
-      output = `cat /proc/cpuinfo`
-      output =~ /^model name\s*: (.*)/
-      return $1
-    elsif File.exist?("/var/run/dmesg.boot")  # FreeBSD
-      output = `grep ^CPU: /var/run/dmesg.boot`
-      output =~ /^CPU: (.*)/
-      return $1
-    elsif RUBY_PLATFORM =~ /win/              # Windows
-      output = `systeminfo`
-      output =~ /^\s+\[01\]: (.*)/    # TODO: not tested yet
-      return $1
-    else
-      return nil
-    end
-  end
-
-
-  class Runner
-
-    def initialize(**opts)
-      #; [!asupa] takes :loop, :cycle, and :extra options.
-      @loop  = opts[:loop]
-      @cycle = opts[:cycle]
-      @extra = opts[:extra]
-      if opts[:filter]
-        opts[:filter] =~ /^(\w+)(=|!=)(.*)$/  or
-          raise "** internal error: opts[:filter]=#{opts[:filter]}"
-        @filter = [$1, $2, $3]
-      end
-      #:
-      @tasks = []
-      @report = REPORTER.new(**opts)
-      @stats  = STATS.new(@report, **opts)
-      @jdata  = {}
-      @_section_title = ""
-      @_section_started = false
-    end
-
-    attr_reader :tasks, :report, :stats, :jdata
-
-    def task(label, **opts, &block)
-      #; [!r0v4d] returns immediately if task not matched to filter.
-      #; [!um9pe] supports negative filter.
-      if @filter
-        return nil unless _filter_matched?(@filter, label, opts)
-      end
-      #; [!xwgpx] prints section title if not printed yet.
-      #; [!a41a9] creates task objet and returns it.
-      #; [!53zit] runs task when :skip option is not specified.
-      #; [!5xvgt] skip block and prints message when :skip option is specified.
-      #; [!dhdrp] subtracts times of empty task if exists.
-      skip_message = opts[:skip]
-      t = _new_task(label, skip_message, &block)
-      #; [!kq3sv] saves created task object unless :skip optin is not specified.
-      @tasks << t unless skip_message
-      t
-    end
-
-    alias report task      # for compatibility with benchmark.rb
-
-    def empty_task(label="(Empty)", &block)
-      #; [!x5pfs] clear @_empty_task.
-      @_empty_task = nil
-      #; [!lt9od] prints section title if not printed yet.
-      #; [!68v26] creates empty task object and returns it.
-      t = _new_task(label, &block)
-      #; [!65p26] saves empty task object.
-      #; [!xqmzu]  don't add empty task to @tasks.
-      @_empty_task = t
-      t
-    end
-
-    def _filter_matched?(filter, label, opts)   #:nodoc:
-      key, op, pat = filter
-      val = (key == 'name' ? label : \
-             key == 'tag'  ? opts[:tag] : opts[key.intern])
-      matched = false
-      case val
-      when String; matched = File.fnmatch(pat, val, File::FNM_EXTGLOB)
-      when Array ; matched = val.any? {|s| File.fnmatch(pat, s, File::FNM_EXTGLOB) }
-      end
-      return matched if op == '='
-      return !matched if op == '!='
-      raise "** internal error"
-    end
-    private :_filter_matched?
-
-    #--
-    #def skip_task(label, message="   ** skipped **")
-    #  #; [!8b03l] prints headers if they are not printed.
-    #  t = _new_task(label)
-    #  #; [!cigi9] prints task label and message instead of times.
-    #  @report.write(message + "\n")
-    #  #; [!yxep1] don't change @tasks.
-    #end
-    #++
-
-    def _before_all   # :nodoc:
-      #; [!wt867] prints Benchmarker.platform().
-      string = Benchmarker.platform()
-      print string
-      @jdata[:Platform] = {}
-      string.scan(/^\#\# ([^:]+):\s+(\S.*)/) do
-        key = $1; val = $2
-        @jdata[:Platform][key] = val
-      end
-    end
-
-    def _after_all    # :nodoc:
-      #; [!wt867] prints statistics out benchmarks.
-      #@stats.all(@tasks)
-      rows = @stats.ranking(tasks)
-      @jdata[:Ranking] = rows
-      rows = @stats.ratio_matrix(tasks)
-      @jdata[:Matrix] = rows
-    end
-
-    def _run   # :nodoc:
-      #; [!rvcl5] when @cycle > 1...
-      if @cycle && @cycle > 1
-        @all_tasks = []
-        #; [!zcg2x] prints output of cycle into stderr.
-        @report._switch_out_to_err do
-          #; [!2ysx9] yields block @cycle times when @extra is not specified.
-          #; [!q1l7k] yields block @cycle + 2*@extra times when @extra is specified.
-          i = 0
-          cycle = @cycle
-          cycle += 2 * @extra if @extra
-          cycle.times do
-            _reset_section("(##{i+=1})")
-            @all_tasks << (@tasks = [])
-            #; [!af3yf] yields block with self as block paramter.
-            yield self
-          end
-        end
-        #; [!gkgmb] reports average of results.
-        @tasks = _calc_averages(@all_tasks, @extra)
-        _report_average_section(@tasks)
-      #; [!lo2qc] when @cycle == 0 or not specified...
-      else
-        #; [!wmixt] yields block only once.
-        _reset_section("")
-        #; [!8737l] yields block with self as block paramter.
-        yield self
-      end
-    end
-
-    private
-
-    def _reset_section(section_title)
-      @_section_started = false
-      @_section_title = section_title
-    end
-
-    def _new_task(label, skip_message=nil, &block)
-      #; [!hxfwz] prints section title if not printed yet.
-      _report_section_title_if_not_printed_yet()
-      #; [!cnx65] creates task objet and returns it.
-      t = TASK.new(label, @loop)
-      @report.task_label(label)
-      #; [!emnxz] skip block and prints message when :skip option is specified.
-      if skip_message
-        @report.write("Skipped (reason: #{skip_message})\n")
-      #; [!nwv00] runs task when :skip option is not specified.
-      elsif block
-        t.run(&block)
-        #; [!nu2m6] subtracts times of empty task if exists.
-        t.sub(@_empty_task) if @_empty_task
-        @report.task_times(t.user, t.sys, t.total, t.real)
-      end
-      t
-    end
-
-    def _report_section_title_if_not_printed_yet
-      if ! @_section_started
-        @_section_started = true
-        @report.section_title(@_section_title)\
-               .section_headers("user", "sys", "total", "real")
-      end
-    end
-
-    def _calc_averages(all_tasks, extra)
-      #;
-      @jdata[:Results] = all_tasks.collect {|ts|
-        fmt = "%.6f"
-        row = ts.collect {|t|
-          [t.label, (fmt % t.user).to_f, (fmt % t.sys).to_f, (fmt % t.total).to_f, (fmt % t.real).to_f]
-        }
-        row
-      }
-      #; [!hbb4u] calculates average times of tasks.
-      tasks_list = _transform_all_tasks(all_tasks)
-      fmt = '%.6f'
-      if extra
-        @report.section_title("Remove Min & Max").section_headers("min", "cycle", "max", "cycle")
-        new_tasks_list = []
-        @jdata[:RemovedMinMax] = []
-        tasks_list.each do |tasks|
-          remained_tasks, removed_tasks = _remove_min_max(tasks, extra)
-          label = nil; rows = []
-          removed_tasks.each_with_index do |(task_min, idx_min, task_max, idx_max), j|
-            label ||= task_min.label
-            @report.task_label(j == 0 ? task_min.label : '')
-            @report.task_time(task_min.real).task_index(idx_min+1)
-            @report.task_time(task_max.real).task_index(idx_max+1)
-            @report.text("\n")
-            rows << [(fmt % task_min.real).to_f, idx_min, (fmt % task_max.real).to_f, idx_max]
-          end
-          new_tasks_list << remained_tasks
-          @jdata[:RemovedMinMax] << {title: label, rows: rows}
-        end
-        tasks_list = new_tasks_list
-      end
-      avg_tasks = tasks_list.collect {|tasks| Task.average(tasks) }
-      @jdata[:Average] = avg_tasks.collect {|t|
-        [t.label, (fmt % t.user).to_f, (fmt % t.sys).to_f, (fmt % t.total).to_f, (fmt % t.real).to_f]
-      }
-      avg_tasks
-    end
-
-    def _transform_all_tasks(all_tasks)
-      tasks_list = []
-      all_tasks.each do |tasks|
-        tasks.each_with_index do |task, i|
-          (tasks_list[i] ||= []) << task
-        end
-      end
-      tasks_list
-    end
-
-    def _remove_min_max(tasks, extra)
-      #: reports min and max tasks.
-      idx = -1
-      pairs = tasks.collect {|task| [task, idx+=1] }
-      pairs = pairs.sort_by {|task, idx| task.real }   # 1.8 doesn't support sort_by!
-      #
-      removed_tasks = []
-      extra.times do |j|
-        removed_tasks << [*pairs.shift(), *pairs.pop()]
-      end
-      #: removes min and max tasks, and returns remained tasks.
-      remained_tasks = pairs.collect {|task, idx| task }
-      return remained_tasks, removed_tasks
-    end
-
-    def _report_average_section(tasks)
-      title = _get_average_section_title()
-      @report.section_title(title).section_headers("user", "sys", "total", "real")
-      tasks.each do |t|
-        @report.task_label(t.label).task_times(t.user, t.sys, t.total, t.real)
-      end
-    end
-
-    def _get_average_section_title()
-      #; [!6efqb] returns 'Average of N (=x-2*y)' string if label width is enough wide.
-      #; [!a6tqp] returns 'Average of N' string if label width is not enough wide.
-      title = "Average of #{@cycle}"
-      if @extra
-        s = " (=#{@cycle+2*@extra}-2*#{@extra})"
-        title << s if "## #{title}#{s}".length <= @report.label_width
-      end
-      title
-    end
-
-  end
-
-  RUNNER = Runner
-
-
-  class Task
-
-    def initialize(label, loop=1, &block)
-      #; [!7c1i9] takes label and loop.
-      @label = label
-      @loop  = loop
-      #; [!t556m] sets all times to zero.
-      @user = @sys = @total = @real = 0.0
-    end
-
-    attr_accessor :label, :loop, :user, :sys, :total, :real
-
-    def run
-      #: starts GC before running benchmark.
-      GC.start
-      #; [!y50r1] yields block for @loop times.
-      ntimes = @loop || 1
-      pt1 = Process.times
-      t1 = Time.now
-      if ntimes > 1
-        ntimes.times { yield }
-      else
-        yield
-      end
-      pt2 = Process.times
-      t2 = Time.now
-      #; [!bl209] measures times.
-      @user  = pt2.utime - pt1.utime
-      @sys   = pt2.stime - pt1.stime
-      @total = @user + @sys
-      @real  = t2 - t1
-      return self
-    end
-
-    def add(other)
-      #; [!v11p8] adds other's times into self.
-      @user  += other.user
-      @sys   += other.sys
-      @total += other.total
-      @real  += other.real
-      #; [!bz1wk] returns self.
-      return self
-    end
-
-    def sub(other)
-      #; [!neebc] substracts other's times from self.
-      @user  -= other.user
-      @sys   -= other.sys
-      @total -= other.total
-      @real  -= other.real
-      #; [!6ru0l] returns self.
-      return self
-    end
-
-    def mul(n)
-      #; [!yoxsn] multiplies times with n.
-      @user  *= n
-      @sys   *= n
-      @total *= n
-      @real  *= n
-      #; [!jyyyv] returns self.
-      return self
-    end
-
-    def div(n)
-      #; [!lu7js] divides times by n.
-      @user  /= n
-      @sys   /= n
-      @total /= n
-      @real  /= n
-      #; [!ibgia] returns self.
-      return self
-    end
-
-    def self.average(tasks)
-      #; [!liw73] returns empty task when argument is empty.
-      n = tasks.length
-      return self.new(nil) if n == 0
-      #; [!vdm4j] create new task with label.
-      task = self.new(tasks.first.label)
-      #; [!ppo1s] returns averaged task.
-      tasks.each {|t| task.add(t) }
-      task.div(n)
-      return task
-    end
-
-  end
-
-  TASK = Task
-
-
-  class Reporter
-
-    def initialize(**opts)
-      #; [!jlnlm] takes :out, :err, :width, and :format options.
-      @out = opts[:out] || $stdout
-      @err = opts[:err] || $stderr
-      self.label_width = opts[:width] || 30
-      self.format_time = opts[:format] || "%9.4f"
-    end
-
-    attr_accessor :out, :err
-    attr_reader :label_width, :format_time
-
-    def _switch_out_to_err()   # :nodoc:
-      #; [!6o2v7] switches @out to @err temporarily.
-      begin
-        out = @out
-        @out = @err
-        yield
-      ensure
-        @out = out
-      end
-    end
-
-    def label_width=(width)
-      #; [!asqgk] sets @label_width.
-      @label_width = width
-      #; [!e7hwb] sets @format_label, too.
-      @format_label = "%-#{width}s"
-    end
-
-    def format_time=(format)
-      #; [!5pir3] sets @format_time.
-      @format_time = format
-      #; [!726he] sets @format_header, too.
-      m = /%-?(\d+)\.\d+/.match(format)
-      @format_header = "%#{$1.to_i}s" if m
-    end
-
-    def write(*args)
-      #; [!aktow] writes arguments to @out with '<<' operator.
-      args.each {|x| @out << x.to_s }
-      #; [!gf5rd] saves the last argument.
-      @_prev = args[-1]
-      #; [!r2wzc] returns self.
-      return self
-    end
-    alias text write
-
-    def report_section_title(title)
-      #; [!mpne7] prints newline at first.
-      write "\n"
-      #; [!ikes2] prints section title with @format_label.
-      write @format_label % "## #{title}"
-      #; [!1q0yj] returns self.
-      return self
-    end
-    alias section_title report_section_title
-
-    def report_section_headers(*headers)
-      #; [!61qm7] prints headers.
-      headers.each do |header|
-        report_section_header(header)
-      end
-      #; [!t5ye0] prints newline at end.
-      write "\n"
-      #; [!kbshe] returns self.
-      return self
-    end
-    alias section_headers report_section_headers
-
-    def report_section_header(header)
-      #; [!88zjk] prints header with @format_header.
-      write " ", @format_header % header
-      #; [!v01al] returns self.
-      return self
-    end
-    alias section_header report_section_header
-
-    def report_task_label(label)
-      #; [!ajtkj] prints task label with @format_label.
-      write @format_label % label
-      #; [!slxrv] returns self.
-      return self
-    end
-    alias task_label report_task_label
-
-    def report_task_times(user, sys, total, real)
-      #; [!q36l4] prints task times with @format_time.
-      fmt = @format_time
-      write " ", fmt % user, " ", fmt % sys, " ", fmt % total, " ", fmt % real, "\n"
-      #; [!tt8h0] returns self.
-      return self
-    end
-    alias task_times report_task_times
-
-    def report_task_time(time)
-      #; [!lrcds] prints task time with @format_titme.
-      write " ", @format_time % time
-      #; [!emwdl] returns self.
-      return self
-    end
-    alias task_time report_task_time
-
-    def report_task_index(index)
-      #: prints task time with @format_titme.
-      write " ", @format_header % "(##{index})"
-      #: returns self.
-      return self
-    end
-    alias task_index report_task_index
-
-  end
-
-  REPORTER = Reporter
-
-
-  class Stats
-
-    def initialize(reporter, **opts)
-      #; [!pky6r] takes reporter object.
-      @report   = reporter
-      @key      = opts[:key] || 'real'
-      @sort_key = opts[:sort_key] || 'real'
-      @loop     = opts[:loop]
-      @inverse  = opts[:inverse]
-    end
-
-    def all(tasks)
-      ranking(tasks)
-      ratio_matrix(tasks)
-    end
-
-    def ranking(tasks)
-      tasks = tasks.sort_by {|t| t.__send__(@sort_key) } if @sort_key
-      #; [!16hg8] prints ranking.
-      key = @key
-      #base = tasks.min_by {|t| t.__send__(key) }.__send__(key)  # min_by() is available since 1.8.7
-      base = tasks.collect {|t| t.__send__(key) }.min
-      rows = []
-      tasks.each do |task|
-        sec = task.__send__(key).to_f
-        val = 100.0 * base / sec
-        percent = '%.1f%%' % val
-        #; [!dhnaa] prints barchart if @inverse is not specified.
-        bar = '*' * (val / 5.0).round    # max 20 chars (=100%)
-        if ! @inverse
-          n_per_sec = nil
-        #; [!amvhe] prints inverse number if @inverse specified.
-        else
-          n_per_sec = '%12.2f per sec' % (@inverse / sec)
-        end
-        #
-        rows << [task.label, ('%.6f' % sec).to_f, percent, bar, n_per_sec]
-      end
-      #
-      @report.section_title("Ranking").section_headers(key.to_s)
-      rows.each do |label, sec, percent, bar, n_per_sec|
-        @report.task_label(label).task_time(sec).text(" (%6s) " % percent)
-        @report.text(n_per_sec || bar).text("\n")
-      end
-      #
-      return rows
-    end
-
-    def ratio_matrix(tasks)
-      tasks = tasks.sort_by {|t| t.__send__(@sort_key) } if @sort_key
-      key = @key
-      rows = []
-      i = 0
-      tasks.each do |base_task|
-        i += 1
-        base = base_task.__send__(key).to_f
-        row = ["[%02d] %s" % [i, base_task.label], ('%.6f' % base).to_f]
-        tasks.each do |t|
-          sec = t.__send__(key).to_f
-          val = 100.0 * sec / base
-          row << ("%.1f%%" % val)
-        end
-        rows << row
-      end
-      #; [!71nfp] prints matrix.
-      @report.section_title("Matrix").section_header("real")
-      (1..tasks.length).each do |i|
-        @report.text(" %8s" % ("[%02d]" % i))
-      end
-      @report.text("\n")
-      rows.each do |label, base, *values|
-        @report.task_label(label).task_time(base)
-        values.each {|val| @report.text(' %8s' % val) }
-        @report.text("\n")
-      end
-      #
-      return rows
-    end
-
-  end
-
-  STATS = Stats
 
 
 end
