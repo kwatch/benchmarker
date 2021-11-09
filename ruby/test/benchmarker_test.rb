@@ -44,24 +44,34 @@ class Benchmarker_TC
       ret = Benchmarker.new
       ok {ret}.is_a?(Benchmarker::RUNNER)
     end
-    spec "[!348ip] parses command-line options." do
-      bkup = ARGV.dup
-      ARGV[0..-1] = ["-n10", "-c20", "-x2"]
+  end
+
+  def test_SELF_parse_cmdopts()
+    def _clear_cmdopts
+      Benchmarker::CMDOPTS.clear()
       begin
+        yield
+      ensure
+        Benchmarker::CMDOPTS.clear()
+      end
+    end
+    spec "[!348ip] parses command-line options." do
+      _clear_cmdopts do
+        argv = ["-n10", "-c20", "-x2"]
+        Benchmarker.parse_cmdopts(argv)
         bm = Benchmarker.new()
         ok {bm.instance_variable_get('@loop')}  == 10
         ok {bm.instance_variable_get('@cycle')} == 20
         ok {bm.instance_variable_get('@extra')} == 2
-      ensure
-        ARGV[0..-1] = bkup
       end
     end
     spec "[!p3b93] prints help message if '-h' option specified." do
-      bkup = ARGV.dup
-      ARGV[0..-1] = ["-h"]
-      begin
+      _clear_cmdopts do
+        argv = ["-h"]
         sout, serr = dummy_io() do
-          Benchmarker.new()
+          pr = proc { Benchmarker.parse_cmdopts(argv) }
+          ok {pr}.raise?(SystemExit)
+          ok {pr.exception.status} == 0
         end
         ok {serr} == ""
         ok {sout} == <<'END'
@@ -76,77 +86,68 @@ Usage: benchmarker_test.rb [<options>]
   -F name=<...>: filter benchmark by name (operator: '=' or '!=')
   -F tag=<...> : filter benchmark by tag (operator: '=' or '!=')
 END
-      ensure
-        ARGV[0..-1] = bkup
       end
     end
     spec "[!iaryj] prints version number if '-v' option specified." do
-      bkup = ARGV.dup
-      ARGV[0..-1] = ["-v"]
-      begin
+      _clear_cmdopts do
         sout, serr = dummy_io() do
-          Benchmarker.new()
+          pr = proc { Benchmarker.parse_cmdopts(["-v"]) }
+          ok {pr}.raise?(SystemExit)
+          ok {pr.exception.status} == 0
         end
         ok {serr} == ""
         ok {sout} == Benchmarker::VERSION + "\n"
-      ensure
-        ARGV[0..-1] = bkup
       end
     end
     spec "[!3khc4] sets global variables if long option specified." do
-      bkup = ARGV.dup
-      ARGV[0..-1] = ["--aa=bb", "--cc"]
-      begin
+      _clear_cmdopts do
         ok {$aa} == nil
         ok {$cc} == nil
         sout, serr = dummy_io() do
-          Benchmarker.new()
+          Benchmarker.parse_cmdopts(["--aa=bb", "--cc"])
         end
         ok {$aa} == "bb"
         ok {$cc} == true
-      ensure
-        ARGV[0..-1] = bkup
       end
     end
     spec "[!s7y6x] overwrites existing values by command-line options." do
-      bm = Benchmarker.new(loop: 10, cycle: 20, extra: 1)
-      ok {bm.instance_variable_get('@loop')}  == 10
-      ok {bm.instance_variable_get('@cycle')} == 20
-      ok {bm.instance_variable_get('@extra')} == 1
-      #
-      bkup = ARGV.dup
-      ARGV[0..-1] = ["-n11", "-c21", "-x3", "-i1000", "-F", "tag=curr"]
-      begin
+      _clear_cmdopts do
+        bm = Benchmarker.new(loop: 10, cycle: 20, extra: 1)
+        ok {bm.instance_variable_get('@loop')}  == 10
+        ok {bm.instance_variable_get('@cycle')} == 20
+        ok {bm.instance_variable_get('@extra')} == 1
+        #
+        argv = ["-n11", "-c21", "-x3", "-i1000", "-F", "tag=curr"]
+        Benchmarker.parse_cmdopts(argv)
         bm = Benchmarker.new(loop: 10, cycle: 20, extra: 1)
         ok {bm.instance_variable_get('@loop')}  == 11
         ok {bm.instance_variable_get('@cycle')} == 21
         ok {bm.instance_variable_get('@extra')} == 3
         ok {bm.stats.instance_variable_get('@inverse')} == 1000
-      ensure
-        ARGV[0..-1] = bkup
       end
     end
     spec "[!95ln9] writes result into output file in JSON format if '-o' option specified." do
       outfile = "tmp1.json"
-      bkup = ARGV.dup
-      ARGV[0..-1] = ["-o", outfile]
       File.unlink outfile if File.exist?(outfile)
-      begin
-        not_ok {outfile}.exist?
-        sout, serr = dummy_io do
-          _sample_benchmarks(loop: 10, cycle: 5, extra: 2)
+      argv = ["-o", outfile]
+      _clear_cmdopts do
+        begin
+          not_ok {outfile}.exist?
+          Benchmarker.parse_cmdopts(argv)
+          sout, serr = dummy_io do
+            _sample_benchmarks(loop: 10, cycle: 5, extra: 2)
+          end
+          ok {outfile}.exist?
+          jdata = JSON.load(File.read(outfile))
+          ok {jdata["Platform"]}.is_a?(Hash)
+          ok {jdata["Results"]}.is_a?(Array)
+          ok {jdata["Average"]}.is_a?(Array)
+          ok {jdata["RemovedMinMax"]}.is_a?(Array)
+          ok {jdata["Ranking"]}.is_a?(Array)
+          ok {jdata["Matrix"]}.is_a?(Array)
+        ensure
+          File.unlink outfile if File.exist?(outfile)
         end
-        ok {outfile}.exist?
-        jdata = JSON.load(File.read(outfile))
-        ok {jdata["Platform"]}.is_a?(Hash)
-        ok {jdata["Results"]}.is_a?(Array)
-        ok {jdata["Average"]}.is_a?(Array)
-        ok {jdata["RemovedMinMax"]}.is_a?(Array)
-        ok {jdata["Ranking"]}.is_a?(Array)
-        ok {jdata["Matrix"]}.is_a?(Array)
-      ensure
-        ARGV[0..-1] = bkup
-        File.unlink outfile if File.exist?(outfile)
       end
     end
   end
