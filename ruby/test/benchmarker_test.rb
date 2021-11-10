@@ -672,6 +672,11 @@ END
         ok {task.label} == "label1"
         ok {task.tag} == "abc"
       end
+    - spec("[!kh7r9] define empty-loop task if label is nil.") do |scope|
+        task = scope.task nil do end
+        ok {task}.is_a?(Benchmarker::Task)
+        ok {task.label} == "(Empty)"
+      end
     end
 
   + topic('#empty_task()') do

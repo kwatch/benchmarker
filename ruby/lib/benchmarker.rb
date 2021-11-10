@@ -354,6 +354,8 @@ module Benchmarker
     end
 
     def task(label, tag: nil, &block)
+      #; [!kh7r9] define empty-loop task if label is nil.
+      return @__bm.define_empty_task(&block) if label.nil?
       #; [!j6pmr] creates new task object.
       return @__bm.define_task(label, tag: tag, &block)
     end
