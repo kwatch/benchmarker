@@ -259,7 +259,7 @@ Oktest.scope do
           when "baz"    ; a = [0.009, 0.005, 0.014, 0.0145]
           else          ; raise "** internal error"
           end
-          Benchmarker::TimeData.new(*a)
+          Benchmarker::TimeSet.new(*a)
         end
       end
       def with_dummy_task_class()
@@ -326,7 +326,7 @@ Oktest.scope do
         ok {called} == [:empty, :foo, :baz]    # :bar is not included
         ok {sout} =~ /^bar +\# Skipped \(reason: not installed\)$/
       end
-    - spec("[!513ok] subtract timedata of empty loop from timedata of each task.") do
+    - spec("[!513ok] subtract timeset of empty loop from timeset of each task.") do
         with_dummy_task_class do
           bm, called = new_bm()
           sout, serr = capture_sio { bm.__send__(:invoke_tasks) }
@@ -450,25 +450,25 @@ Oktest.scope do
       #ok {entries[0][1]}.is_a?(Benchmarker::Result)
       #ok {entries[1][1]}.is_a?(Benchmarker::Result)
       #
-      entries[0][1].add(Benchmarker::TimeData.new(1.1, 2.1, 3.1, 4.3))
-      entries[0][1].add(Benchmarker::TimeData.new(1.2, 2.2, 3.2, 4.1))
-      entries[0][1].add(Benchmarker::TimeData.new(1.3, 2.3, 3.3, 4.4))
-      entries[0][1].add(Benchmarker::TimeData.new(1.4, 2.4, 3.4, 4.5))
-      entries[0][1].add(Benchmarker::TimeData.new(1.5, 2.5, 3.5, 4.9))
-      entries[0][1].add(Benchmarker::TimeData.new(1.6, 2.6, 3.6, 4.2))
-      entries[0][1].add(Benchmarker::TimeData.new(1.7, 2.7, 3.7, 4.6))
-      entries[0][1].add(Benchmarker::TimeData.new(1.8, 2.8, 3.8, 4.8))
-      entries[0][1].add(Benchmarker::TimeData.new(1.9, 2.9, 3.9, 4.7))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.1, 2.1, 3.1, 4.3))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.2, 2.2, 3.2, 4.1))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.3, 2.3, 3.3, 4.4))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.4, 2.4, 3.4, 4.5))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.5, 2.5, 3.5, 4.9))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.6, 2.6, 3.6, 4.2))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.7, 2.7, 3.7, 4.6))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.8, 2.8, 3.8, 4.8))
+      entries[0][1].add(Benchmarker::TimeSet.new(1.9, 2.9, 3.9, 4.7))
       #
-      entries[1][1].add(Benchmarker::TimeData.new(1.1, 2.1, 3.1, 4.3))
-      entries[1][1].add(Benchmarker::TimeData.new(1.2, 2.2, 3.2, 4.1))
-      entries[1][1].add(Benchmarker::TimeData.new(1.3, 2.3, 3.3, 4.4))
-      entries[1][1].add(Benchmarker::TimeData.new(1.4, 2.4, 3.4, 4.5))
-      entries[1][1].add(Benchmarker::TimeData.new(1.5, 2.5, 3.5, 4.9))
-      entries[1][1].add(Benchmarker::TimeData.new(1.6, 2.6, 3.6, 4.2))
-      entries[1][1].add(Benchmarker::TimeData.new(1.7, 2.7, 3.7, 4.6))
-      entries[1][1].add(Benchmarker::TimeData.new(1.8, 2.8, 3.8, 4.8))
-      entries[1][1].add(Benchmarker::TimeData.new(1.9, 2.9, 3.9, 4.7))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.1, 2.1, 3.1, 4.3))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.2, 2.2, 3.2, 4.1))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.3, 2.3, 3.3, 4.4))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.4, 2.4, 3.4, 4.5))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.5, 2.5, 3.5, 4.9))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.6, 2.6, 3.6, 4.2))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.7, 2.7, 3.7, 4.6))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.8, 2.8, 3.8, 4.8))
+      entries[1][1].add(Benchmarker::TimeSet.new(1.9, 2.9, 3.9, 4.7))
       #
       bm
     end
@@ -563,9 +563,9 @@ END
           task "baz" do nil end
         end
         entries = bm.instance_eval{@entries}
-        entries[0][1].add(Benchmarker::TimeData.new(1.1, 2.1, 3.2, 4.3))
-        entries[1][1].add(Benchmarker::TimeData.new(1.1, 2.1, 3.2, 3.3))
-        entries[2][1].add(Benchmarker::TimeData.new(1.1, 2.1, 3.2, 5.3))
+        entries[0][1].add(Benchmarker::TimeSet.new(1.1, 2.1, 3.2, 4.3))
+        entries[1][1].add(Benchmarker::TimeSet.new(1.1, 2.1, 3.2, 3.3))
+        entries[2][1].add(Benchmarker::TimeSet.new(1.1, 2.1, 3.2, 5.3))
         #
         sout, serr = capture_sio { bm.__send__(:report_stats) }
         ok {sout} == <<'END'
@@ -786,10 +786,10 @@ END
         task.invoke(3)
         ok {cnt} == 3
       end
-    - spec("[!9e5pr] returns TimeData object.") do
+    - spec("[!9e5pr] returns TimeSet object.") do
         task = Benchmarker::Task.new("label1") do nil end
         ret = task.invoke()
-        ok {ret}.is_a?(Benchmarker::TimeData)
+        ok {ret}.is_a?(Benchmarker::TimeSet)
       end
     - spec("[!zw4kt] yields validator with returned value of block.") do
         task = Benchmarker::Task.new("label1") do 234 end
@@ -802,12 +802,12 @@ END
   end
 
 
-+ topic(Benchmarker::TimeData) do
++ topic(Benchmarker::TimeSet) do
 
   + topic('#-()') do
-    - spec("[!cpwgf] returns new TimeData object.") do
-        t1 = Benchmarker::TimeData.new(2.0, 3.0, 4.0, 5.0)
-        t2 = Benchmarker::TimeData.new(2.5, 3.5, 5.0, 5.25)
+    - spec("[!cpwgf] returns new TimeSet object.") do
+        t1 = Benchmarker::TimeSet.new(2.0, 3.0, 4.0, 5.0)
+        t2 = Benchmarker::TimeSet.new(2.5, 3.5, 5.0, 5.25)
         t3 = t2 - t1
         ok {t3} != t1
         ok {t3} != t2
@@ -828,8 +828,8 @@ END
     end
 
   + topic('#add()') do
-    - spec("[!thyms] adds timedata and returns self.") do |r|
-        t = Benchmarker::TimeData.new(1.0, 2.0, 3.0, 4.0)
+    - spec("[!thyms] adds timeset and returns self.") do |r|
+        t = Benchmarker::TimeSet.new(1.0, 2.0, 3.0, 4.0)
         r.add(t)
         ok {r[0]} == t
       end
@@ -844,8 +844,8 @@ END
     end
 
   + topic('#remove_minmax()') do
-    - spec("[!b55zh] removes best and worst timedata and returns them.") do |r|
-        klass = Benchmarker::TimeData
+    - spec("[!b55zh] removes best and worst timeset and returns them.") do |r|
+        klass = Benchmarker::TimeSet
         arr = [
           klass.new(0.1, 0.1, 0.1, 0.3),
           klass.new(0.1, 0.1, 0.1, 0.1),
@@ -881,7 +881,7 @@ END
 
   + topic('#calc_average()') do
     - spec("[!b91w3] returns average of timeddata.") do |r|
-        klass = Benchmarker::TimeData
+        klass = Benchmarker::TimeSet
         arr = [
           klass.new(0.1, 0.1, 0.3, 0.3),
           klass.new(0.2, 0.1, 0.3, 0.1),

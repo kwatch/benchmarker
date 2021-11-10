@@ -153,13 +153,13 @@ module Benchmarker
         if @empty_task
           print "%-#{@width}s " % @empty_task.label unless quiet
           $stdin.flush()                            unless quiet
-          empty_timedata = t = @empty_task.invoke(@loop)
+          empty_timeset = t = @empty_task.invoke(@loop)
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           puts s unless quiet
           #; [!knjls] records result of empty loop into JSON data.
           rows << [@empty_task.label] + s.split().collect(&:to_f)
         else
-          empty_timedata = nil
+          empty_timeset = nil
         end
         #; [!xf84h] invokes all tasks.
         @entries.each do |task, result|
@@ -167,19 +167,19 @@ module Benchmarker
           $stdin.flush()                     unless quiet
           #; [!6g36c] invokes task with validator if validator defined.
           begin
-            timedata = task.invoke(@loop, &@validator)
+            timeset = task.invoke(@loop, &@validator)
           #; [!fv4cv] skips task invocation if `skip_when()` called.
           rescue SkipTask => exc
             puts "   # Skipped (reason: #{exc.message})" unless quiet
             result.skipped = exc.message
             next
           end
-          #; [!513ok] subtract timedata of empty loop from timedata of each task.
-          timedata -= empty_timedata if empty_timedata
-          t = timedata
+          #; [!513ok] subtract timeset of empty loop from timeset of each task.
+          timeset -= empty_timeset if empty_timeset
+          t = timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           puts s unless quiet
-          result.add(timedata)
+          result.add(timeset)
           #; [!ejxif] records result of each task into JSON data.
           rows << [task.label] + s.split().collect(&:to_f)
         end
@@ -253,8 +253,8 @@ module Benchmarker
     def _calc_average()
       #; [!qu29s] calculates average of real times for each task.
       rows = @entries.collect {|task, result|
-        avg_timedata = result.calc_average()
-        [task.label] + avg_timedata.to_a.collect {|x| ("%9.4f" % x).to_f }
+        avg_timeset = result.calc_average()
+        [task.label] + avg_timeset.to_a.collect {|x| ("%9.4f" % x).to_f }
       }
       #; [!jxf28] sets average results into JSON data.
       @jdata[:Average] = rows
@@ -439,12 +439,12 @@ module Benchmarker
       t2 = Process.times
       #; [!zw4kt] yields validator with returned value of block.
       yield ret, @label if block_given?()
-      #; [!9e5pr] returns TimeData object.
+      #; [!9e5pr] returns TimeSet object.
       user  = t2.utime - t1.utime
       sys   = t2.stime - t1.stime
       total = user + sys
       real  = end_t - start_t
-      return TimeData.new(user, sys, total, real)
+      return TimeSet.new(user, sys, total, real)
     end
 
   end
@@ -452,14 +452,14 @@ module Benchmarker
   TASK = Task
 
 
-  TimeData = Struct.new('TimeData', :user, :sys, :total, :real) do
+  TimeSet = Struct.new('TimeSet', :user, :sys, :total, :real) do
     def -(t)
-     #; [!cpwgf] returns new TimeData object.
+     #; [!cpwgf] returns new TimeSet object.
       user  = self.user  - t.user
       sys   = self.sys   - t.sys
       total = self.total - t.total
       real  = self.real  - t.real
-      return TimeData.new(user, sys, total, real)
+      return TimeSet.new(user, sys, total, real)
     end
   end
 
@@ -478,9 +478,9 @@ module Benchmarker
       @iterations.each(&b)
     end
 
-    def add(timedata)
-      #; [!thyms] adds timedata and returns self.
-      @iterations << timedata
+    def add(timeset)
+      #; [!thyms] adds timeset and returns self.
+      @iterations << timeset
       self
     end
 
@@ -494,16 +494,16 @@ module Benchmarker
     end
 
     def remove_minmax(extra, key=:real)
-      #; [!b55zh] removes best and worst timedata and returns them.
+      #; [!b55zh] removes best and worst timeset and returns them.
       i = 0
       pairs = @iterations.collect {|t| [t, i+=1] }
       pairs = pairs.sort_by {|pair| pair[0].__send__(key) }
       removed = []
       extra.times do
-        min_timedata, min_idx = pairs.shift()
-        max_timedata, max_idx = pairs.pop()
-        min_t = min_timedata.__send__(key)
-        max_t = max_timedata.__send__(key)
+        min_timeset, min_idx = pairs.shift()
+        max_timeset, max_idx = pairs.pop()
+        min_t = min_timeset.__send__(key)
+        max_t = max_timeset.__send__(key)
         removed << [min_t, min_idx, max_t, max_idx]
       end
       remained = pairs.sort_by {|_, i| i }.collect {|t, _| t }
@@ -521,7 +521,7 @@ module Benchmarker
         real  += t.real
       end
       n = @iterations.length
-      return TimeData.new(user/n, sys/n, total/n, real/n)
+      return TimeSet.new(user/n, sys/n, total/n, real/n)
     end
 
   end
