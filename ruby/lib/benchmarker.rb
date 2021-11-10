@@ -387,6 +387,7 @@ module Benchmarker
     attr_reader :label, :tag, :block
 
     def invoke(loop=1)
+      GC.start()
       #; [!tgql6] invokes block N times.
       block = @block
       t1 = Process.times
