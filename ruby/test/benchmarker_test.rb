@@ -124,7 +124,7 @@ Oktest.scope do
     - spec("[!w66xp] creates empty task.") do |bm|
         ret = bm.define_empty_task() do nil end
         ok {ret}.is_a?(Benchmarker::Task)
-        ok {ret.label} == "(Empty)"
+        ok {ret.name} == "(Empty)"
       end
     - spec("[!qzr1s] error when called more than once.") do |bm|
         pr = proc { bm.define_empty_task() do nil end }
@@ -137,7 +137,7 @@ Oktest.scope do
     - spec("[!re6b8] creates new task.") do |bm|
         ret = bm.define_task("foobar") do nil end
         ok {ret}.is_a?(Benchmarker::Task)
-        ok {ret.label} == "foobar"
+        ok {ret.name} == "foobar"
       end
     - spec("[!r8o0p] can take a tag.") do |bm|
         ret = bm.define_task("balbla", tag: 'curr') do nil end
@@ -173,68 +173,68 @@ Oktest.scope do
         end
         bm
       end
-      def task_labels(bm)
-        bm.instance_eval {@entries}.collect {|t,_| t.label}
+      def task_names(bm)
+        bm.instance_eval {@entries}.collect {|t,_| t.name}
       end
     - spec("[!f1n1v] filters tasks by task name when filer string is 'task=...'.") do
         bm = new_bm('task=bar')
-        ok {task_labels(bm)} == ["foo", "bar", "baz"]
+        ok {task_names(bm)} == ["foo", "bar", "baz"]
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["bar"]
+        ok {task_names(bm)} == ["bar"]
         #
         bm = new_bm('task=ba*')
-        ok {task_labels(bm)} == ["foo", "bar", "baz"]
+        ok {task_names(bm)} == ["foo", "bar", "baz"]
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["bar", "baz"]
+        ok {task_names(bm)} == ["bar", "baz"]
         #
         bm = new_bm('task=*z')
-        ok {task_labels(bm)} == ["foo", "bar", "baz"]
+        ok {task_names(bm)} == ["foo", "bar", "baz"]
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["baz"]
+        ok {task_names(bm)} == ["baz"]
         #
         bm = new_bm('task=*xx*')
-        ok {task_labels(bm)} == ["foo", "bar", "baz"]
+        ok {task_names(bm)} == ["foo", "bar", "baz"]
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == []
+        ok {task_names(bm)} == []
       end
     - spec("[!m79cf] filters tasks by tag value when filer string is 'tag=...'.") do
         bm = new_bm('tag=xx')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["bar", "baz"]
+        ok {task_names(bm)} == ["bar", "baz"]
         #
         bm = new_bm('tag=yy')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["baz"]
+        ok {task_names(bm)} == ["baz"]
         #
         bm = new_bm('tag=*x')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["bar", "baz"]
+        ok {task_names(bm)} == ["bar", "baz"]
         #
         bm = new_bm('tag=zz')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == []
+        ok {task_names(bm)} == []
       end
     - spec("[!0in0q] supports negative filter by '!=' operator.") do
         bm = new_bm('task!=bar')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["foo", "baz"]
+        ok {task_names(bm)} == ["foo", "baz"]
         #
         bm = new_bm('task!=ba*')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["foo"]
+        ok {task_names(bm)} == ["foo"]
         #
         bm = new_bm('tag!=xx')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["foo"]
+        ok {task_names(bm)} == ["foo"]
         #
         bm = new_bm('tag!=yy')
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["foo", "bar"]
+        ok {task_names(bm)} == ["foo", "bar"]
       end
     - spec("[!g207d] do nothing when filter string is not provided.") do
         bm = new_bm(nil)
         bm.__send__(:filter_tasks)
-        ok {task_labels(bm)} == ["foo", "bar", "baz"]
+        ok {task_names(bm)} == ["foo", "bar", "baz"]
       end
     end
 
@@ -252,7 +252,7 @@ Oktest.scope do
       class Task2 < Benchmarker::Task
         def invoke(loop=1)
           super
-          case @label
+          case @name
           when "(Empty)"; a = [0.002, 0.001, 0.003, 0.0031]
           when "foo"    ; a = [0.005, 0.003, 0.008, 0.0085]
           when "bar"    ; a = [0.007, 0.004, 0.011, 0.0115]
@@ -408,8 +408,8 @@ Oktest.scope do
     end
 
   + topic('#ignore_skipped_tasks()') do
-      def task_labels(bm)
-        bm.instance_eval {@entries}.collect {|t,_| t.label}
+      def task_names(bm)
+        bm.instance_eval {@entries}.collect {|t,_| t.name}
       end
     - spec("[!5gpo7] removes skipped tasks and leaves other tasks.") do
         bm = Benchmarker::Benchmark.new().scope do
@@ -419,9 +419,9 @@ Oktest.scope do
           task "baz" do nil end
         end
         capture_sio { bm.__send__(:invoke_tasks) }
-        ok {task_labels(bm)} == ["foo", "bar", "baz"]
+        ok {task_names(bm)} == ["foo", "bar", "baz"]
         bm.__send__(:ignore_skipped_tasks)
-        ok {task_labels(bm)} == ["baz"]
+        ok {task_names(bm)} == ["baz"]
       end
     end
 
@@ -479,7 +479,7 @@ Oktest.scope do
         arr = bm5.instance_eval{@entries}.collect {|task, r|
           real_list = []
           r.each {|t| real_list << t.real }
-          [task.label, real_list]
+          [task.name, real_list]
         }
         ok {arr} == [
           ["foo", [4.30, 4.40, 4.50, 4.60, 4.70]],
@@ -681,15 +681,15 @@ END
 
   + topic('#task()') do
     - spec("[!j6pmr] creates new task object.") do |scope|
-        task = scope.task "label1", tag: "abc" do end
+        task = scope.task "name1", tag: "abc" do end
         ok {task}.is_a?(Benchmarker::Task)
-        ok {task.label} == "label1"
+        ok {task.name} == "name1"
         ok {task.tag} == "abc"
       end
-    - spec("[!kh7r9] define empty-loop task if label is nil.") do |scope|
+    - spec("[!kh7r9] define empty-loop task if name is nil.") do |scope|
         task = scope.task nil do end
         ok {task}.is_a?(Benchmarker::Task)
-        ok {task.label} == "(Empty)"
+        ok {task.name} == "(Empty)"
       end
     end
 
@@ -697,7 +697,7 @@ END
     - spec("[!ycoch] creates new empty-loop task object.") do |scope|
         task = scope.empty_task do end
         ok {task}.is_a?(Benchmarker::Task)
-        ok {task.label} == "(Empty)"
+        ok {task.name} == "(Empty)"
       end
     end
 
@@ -782,20 +782,20 @@ END
   + topic('#invoke()') do
     - spec("[!tgql6] invokes block N times.") do
         cnt = 0
-        task = Benchmarker::Task.new("label1") do cnt += 1 end
+        task = Benchmarker::Task.new("name1") do cnt += 1 end
         task.invoke(3)
         ok {cnt} == 3
       end
     - spec("[!9e5pr] returns TimeSet object.") do
-        task = Benchmarker::Task.new("label1") do nil end
+        task = Benchmarker::Task.new("name1") do nil end
         ret = task.invoke()
         ok {ret}.is_a?(Benchmarker::TimeSet)
       end
     - spec("[!zw4kt] yields validator with returned value of block.") do
-        task = Benchmarker::Task.new("label1") do 234 end
+        task = Benchmarker::Task.new("name1") do 234 end
         args = nil
         task.invoke() do |*a| args = a end
-        ok {args} == [234, "label1"]
+        ok {args} == [234, "name1"]
       end
     end
 
@@ -1016,8 +1016,8 @@ END
         ok {err} == "-F xyz: invalid filter (expected operator is '=' or '!=')."
         #
         err = nil
-        Benchmarker::OptionParser.parse_options(['-F', 'label=xyz']) do |s| err = s end
-        ok {err} == "-F label=xyz: expected 'task=...' or 'tag=...'."
+        Benchmarker::OptionParser.parse_options(['-F', 'name=xyz']) do |s| err = s end
+        ok {err} == "-F name=xyz: expected 'task=...' or 'tag=...'."
       end
     end
 
@@ -1028,7 +1028,7 @@ END
 Usage: bench.rb [<options>]
   -h, --help     : help message
   -v             : print Benchmarker version
-  -w <N>         : width of task label (default: 30)
+  -w <N>         : width of task name (default: 30)
   -n <N>         : loop N times in each benchmark (default: 1)
   -i <N>         : iterates all benchmark tasks N times (default: 1)
   -x <N>         : ignore worst N results and best N results (default: 0)
@@ -1103,7 +1103,7 @@ END
           :inverse=>true, :outfile=>"tmp.json",
         }
       end
-    - spec("[!nexi8] option '-w' specifies task label width.") do
+    - spec("[!nexi8] option '-w' specifies task name width.") do
         Benchmarker.parse_cmdopts(['-w', '10'])
         sout, serr = capture_sio do
           Benchmarker.scope(width: 20) do

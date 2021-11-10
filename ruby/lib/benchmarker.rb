@@ -85,10 +85,10 @@ module Benchmarker
       return @empty_task
     end
 
-    def define_task(label, tag: nil, &block)   # :nodoc:
+    def define_task(name, tag: nil, &block)   # :nodoc:
       #; [!re6b8] creates new task.
       #; [!r8o0p] can take a tag.
-      task = TASK.new(label, tag: tag, &block)
+      task = TASK.new(name, tag: tag, &block)
       @entries << [task, Result.new]
       return task
     end
@@ -121,7 +121,7 @@ module Benchmarker
         @filter =~ /^(task|tag)(=|!=)(.*)/  or raise "** internal error"
         key = $1; op = $2; pattern = $3
         @entries = @entries.select {|task, _|
-          val = key == 'tag' ? task.tag : task.label
+          val = key == 'tag' ? task.tag : task.name
           if val
             bool = [val].flatten.any? {|v| File.fnmatch(pattern, v, File::FNM_EXTGLOB) }
           else
@@ -151,20 +151,20 @@ module Benchmarker
         puts "%-#{@width}s %9s %9s %9s %9s" % [heading, 'user', 'sys', 'total', 'real'] unless quiet
         #; [!3hgos] invokes empty task at first if defined.
         if @empty_task
-          print "%-#{@width}s " % @empty_task.label unless quiet
-          $stdin.flush()                            unless quiet
+          print "%-#{@width}s " % @empty_task.name unless quiet
+          $stdin.flush()                           unless quiet
           empty_timeset = t = @empty_task.invoke(@loop)
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           puts s unless quiet
           #; [!knjls] records result of empty loop into JSON data.
-          rows << [@empty_task.label] + s.split().collect(&:to_f)
+          rows << [@empty_task.name] + s.split().collect(&:to_f)
         else
           empty_timeset = nil
         end
         #; [!xf84h] invokes all tasks.
         @entries.each do |task, result|
-          print "%-#{@width}s " % task.label unless quiet
-          $stdin.flush()                     unless quiet
+          print "%-#{@width}s " % task.name unless quiet
+          $stdin.flush()                    unless quiet
           #; [!6g36c] invokes task with validator if validator defined.
           begin
             timeset = task.invoke(@loop, &@validator)
@@ -181,7 +181,7 @@ module Benchmarker
           puts s unless quiet
           result.add(timeset)
           #; [!ejxif] records result of each task into JSON data.
-          rows << [task.label] + s.split().collect(&:to_f)
+          rows << [task.name] + s.split().collect(&:to_f)
         end
       end
       nil
@@ -215,16 +215,16 @@ module Benchmarker
       tuples = []
       @entries.each do |task, result|
         removed_list = result.remove_minmax(@extra)
-        tuples << [task.label, removed_list]
+        tuples << [task.name, removed_list]
       end
       #; [!is6ll] returns removed min and max data.
       rows = []
-      tuples.each do |task_label, removed_list|
+      tuples.each do |task_name, removed_list|
         removed_list.each_with_index do |(min_t, min_idx, max_t, max_idx), i|
-          task_label = nil if i > 0
+          task_name = nil if i > 0
           min_t2 = ("%9.4f" % min_t).to_f
           max_t2 = ("%9.4f" % max_t).to_f
-          rows << [task_label, min_t2, "(##{min_idx})", max_t2, "(##{max_idx})"]
+          rows << [task_name, min_t2, "(##{min_idx})", max_t2, "(##{max_idx})"]
         end
       end
       #; [!xwddz] sets removed best and worst results into JSON data.
@@ -254,7 +254,7 @@ module Benchmarker
       #; [!qu29s] calculates average of real times for each task.
       rows = @entries.collect {|task, result|
         avg_timeset = result.calc_average()
-        [task.label] + avg_timeset.to_a.collect {|x| ("%9.4f" % x).to_f }
+        [task.name] + avg_timeset.to_a.collect {|x| ("%9.4f" % x).to_f }
       }
       #; [!jxf28] sets average results into JSON data.
       @jdata[:Average] = rows
@@ -278,7 +278,7 @@ module Benchmarker
       pairs = @entries.collect {|task, result|
         #real = @iter > 1 || @extra > 0 ? result.calc_average().real : result[0].real
         real = result.calc_average().real
-        [task.label, real]
+        [task.name, real]
       }
       pairs = pairs.sort_by {|_, real| real }
       print _render_ranking(pairs)
@@ -289,12 +289,12 @@ module Benchmarker
       #; [!2lu55] calculates ranking data and sets it into JSON data.
       rows = []
       base = nil
-      pairs.each do |task_label, sec|
+      pairs.each do |task_name, sec|
         base ||= sec
         percent = 100.0 * base / sec
         barchart = '*' * (percent / 5.0).round()   # max 20 chars (=100%)
         loop = @inverse == true ? (@loop || 1) : (@inverse || @loop || 1)
-        rows << [task_label, ("%.4f" % sec).to_f, "%.1f%%" % percent,
+        rows << [task_name, ("%.4f" % sec).to_f, "%.1f%%" % percent,
                  "%.2f times/sec" % (loop / sec), barchart]
       end
       @jdata[:Ranking] = rows
@@ -306,9 +306,9 @@ module Benchmarker
       else
         buf << "%-#{@width}s %9s\n"     % [heading, 'real']
       end
-      rows.each do |task_label, sec, percent, inverse, barchart|
+      rows.each do |task_name, sec, percent, inverse, barchart|
         s = @inverse ? "%20s" % inverse.split()[0] : barchart
-        buf << "%-#{@width}s %9.4f (%6s) %s\n" % [task_label, sec, percent, s]
+        buf << "%-#{@width}s %9.4f (%6s) %s\n" % [task_name, sec, percent, s]
       end
       return buf.join()
     end
@@ -316,9 +316,9 @@ module Benchmarker
     def _render_matrix(pairs)
       #; [!2lu55] calculates ranking data and sets it into JSON data.
       rows = []
-      pairs.each_with_index do |(task_label, sec), i|
+      pairs.each_with_index do |(task_name, sec), i|
         base = pairs[i][1]
-        row = ["[#{i+1}] #{task_label}", ("%9.4f" % sec).to_f]
+        row = ["[#{i+1}] #{task_name}", ("%9.4f" % sec).to_f]
         pairs.each {|_, r| row << "%.1f%%" % (100.0 * r / base) }
         rows << row
       end
@@ -329,8 +329,8 @@ module Benchmarker
       s = "%-#{@width}s %9s" % [heading, 'real']
       (1..pairs.length).each {|i| s += " %8s" % "[#{i}]" }
       buf << "#{s}\n"
-      rows.each do |task_label, real, *percents|
-        s = "%-#{@width}s %9.4f" % [task_label, real]
+      rows.each do |task_name, real, *percents|
+        s = "%-#{@width}s %9.4f" % [task_name, real]
         percents.each {|p| s += " %8s" % p }
         buf << "#{s}\n"
       end
@@ -361,11 +361,11 @@ module Benchmarker
       @__bm = bm
     end
 
-    def task(label, tag: nil, &block)
-      #; [!kh7r9] define empty-loop task if label is nil.
-      return @__bm.define_empty_task(&block) if label.nil?
+    def task(name, tag: nil, &block)
+      #; [!kh7r9] define empty-loop task if name is nil.
+      return @__bm.define_empty_task(&block) if name.nil?
       #; [!j6pmr] creates new task object.
-      return @__bm.define_task(label, tag: tag, &block)
+      return @__bm.define_task(name, tag: tag, &block)
     end
 
     def empty_task(&block)
@@ -418,13 +418,13 @@ module Benchmarker
 
   class Task
 
-    def initialize(label, tag: nil, &block)
-      @label = label
+    def initialize(name, tag: nil, &block)
+      @name  = name
       @tag   = tag
       @block = block
     end
 
-    attr_reader :label, :tag, :block
+    attr_reader :name, :tag, :block
 
     def invoke(loop=1)
       GC.start()
@@ -438,7 +438,7 @@ module Benchmarker
       end_t = Time.now
       t2 = Process.times
       #; [!zw4kt] yields validator with returned value of block.
-      yield ret, @label if block_given?()
+      yield ret, @name if block_given?()
       #; [!9e5pr] returns TimeSet object.
       user  = t2.utime - t1.utime
       sys   = t2.stime - t1.stime
@@ -654,7 +654,7 @@ module Benchmarker
 Usage: #{command} [<options>]
   -h, --help     : help message
   -v             : print Benchmarker version
-  -w <N>         : width of task label (default: 30)
+  -w <N>         : width of task name (default: 30)
   -n <N>         : loop N times in each benchmark (default: 1)
   -i <N>         : iterates all benchmark tasks N times (default: 1)
   -x <N>         : ignore worst N results and best N results (default: 0)
@@ -688,7 +688,7 @@ END
       exit 0
     end
     #; [!s7y6x] keeps command-line options in order to overwirte existing options.
-    #; [!nexi8] option '-w' specifies task label width.
+    #; [!nexi8] option '-w' specifies task name width.
     #; [!raki9] option '-n' specifies count of loop.
     #; [!mt7lw] option '-i' specifies number of iteration.
     #; [!7f2k3] option '-x' specifies number of best/worst tasks removed.
