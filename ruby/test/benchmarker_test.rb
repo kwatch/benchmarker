@@ -818,6 +818,17 @@ END
       end
     end
 
+  + topic('#div()') do
+    - spec("[!4o9ns] returns new TimeSet object which values are divided by n.") do
+        t1 = Benchmarker::TimeSet.new(2.5, 3.5, 5.0, 5.25)
+        t2 = t1.div(100)
+        ok {t2.user } == 0.025
+        ok {t2.sys  } == 0.035
+        ok {t2.total} == 0.050
+        ok {t2.real } == 0.0525
+      end
+    end
+
   end
 
 

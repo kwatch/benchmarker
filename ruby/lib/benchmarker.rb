@@ -453,6 +453,7 @@ module Benchmarker
 
 
   TimeSet = Struct.new('TimeSet', :user, :sys, :total, :real) do
+
     def -(t)
      #; [!cpwgf] returns new TimeSet object.
       user  = self.user  - t.user
@@ -461,6 +462,16 @@ module Benchmarker
       real  = self.real  - t.real
       return TimeSet.new(user, sys, total, real)
     end
+
+    def div(n)
+      #; [!4o9ns] returns new TimeSet object which values are divided by n.
+      user  = self.user  / n
+      sys   = self.sys   / n
+      total = self.total / n
+      real  = self.real  / n
+      return TimeSet.new(user, sys, total, real)
+    end
+
   end
 
 
