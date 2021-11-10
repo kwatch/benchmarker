@@ -76,19 +76,19 @@ module Benchmarker
       self
     end
 
-    def define_empty_task(&block)   # :nodoc:
+    def define_empty_task(code=nil, &block)   # :nodoc:
       #; [!qzr1s] error when called more than once.
       @empty_task.nil?  or
         raise "cannot define empty task more than once."
       #; [!w66xp] creates empty task.
-      @empty_task = TASK.new("(Empty)", &block)
+      @empty_task = TASK.new("(Empty)", code, &block)
       return @empty_task
     end
 
-    def define_task(name, tag: nil, &block)   # :nodoc:
+    def define_task(name, code=nil, tag: nil, &block)   # :nodoc:
       #; [!re6b8] creates new task.
       #; [!r8o0p] can take a tag.
-      task = TASK.new(name, tag: tag, &block)
+      task = TASK.new(name, code, tag: tag, &block)
       @entries << [task, Result.new]
       return task
     end
@@ -175,7 +175,10 @@ module Benchmarker
             next
           end
           #; [!513ok] subtract timeset of empty loop from timeset of each task.
-          timeset -= empty_timeset if empty_timeset
+          if empty_timeset
+            timeset -= empty_timeset      unless task.has_code?
+            timeset -= empty_timeset.div(100) if task.has_code?
+          end
           t = timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           puts s unless quiet
@@ -361,16 +364,27 @@ module Benchmarker
       @__bm = bm
     end
 
-    def task(name, tag: nil, &block)
+    def task(name, code=nil, binding=nil, tag: nil, &block)
+      #; [!843ju] when code argument provided...
+      if code
+        #; [!bwfak] code argument and block argument are exclusive.
+        ! block_given?()  or
+          raise TaskError, "task(#{name.inspect}): cannot accept #{code.class} argument when block argument given."
+        #; [!4dm9q] generates block argument if code argument passed.
+        location = caller_locations(1, 1).first
+        defcode  = "proc do #{(code+';') * 100} end"   # repeat code 100 times
+        binding ||= ::TOPLEVEL_BINDING
+        block = eval defcode, binding, location.path, location.lineno+1
+      end
       #; [!kh7r9] define empty-loop task if name is nil.
-      return @__bm.define_empty_task(&block) if name.nil?
+      return @__bm.define_empty_task(code, &block) if name.nil?
       #; [!j6pmr] creates new task object.
-      return @__bm.define_task(name, tag: tag, &block)
+      return @__bm.define_task(name, code, tag: tag, &block)
     end
 
-    def empty_task(&block)
+    def empty_task(code=nil, binding=nil, &block)
       #; [!ycoch] creates new empty-loop task object.
-      return @__bm.define_empty_task(&block)
+      return task(nil, code, binding, &block)
     end
 
     def skip_when(cond, reason)
@@ -416,17 +430,38 @@ module Benchmarker
   end
 
 
+  class TaskError < StandardError
+  end
+
+
   class Task
 
-    def initialize(name, tag: nil, &block)
+    def initialize(name, code=nil, tag: nil, &block)
       @name  = name
+      @code  = code
       @tag   = tag
       @block = block
     end
 
     attr_reader :name, :tag, :block
 
+    def has_code?
+      return !!@code
+    end
+
     def invoke(loop=1)
+      #; [!s2f6v] when task block is build from repeated code...
+      if @code
+        #; [!i2r8o] error when number of loop is less than 100.
+        loop >= 100  or
+          raise TaskError, "task(#{@name.inspect}): number of loop (=#{loop}) should be >= 100, but not."
+        #; [!kzno6] error when number of loop is not a multiple of 100.
+        loop % 100 == 0  or
+          raise TaskError, "task(#{@name.inspect}): number of loop (=#{loop}) should be a multiple of 100, but not."
+        #; [!gbukv] changes number of loop to 1/100.
+        loop = loop / 100
+      end
+      #; [!frq25] kicks GC before calling task block.
       GC.start()
       #; [!tgql6] invokes block N times.
       block = @block

@@ -691,6 +691,19 @@ END
         ok {task}.is_a?(Benchmarker::Task)
         ok {task.name} == "(Empty)"
       end
+    + case_when("[!843ju] when code argument provided...") do
+      - spec("[!bwfak] code argument and block argument are exclusive.") do |scope|
+          pr = proc { scope.task "foo", "x = 1+1" do nil end }
+          ok {pr}.raise?(Benchmarker::TaskError, "task(\"foo\"): cannot accept String argument when block argument given.")
+        end
+      - spec("[!4dm9q] generates block argument if code argument passed.") do |scope|
+          x = 0
+          task = scope.task "foo", "x += 1", binding()
+          ok {task.instance_eval{@block}}.is_a?(Proc)
+          task.instance_eval{@block}.call()
+          ok {x} == 100
+        end
+      end
     end
 
   + topic('#empty_task()') do
@@ -780,6 +793,64 @@ END
 + topic(Benchmarker::Task) do
 
   + topic('#invoke()') do
+    + case_when("[!s2f6v] when task block is build from repeated code...") do
+      - spec("[!i2r8o] error when number of loop is less than 100.") do
+          capture_sio do
+            pr = proc do
+              Benchmarker.scope(loop: 100) do
+                task "foo", "x = 1+1"
+              end
+            end
+            ok {pr}.NOT.raise?
+            #
+            pr = proc do
+              Benchmarker.scope(loop: 99) do
+                task "foo", "x = 1+1"
+              end
+            end
+            ok {pr}.raise?(Benchmarker::TaskError, 'task("foo"): number of loop (=99) should be >= 100, but not.')
+          end
+        end
+      - spec("[!kzno6] error when number of loop is not a multiple of 100.") do
+          capture_sio do
+            pr = proc do
+              Benchmarker.scope(loop: 200) do
+                task "foo", "x = 1+1"
+              end
+            end
+            ok {pr}.NOT.raise?
+            #
+            pr = proc do
+              Benchmarker.scope(loop: 250) do
+                task "foo", "x = 1+1"
+              end
+            end
+            ok {pr}.raise?(Benchmarker::TaskError, 'task("foo"): number of loop (=250) should be a multiple of 100, but not.')
+          end
+        end
+      - spec("[!gbukv] changes number of loop to 1/100.") do
+          capture_sio do
+            called = 0
+            Benchmarker.scope(loop: 200) do
+              task "foo", "called +=1", binding()
+            end
+            ok {called} == 200
+          end
+        end
+      end
+    - spec("[!frq25] kicks GC before calling task block.") do
+        capture_sio do
+          rec = recorder()
+          rec.record_method(GC, :start)
+          called = false
+          Benchmarker.scope() do
+            task "foo" do called = true end
+          end
+          ok {called} == true
+          ok {rec[0].obj}  == GC
+          ok {rec[0].name} == :start
+        end
+      end
     - spec("[!tgql6] invokes block N times.") do
         cnt = 0
         task = Benchmarker::Task.new("name1") do cnt += 1 end
