@@ -383,10 +383,35 @@ module Benchmarker
       return @__bm.define_validator(&block)
     end
 
+    def assert(expr, errmsg)
+      #; [!a0c7e] do nothing if assertion succeeded.
+      #; [!5vmbc] raises error if assertion failed.
+      #; [!7vt5l] puts newline if assertion failed.
+      return if expr
+      puts ""
+      raise ValidationFailed, errmsg
+    rescue => exc
+      #; [!mhw59] makes error backtrace compact.
+      exc.backtrace.reject! {|x| x =~ /[\/\\:]benchmarker\.rb.*:/ }
+      raise
+    end
+
+    def assert_eq(actual, expected, errmsg=nil)
+      #; [!8m6bh] do nothing if ectual == expected.
+      #; [!f9ey6] raises error unless actual == expected.
+      return if actual == expected
+      errmsg ||= "#{actual.inspect} == #{expected.inspect}: failed."
+      assert false, errmsg
+    end
+
   end
 
 
   class SkipTask < StandardError
+  end
+
+
+  class ValidationFailed < StandardError
   end
 
 

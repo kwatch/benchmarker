@@ -723,6 +723,57 @@ END
       end
     end
 
+  + topic('#assert()') do
+    - spec("[!a0c7e] do nothing if assertion succeeded.") do |scope|
+        capture_sio do
+          pr = proc { scope.assert 1+1 == 2, "1+1 is 2" }
+          ok {pr}.NOT.raise?
+        end
+      end
+    - spec("[!5vmbc] raises error if assertion failed.") do |scope|
+        capture_sio do
+          pr = proc { scope.assert 1+1 == 1, "1+1 is not 1" }
+          ok {pr}.raise?(Benchmarker::ValidationFailed, "1+1 is not 1")
+        end
+      end
+    - spec("[!7vt5l] puts newline if assertion failed.") do |scope|
+        sout, serr = capture_sio do
+          pr = proc { scope.assert true, "" }
+          ok {pr}.NOT.raise?(Benchmarker::ValidationFailed)
+        end
+        ok {sout} == ""
+        #
+        sout, serr = capture_sio do
+          pr = proc { scope.assert false, "" }
+          ok {pr}.raise?(Benchmarker::ValidationFailed)
+        end
+        ok {sout} == "\n"
+      end
+    - spec("[!mhw59] makes error backtrace compact.") do |scope|
+        capture_sio do
+          pr = proc { scope.assert false, "" }
+          ok {pr}.raise?(Benchmarker::ValidationFailed) do |exc|
+            ok {exc.backtrace}.all? {|x| x !~ /benchmarker\.rb/ }
+          end
+        end
+      end
+    end
+
+  + topic('#assert_eq()') do
+    - spec("[!8m6bh] do nothing if ectual == expected.") do |scope|
+        capture_sio do
+          pr = proc { scope.assert_eq 1+1, 2 }
+          ok {pr}.NOT.raise?
+        end
+      end
+    - spec("[!f9ey6] raises error unless actual == expected.") do |scope|
+        capture_sio do
+          pr = proc { scope.assert_eq 'a'*3, 'aa' }
+          ok {pr}.raise?(Benchmarker::ValidationFailed, '"aaa" == "aa": failed.')
+        end
+      end
+    end
+
   end
 
 
