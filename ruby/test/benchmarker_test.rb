@@ -280,6 +280,20 @@ Oktest.scope do
         ok {called} == [:empty, :foo, :bar, :baz]
         ok {sout} =~ /^\(Empty\) +.*\nfoo +.*\nbar +.*\nbaz +.*\n/
       end
+    - spec("[!6g36c] invokes task with validator if validator defined.") do
+        bm = Benchmarker::Benchmark.new().scope do
+          task "foo" do 100 end
+          task "bar" do 123 end
+          validate do |actual, name|
+            actual == 100  or
+              raise "task(#{name.inspect}): #{actual.inspect} == 100: failed."
+          end
+        end
+        pr = proc do
+          capture_sio { bm.__send__(:invoke_tasks) }
+        end
+        ok {pr}.raise?(RuntimeError, "task(\"bar\"): 123 == 100: failed.")
+      end
     - spec("[!c8yak] invokes tasks once if 'iter' option not specified.") do
         bm, called = new_bm(iter: nil)
         sout, serr = capture_sio { bm.__send__(:invoke_tasks) }
@@ -698,6 +712,17 @@ END
       end
     end
 
+  + topic('#validate()') do
+    - spec("[!q2aev] defines validator.") do
+        bm = Benchmarker::Benchmark.new()
+        scope = Benchmarker::Scope.new(bm)
+        ok {bm.instance_eval{@validator}} == nil
+        scope.validate do |ret| end
+        ok {bm.instance_eval{@validator}} != nil
+        ok {bm.instance_eval{@validator}}.is_a?(Proc)
+      end
+    end
+
   end
 
 
@@ -714,6 +739,12 @@ END
         task = Benchmarker::Task.new("label1") do nil end
         ret = task.invoke()
         ok {ret}.is_a?(Benchmarker::TimeData)
+      end
+    - spec("[!zw4kt] yields validator with returned value of block.") do
+        task = Benchmarker::Task.new("label1") do 234 end
+        args = nil
+        task.invoke() do |*a| args = a end
+        ok {args} == [234, "label1"]
       end
     end
 

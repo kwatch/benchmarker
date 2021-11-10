@@ -61,6 +61,7 @@ module Benchmarker
       @entries = []    # [[Task, Resutl]]
       @jdata   = {}
       @empty_task = nil
+      @validator  = nil
     end
 
     attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :filter
@@ -89,6 +90,11 @@ module Benchmarker
       task = TASK.new(label, tag: tag, &block)
       @entries << [task, Result.new]
       return task
+    end
+
+    def define_validator(&block)
+      @validator = block
+      self
     end
 
     def run()
@@ -158,8 +164,9 @@ module Benchmarker
         @entries.each do |task, result|
           print "%-#{@width}s " % task.label unless quiet
           $stdin.flush()                     unless quiet
+          #; [!6g36c] invokes task with validator if validator defined.
           begin
-            timedata = task.invoke(@loop)
+            timedata = task.invoke(@loop, &@validator)
           #; [!fv4cv] skips task invocation if `skip_when()` called.
           rescue SkipTask => exc
             puts "   # Skipped (reason: #{exc.message})" unless quiet
@@ -371,6 +378,11 @@ module Benchmarker
       raise SkipTask, reason if cond
     end
 
+    def validate(&block)
+      #; [!q2aev] defines validator.
+      return @__bm.define_validator(&block)
+    end
+
   end
 
 
@@ -395,10 +407,12 @@ module Benchmarker
       t1 = Process.times
       start_t = Time.now
       while (loop -= 1) >= 0
-        block.call()
+        ret = block.call()
       end
       end_t = Time.now
       t2 = Process.times
+      #; [!zw4kt] yields validator with returned value of block.
+      yield ret, @label if block_given?()
       #; [!9e5pr] returns TimeData object.
       user  = t2.utime - t1.utime
       sys   = t2.stime - t1.stime
