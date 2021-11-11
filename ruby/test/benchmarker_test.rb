@@ -163,6 +163,26 @@ Oktest.scope do
       end
     end
 
+  + topic('#define_hook()') do |bm|
+    - spec("[!2u53t] register proc object with symbol key.") do |bm|
+        called = false
+        bm.define_hook(:hook1) do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :hook1)
+        ok {called} == true
+      end
+    end
+
+  + topic('#call_hook()') do |bm|
+    - spec("[!0to2s] calls hook with arguments.") do |bm|
+        args = nil
+        bm.define_hook(:hook2) do |*a| args = a end
+        ok {args} == nil
+        bm.__send__(:call_hook, :hook2, "abc", tag: "xyz")
+        ok {args} == ["abc", {tag: "xyz"}]
+      end
+    end
+
   + topic('#run()') do
     - spec("[!0fo0l] runs benchmark tasks and reports result.") do |bm|
         foo_called = false; bar_called = false
@@ -738,10 +758,12 @@ END
 
 + topic(Benchmarker::Scope) do
 
-    fixture :scope do
-      bm = Benchmarker::Benchmark.new()
-      scope = Benchmarker::Scope.new(bm)
-      scope
+    fixture :bm do
+      Benchmarker::Benchmark.new()
+    end
+
+    fixture :scope do |bm|
+      Benchmarker::Scope.new(bm)
     end
 
   + topic('#task()') do
@@ -849,6 +871,46 @@ END
           pr = proc { scope.assert_eq 'a'*3, 'aa' }
           ok {pr}.raise?(Benchmarker::ValidationFailed, '"aaa" == "aa": failed.')
         end
+      end
+    end
+
+  + topic('#before()') do
+    - spec("[!2ir4q] defines 'before' hook.") do |scope, bm|
+        called = false
+        scope.before do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :before)
+        ok {called} == true
+      end
+    end
+
+  + topic('#after()') do
+    - spec("[!05up6] defines 'after' hook.") do |scope, bm|
+        called = false
+        scope.after do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :after)
+        ok {called} == true
+      end
+    end
+
+  + topic('#before_all()') do
+    - spec("[!1oier] defines 'before_all' hook.") do |scope, bm|
+        called = false
+        scope.before_all do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :before_all)
+        ok {called} == true
+      end
+    end
+
+  + topic('#after_all()') do
+    - spec("[!z7xop] defines 'after_all' hook.") do |scope, bm|
+        called = false
+        scope.after_all do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :after_all)
+        ok {called} == true
       end
     end
 

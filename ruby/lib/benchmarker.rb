@@ -60,6 +60,7 @@ module Benchmarker
       end
       @entries = []    # [[Task, Resutl]]
       @jdata   = {}
+      @hooks   = {}    # {before: Proc, after: Proc, ...}
       @empty_task = nil
       @validator  = nil
     end
@@ -103,6 +104,19 @@ module Benchmarker
       @validator = block
       self
     end
+
+    def define_hook(key, &block)
+      #; [!2u53t] register proc object with symbol key.
+      @hooks[key] = block
+      self
+    end
+
+    def call_hook(key, *args)
+      #; [!0to2s] calls hook with arguments.
+      fn = @hooks[key]
+      fn.call(*args) if fn
+    end
+    private :call_hook
 
     def run(warmup: false)
       #; [!0fo0l] runs benchmark tasks and reports result.
@@ -443,6 +457,26 @@ module Benchmarker
       return if actual == expected
       errmsg ||= "#{actual.inspect} == #{expected.inspect}: failed."
       assert false, errmsg
+    end
+
+    def before(&block)
+      #; [!2ir4q] defines 'before' hook.
+      @__bm.define_hook(:before, &block)
+    end
+
+    def after(&block)
+      #; [!05up6] defines 'after' hook.
+      @__bm.define_hook(:after, &block)
+    end
+
+    def before_all(&block)
+      #; [!1oier] defines 'before_all' hook.
+      @__bm.define_hook(:before_all, &block)
+    end
+
+    def after_all(&block)
+      #; [!z7xop] defines 'after_all' hook.
+      @__bm.define_hook(:after_all, &block)
     end
 
   end
