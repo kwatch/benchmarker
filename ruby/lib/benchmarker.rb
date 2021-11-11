@@ -518,6 +518,10 @@ module Benchmarker
       return @iterations[idx]
     end
 
+    def length()
+      return @iterations.length
+    end
+
     def each(&b)
       @iterations.each(&b)
     end
@@ -525,6 +529,12 @@ module Benchmarker
     def add(timeset)
       #; [!thyms] adds timeset and returns self.
       @iterations << timeset
+      self
+    end
+
+    def clear()
+      #; [!fxrn6] clears timeset array.
+      @iterations.clear()
       self
     end
 

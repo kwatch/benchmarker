@@ -917,6 +917,17 @@ END
       end
     end
 
+  + topic('#clear()') do
+    - spec("[!fxrn6] clears timeset array.") do |r|
+        ok {r.length} == 0
+        r.add(Benchmarker::TimeSet.new(1.0, 2.0, 3.0, 4.0))
+        r.add(Benchmarker::TimeSet.new(0.0, 0.0, 0.0, 0.0))
+        ok {r.length} == 2
+        r.clear()
+        ok {r.length} == 0
+      end
+    end
+
   + topic('#skipped?') do
     - spec("[!bvzk9] returns true if reason has set, or returns false.") do |r|
         ok {r.skipped?} == false
