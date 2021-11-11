@@ -451,6 +451,25 @@ Oktest.scope do
           ok {jdata[:Results]} == [result, result, result]
         end
       end
+    - spec("[!vbhvz] sleeps N seconds after each task if `sleep` option specified.") do
+        new_bm = proc {|kwargs|
+          Benchmarker::Benchmark.new(**kwargs).scope do
+            empty_task do nil end
+            task "foo" do nil end
+            task "bar" do nil end
+          end
+        }
+        #
+        bm = new_bm.call({})
+        start = Time.now
+        capture_sio { bm.__send__(:invoke_tasks) }
+        ok {Time.now - start} < 0.1
+        #
+        bm = new_bm.call({sleep: 1})
+        start = Time.now
+        capture_sio { bm.__send__(:invoke_tasks) }
+        ok {Time.now - start} > 3.0
+      end
     end
 
   + topic('#ignore_skipped_tasks()') do
@@ -1149,6 +1168,17 @@ END
         Benchmarker::OptionParser.parse_options(['-Izz']) do |s| err = s end
         ok {err} == "-Izz: integer expected."
       end
+    - spec("[!nz15w] convers '-s' option value into number (integer or float).") do
+        options, _ = Benchmarker::OptionParser.parse_options(['-s', '123'])
+        ok {options} == {"s"=>123}
+        options, _ = Benchmarker::OptionParser.parse_options(['-s', '0.5'])
+        ok {options} == {"s"=>0.5}
+      end
+    - spec("[!3x1m7] yields error message when argument of '-s' is not a number.") do
+        err = nil
+        Benchmarker::OptionParser.parse_options(['-s', 'aa']) do |s| err = s end
+        ok {err} == "-s aa: number expected."
+      end
     - spec("[!emavm] yields error message when argumetn of '-F' option is invalid.") do
         err = nil
         Benchmarker::OptionParser.parse_options(['-F', 'xyz']) do |s| err = s end
@@ -1174,6 +1204,7 @@ Usage: bench.rb [<options>]
   -I[<N>]        : print inverse number (= N/sec) (default: same as '-n')
   -o <file>      : output file in JSON format
   -q             : quiet a little (suppress output of each iteration)
+  -s <N>         : sleep N seconds after each benchmark task
   -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
   -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
   --<key>[=<val>]: define global variable `$var = "val"`

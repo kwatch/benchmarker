@@ -39,7 +39,7 @@ module Benchmarker
 
   class Benchmark
 
-    def initialize(title: nil, width: 30, loop: 1, iter: 1, extra: 0, inverse: false, outfile: nil, quiet: false, filter: nil)
+    def initialize(title: nil, width: 30, loop: 1, iter: 1, extra: 0, inverse: false, outfile: nil, quiet: false, sleep: nil, filter: nil)
       @title   = title
       @width   = width   || 30
       @loop    = loop    || 1
@@ -48,6 +48,7 @@ module Benchmarker
       @inverse = inverse || false
       @outfile = outfile
       @quiet   = quiet   || false
+      @sleep   = sleep
       @filter  = filter
       if filter
         #; [!0mz0f] error when filter string is invalid format.
@@ -63,7 +64,7 @@ module Benchmarker
       @validator  = nil
     end
 
-    attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :filter
+    attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :sleep, :filter
 
     def clear()
       #; [!phqdn] clears benchmark result and JSON data.
@@ -179,6 +180,7 @@ module Benchmarker
           puts s unless quiet
           #; [!knjls] records result of empty loop into JSON data.
           rows << [@empty_task.name] + s.split().collect(&:to_f)
+          Kernel.sleep @sleep if @sleep
         else
           empty_timeset = nil
         end
@@ -206,6 +208,8 @@ module Benchmarker
           result.add(timeset)
           #; [!ejxif] records result of each task into JSON data.
           rows << [task.name] + s.split().collect(&:to_f)
+          #; [!vbhvz] sleeps N seconds after each task if `sleep` option specified.
+          Kernel.sleep @sleep if @sleep
         end
       end
       nil
@@ -703,7 +707,7 @@ module Benchmarker
     end
 
     def self.parse_options(argv=ARGV, &b)
-      parser = self.new("hvq", "wnixoF", "I")
+      parser = self.new("hvq", "wnixosF", "I")
       options, keyvals = parser.parse(argv, &b)
       #; [!v19y5] converts option argument into integer if necessary.
       "wnixI".each_char do |c|
@@ -714,6 +718,18 @@ module Benchmarker
           yield "-#{c}#{c == 'I' ? '' : ' '}#{options[c]}: integer expected."
         options[c] = options[c].to_i
       end
+      #; [!nz15w] convers '-s' option value into number (integer or float).
+      "s".each_char do |c|
+        next unless options.key?(c)
+        case options[c]
+        when /\A\d+\z/      ; options[c] = options[c].to_i
+        when /\A\d+\.\d+\z/ ; options[c] = options[c].to_f
+        else
+          #; [!3x1m7] yields error message when argument of '-s' is not a number.
+          yield "-#{c} #{options[c]}: number expected."
+        end
+      end
+      #
       if options['F']
         #; [!emavm] yields error message when argumetn of '-F' option is invalid.
         if options['F'] !~ /^(\w+)(=|!=)[^=]/
@@ -739,6 +755,7 @@ Usage: #{command} [<options>]
   -I[<N>]        : print inverse number (= N/sec) (default: same as '-n')
   -o <file>      : output file in JSON format
   -q             : quiet a little (suppress output of each iteration)
+  -s <N>         : sleep N seconds after each benchmark task
   -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
   -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
   --<key>[=<val>]: define global variable `$var = "val"`
@@ -773,6 +790,7 @@ END
     #; [!r0439] option '-I' specifies inverse switch.
     #; [!4c73x] option '-o' specifies outout JSON file.
     #; [!02ml5] option '-q' specifies quiet mode.
+    #; [!6nxi8] option '-s' specifies sleep time.
     #; [!muica] option '-F' specifies filter.
     OPTIONS[:width]   = options['w'] if options['w']
     OPTIONS[:loop]    = options['n'] if options['n']
@@ -781,6 +799,7 @@ END
     OPTIONS[:inverse] = options['I'] if options['I']
     OPTIONS[:outfile] = options['o'] if options['o']
     OPTIONS[:quiet]   = options['q'] if options['q']
+    OPTIONS[:sleep]   = options['s'] if options['s']
     OPTIONS[:filter]  = options['F'] if options['F']
     #; [!3khc4] sets global variables if long option specified.
     keyvals.each {|k, v| eval "$#{k} = #{v.inspect}" }
