@@ -211,6 +211,24 @@ Oktest.scope do
         sout.scan(/^##  +.*\nfoo +/) { n += 1 }
         ok {n} == 1
       end
+    - spec("[!2j4ks] calls 'before_all' hook.") do |bm|
+        called = 0
+        bm.define_hook(:before_all) do called += 1 end
+        ok {called} == 0
+        capture_sio { bm.run() }
+        ok {called} == 1
+      end
+    - spec("[!w1rq7] calls 'after_all' hook even if error raised.") do |bm|
+        called = 0
+        bm.define_hook(:after_all) do called += 1 end
+        bm.define_task("foo") do 1/0 end   # raises ZeroDivisionError
+        ok {called} == 0
+        capture_sio do
+          pr = proc { bm.run() }
+          ok {pr}.raise?(ZeroDivisionError)
+        end
+        ok {called} == 1
+      end
     end
 
   + topic('#_ignore_output()') do
@@ -379,6 +397,38 @@ Oktest.scope do
         ok {called} == [:empty, :foo, :bar, :baz] * 16
         ok {sout} =~ /^## \(#1\)/
         ok {sout} =~ /^## \(#16\)/
+      end
+    - spec("[!hbass] calls 'before' hook with task name and tag.") do
+        called = 0
+        argslist = []
+        bm = Benchmarker::Benchmark.new().scope do
+          before do |*a| called += 1; argslist << a end
+          task "foo" do nil end
+          task "bar", tag: 'yy' do nil end
+        end
+        ok {called} == 0
+        ok {argslist} == []
+        capture_sio { bm.__send__(:invoke_tasks) }
+        ok {called} == 2
+        ok {argslist} == [["foo", {:tag=>nil}], ["bar", {:tag=>'yy'}]]
+      end
+    - spec("[!7960c] calls 'after' hook with task name and tag even if error raised.") do
+        called = 0
+        argslist = []
+        bm = Benchmarker::Benchmark.new().scope do
+          after do |*a| called += 1; argslist << a end
+          task "foo"            do nil end
+          task "bar", tag: 'yy' do 1/0 end     # raises ZeroDivisionError
+          task "baz", tag: 'zz' do nil end
+        end
+        ok {called} == 0
+        ok {argslist} == []
+        capture_sio do
+          pr = proc { bm.__send__(:invoke_tasks) }
+          ok {pr}.raise?(ZeroDivisionError)
+        end
+        ok {called} == 2
+        ok {argslist} == [["foo", {:tag=>nil}], ["bar", {:tag=>'yy'}]]
       end
     - spec("[!fv4cv] skips task invocation if `skip_when()` called.") do
         called = []

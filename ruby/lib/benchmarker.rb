@@ -122,12 +122,19 @@ module Benchmarker
       #; [!0fo0l] runs benchmark tasks and reports result.
       report_environment()
       filter_tasks()
-      if warmup
-        #; [!6h26u] runs preriminary round when `warmup: true` provided.
-        _ignore_output { invoke_tasks() }
-        clear()
+      #; [!2j4ks] calls 'before_all' hook.
+      call_hook(:before_all)
+      begin
+        if warmup
+          #; [!6h26u] runs preriminary round when `warmup: true` provided.
+          _ignore_output { invoke_tasks() }
+          clear()
+        end
+        invoke_tasks()
+      #; [!w1rq7] calls 'after_all' hook even if error raised.
+      ensure
+        call_hook(:after_all)
       end
-      invoke_tasks()
       ignore_skipped_tasks()
       report_minmax()
       report_average()
@@ -189,7 +196,13 @@ module Benchmarker
         if @empty_task
           print "%-#{@width}s " % @empty_task.name unless quiet
           $stdin.flush()                           unless quiet
-          empty_timeset = t = @empty_task.invoke(@loop)
+          #call_hook(:before, nil, tag: nil)
+          #begin
+            empty_timeset = @empty_task.invoke(@loop)
+          #ensure
+          #  call_hook(:after, nil, tag: nil)
+          #end
+          t = empty_timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           puts s unless quiet
           #; [!knjls] records result of empty loop into JSON data.
@@ -202,6 +215,8 @@ module Benchmarker
         @entries.each do |task, result|
           print "%-#{@width}s " % task.name unless quiet
           $stdin.flush()                    unless quiet
+          #; [!hbass] calls 'before' hook with task name and tag.
+          call_hook(:before, task.name, tag: task.tag)
           #; [!6g36c] invokes task with validator if validator defined.
           begin
             timeset = task.invoke(@loop, &@validator)
@@ -210,6 +225,9 @@ module Benchmarker
             puts "   # Skipped (reason: #{exc.message})" unless quiet
             result.skipped = exc.message
             next
+          #; [!7960c] calls 'after' hook with task name and tag even if error raised.
+          ensure
+            call_hook(:after, task.name, tag: task.tag)
           end
           #; [!513ok] subtract timeset of empty loop from timeset of each task.
           if empty_timeset
