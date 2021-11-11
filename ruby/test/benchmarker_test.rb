@@ -98,6 +98,24 @@ Oktest.scope do
       end
     end
 
+  + topic('#clear()') do
+    - spec("[!phqdn] clears benchmark result and JSON data.") do |bm|
+        bm.scope do
+          task "foo" do nil end
+          task "bar" do nil end
+        end
+        capture_sio { bm.run() }
+        result_foo = bm.instance_eval{@entries[0][1]}
+        result_bar = bm.instance_eval{@entries[1][1]}
+        ok {result_foo.length} == 1
+        ok {result_bar.length} == 1
+        #
+        bm.clear()
+        ok {result_foo.length} == 0
+        ok {result_bar.length} == 0
+      end
+    end
+
   + topic('#scope()') do
     - spec("[!wrjy0] creates wrapper object and yields block with it as self.") do |bm|
         this = self

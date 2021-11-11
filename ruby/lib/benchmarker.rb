@@ -65,6 +65,13 @@ module Benchmarker
 
     attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :filter
 
+    def clear()
+      #; [!phqdn] clears benchmark result and JSON data.
+      @entries.each {|_, result| result.clear() }
+      @jdata = {}
+      self
+    end
+
     def scope(&block)
       #; [!wrjy0] creates wrapper object and yields block with it as self.
       #; [!6h24d] passes benchmark object as argument of block.
