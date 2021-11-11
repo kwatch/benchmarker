@@ -402,6 +402,7 @@ module Benchmarker
       #; [!j6pmr] creates new task object.
       return @__bm.define_task(name, code, tag: tag, &block)
     end
+    alias report task          # for compatibility with 'benchamrk.rb'
 
     def empty_task(code=nil, binding=nil, &block)
       #; [!ycoch] creates new empty-loop task object.
@@ -793,3 +794,29 @@ END
 
 
 end
+
+
+
+## for compatibility with 'benchmark.rb' (standard library)
+module Benchmark
+
+  def self.__new_bm(width, &block)   # :nodoc:
+    bm = Benchmarker.new(width: width)
+    scope = Benchmarker::Scope.new(bm)
+    scope.instance_exec(scope, &block)
+    return bm
+  end
+
+  def self.bm(width=nil, &block)
+    #; [!2nf07] defines and runs benchmark.
+    __new_bm(width, &block).run()
+    nil
+  end
+
+  def self.bmbm(width=nil, &block)
+    #; [!ezbb8] defines and runs benchmark twice, reports only 2nd result.
+    __new_bm(width, &block).run(warmup: true)
+    nil
+  end
+
+end unless defined?(::Benchmark)

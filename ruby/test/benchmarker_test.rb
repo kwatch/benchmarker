@@ -1360,4 +1360,43 @@ END
   end
 
 
++ topic(Benchmark) do
+
+  + topic('.bm()') do
+    - spec("[!2nf07] defines and runs benchmark.") do
+        called = {foo: 0, bar: 0}
+        sout, serr = capture_sio do
+          Benchmark.bm do |x|
+            x.report("foo") do called[:foo] += 1 end
+            x.report("bar") do called[:bar] += 1 end
+          end
+        end
+        ok {called} == {foo: 1, bar: 1}
+        n = 0
+        sout.scan(/^##  +.*\nfoo +.*\nbar +.*/) { n+= 1 }
+        ok {n} == 1
+        ok {serr} == ""
+      end
+    end
+
+  + topic('.bm()') do
+    - spec("[!ezbb8] defines and runs benchmark twice, reports only 2nd result.") do
+        called = {foo: 0, bar: 0}
+        sout, serr = capture_sio do
+          Benchmark.bmbm do |x|
+            x.report("foo") do called[:foo] += 1 end
+            x.report("bar") do called[:bar] += 1 end
+          end
+        end
+        ok {called} == {foo: 2, bar: 2}
+        n = 0
+        sout.scan(/^##  +.*\nfoo +.*\nbar +.*/) { n+= 1 }
+        ok {n} == 1
+        ok {serr} == ""
+      end
+    end
+
+  end
+
+
 end
