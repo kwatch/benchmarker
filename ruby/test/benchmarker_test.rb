@@ -866,10 +866,10 @@ END
     - spec("[!q2aev] defines validator.") do
         bm = Benchmarker::Benchmark.new()
         scope = Benchmarker::Scope.new(bm)
-        ok {bm.instance_eval{@validator}} == nil
+        ok {bm.instance_eval{@hooks[:validate]}} == nil
         scope.validate do |ret| end
-        ok {bm.instance_eval{@validator}} != nil
-        ok {bm.instance_eval{@validator}}.is_a?(Proc)
+        ok {bm.instance_eval{@hooks[:validate]}} != nil
+        ok {bm.instance_eval{@hooks[:validate]}}.is_a?(Proc)
       end
     end
 

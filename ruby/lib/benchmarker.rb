@@ -62,7 +62,6 @@ module Benchmarker
       @jdata   = {}
       @hooks   = {}    # {before: Proc, after: Proc, ...}
       @empty_task = nil
-      @validator  = nil
     end
 
     attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :sleep, :filter
@@ -98,11 +97,6 @@ module Benchmarker
       task = TASK.new(name, code, tag: tag, &block)
       @entries << [task, Result.new]
       return task
-    end
-
-    def define_validator(&block)
-      @validator = block
-      self
     end
 
     def define_hook(key, &block)
@@ -219,7 +213,7 @@ module Benchmarker
           call_hook(:before, task.name, tag: task.tag)
           #; [!6g36c] invokes task with validator if validator defined.
           begin
-            timeset = task.invoke(@loop, &@validator)
+            timeset = task.invoke(@loop, &@hooks[:validate])
           #; [!fv4cv] skips task invocation if `skip_when()` called.
           rescue SkipTask => exc
             puts "   # Skipped (reason: #{exc.message})" unless quiet
@@ -453,7 +447,7 @@ module Benchmarker
 
     def validate(&block)
       #; [!q2aev] defines validator.
-      return @__bm.define_validator(&block)
+      return @__bm.define_hook(:validate, &block)
     end
 
     def assert(expr, errmsg)
