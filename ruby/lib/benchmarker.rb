@@ -445,24 +445,6 @@ module Benchmarker
       raise SkipTask, reason if cond
     end
 
-    def validate(&block)
-      #; [!q2aev] defines validator.
-      return @__bm.define_hook(:validate, &block)
-    end
-
-    def assert(expr, errmsg)
-      #; [!a0c7e] do nothing if assertion succeeded.
-      #; [!5vmbc] raises error if assertion failed.
-      #; [!7vt5l] puts newline if assertion failed.
-      return if expr
-      puts ""
-      raise ValidationFailed, errmsg
-    rescue => exc
-      #; [!mhw59] makes error backtrace compact.
-      exc.backtrace.reject! {|x| x =~ /[\/\\:]benchmarker\.rb.*:/ }
-      raise
-    end
-
     def assert_eq(actual, expected, errmsg=nil)
       #; [!8m6bh] do nothing if ectual == expected.
       #; [!f9ey6] raises error unless actual == expected.
@@ -489,6 +471,24 @@ module Benchmarker
     def after_all(&block)
       #; [!z7xop] defines 'after_all' hook.
       @__bm.define_hook(:after_all, &block)
+    end
+
+    def validate(&block)
+      #; [!q2aev] defines validator.
+      return @__bm.define_hook(:validate, &block)
+    end
+
+    def assert(expr, errmsg)
+      #; [!a0c7e] do nothing if assertion succeeded.
+      #; [!5vmbc] raises error if assertion failed.
+      #; [!7vt5l] puts newline if assertion failed.
+      return if expr
+      puts ""
+      raise ValidationFailed, errmsg
+    rescue => exc
+      #; [!mhw59] makes error backtrace compact.
+      exc.backtrace.reject! {|x| x =~ /[\/\\:]benchmarker\.rb.*:/ }
+      raise
     end
 
   end

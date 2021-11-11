@@ -862,6 +862,46 @@ END
       end
     end
 
+  + topic('#before()') do
+    - spec("[!2ir4q] defines 'before' hook.") do |scope, bm|
+        called = false
+        scope.before do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :before)
+        ok {called} == true
+      end
+    end
+
+  + topic('#after()') do
+    - spec("[!05up6] defines 'after' hook.") do |scope, bm|
+        called = false
+        scope.after do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :after)
+        ok {called} == true
+      end
+    end
+
+  + topic('#before_all()') do
+    - spec("[!1oier] defines 'before_all' hook.") do |scope, bm|
+        called = false
+        scope.before_all do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :before_all)
+        ok {called} == true
+      end
+    end
+
+  + topic('#after_all()') do
+    - spec("[!z7xop] defines 'after_all' hook.") do |scope, bm|
+        called = false
+        scope.after_all do called = true end
+        ok {called} == false
+        bm.__send__(:call_hook, :after_all)
+        ok {called} == true
+      end
+    end
+
   + topic('#validate()') do
     - spec("[!q2aev] defines validator.") do
         bm = Benchmarker::Benchmark.new()
@@ -921,46 +961,6 @@ END
           pr = proc { scope.assert_eq 'a'*3, 'aa' }
           ok {pr}.raise?(Benchmarker::ValidationFailed, '"aaa" == "aa": failed.')
         end
-      end
-    end
-
-  + topic('#before()') do
-    - spec("[!2ir4q] defines 'before' hook.") do |scope, bm|
-        called = false
-        scope.before do called = true end
-        ok {called} == false
-        bm.__send__(:call_hook, :before)
-        ok {called} == true
-      end
-    end
-
-  + topic('#after()') do
-    - spec("[!05up6] defines 'after' hook.") do |scope, bm|
-        called = false
-        scope.after do called = true end
-        ok {called} == false
-        bm.__send__(:call_hook, :after)
-        ok {called} == true
-      end
-    end
-
-  + topic('#before_all()') do
-    - spec("[!1oier] defines 'before_all' hook.") do |scope, bm|
-        called = false
-        scope.before_all do called = true end
-        ok {called} == false
-        bm.__send__(:call_hook, :before_all)
-        ok {called} == true
-      end
-    end
-
-  + topic('#after_all()') do
-    - spec("[!z7xop] defines 'after_all' hook.") do |scope, bm|
-        called = false
-        scope.after_all do called = true end
-        ok {called} == false
-        bm.__send__(:call_hook, :after_all)
-        ok {called} == true
       end
     end
 
