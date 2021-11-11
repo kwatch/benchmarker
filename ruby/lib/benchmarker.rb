@@ -103,10 +103,15 @@ module Benchmarker
       self
     end
 
-    def run()
+    def run(warmup: false)
       #; [!0fo0l] runs benchmark tasks and reports result.
       report_environment()
       filter_tasks()
+      if warmup
+        #; [!6h26u] runs preriminary round when `warmup: true` provided.
+        _ignore_output { invoke_tasks() }
+        clear()
+      end
       invoke_tasks()
       ignore_skipped_tasks()
       report_minmax()
@@ -117,6 +122,17 @@ module Benchmarker
     end
 
     private
+
+    def _ignore_output(&b)
+      #; [!wazs7] ignores output in block argument.
+      require 'stringio'
+      bkup, $stdout = $stdout, StringIO.new
+      begin
+        yield
+      ensure
+        $stdout = bkup
+      end
+    end
 
     def filter_tasks()
       #; [!g207d] do nothing when filter string is not provided.

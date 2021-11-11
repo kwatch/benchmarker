@@ -180,6 +180,34 @@ Oktest.scope do
         ok {sout} =~ /^foo +/
         ok {sout} =~ /^bar +/
       end
+    - spec("[!6h26u] runs preriminary round when `warmup: true` provided.") do |bm|
+        called = 0
+        bm.define_task("foo") do called += 1 end
+        sout, serr = capture_sio do
+          bm.run(warmup: true)
+        end
+        ok {called} == 2
+        n = 0
+        sout.scan(/^##  +.*\nfoo +/) { n += 1 }
+        ok {n} == 1
+      end
+    end
+
+  + topic('#_ignore_output()') do
+    - spec("[!wazs7] ignores output in block argument.") do |bm|
+        called = false
+        sout, serr = capture_sio do
+          puts "aaa"
+          bm.__send__(:_ignore_output) do
+            puts "bbb"
+            called = true
+          end
+          puts "ccc"
+        end
+        ok {called} == true
+        ok {sout} == "aaa\nccc\n"
+        ok {serr} == ""
+      end
     end
 
   + topic('#filter_tasks()') do
