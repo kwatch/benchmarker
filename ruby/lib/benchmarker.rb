@@ -767,8 +767,8 @@ Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
   ## hooks
   #before_all do end
   #after_all  do end
-  #before do end
-  #after  do end
+  #before do end     # or: before do |task_name, tag| end
+  #after  do end     # or: after  do |task_name, tag| end
 
   ## tasks
   task nil do    # empty-loop task
@@ -799,7 +799,7 @@ Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
   #end
 
   ## validation
-  validate do |val|   # or: validate do |val, tag_name|
+  validate do |val|   # or: validate do |val, task_name, tag|
     n = nums.last
     expected = n * (n+1) / 2
     assert_eq val, expected
