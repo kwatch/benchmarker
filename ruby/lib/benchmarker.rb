@@ -87,7 +87,7 @@ module Benchmarker
       @empty_task.nil?  or
         raise "cannot define empty task more than once."
       #; [!w66xp] creates empty task.
-      @empty_task = TASK.new("(Empty)", code, &block)
+      @empty_task = TASK.new(nil, code, &block)
       return @empty_task
     end
 
@@ -196,13 +196,13 @@ module Benchmarker
         puts "%s%s %9s %9s %9s %9s" % [heading, space, 'user', 'sys', 'total', 'real'] unless quiet
         #; [!3hgos] invokes empty task at first if defined.
         if @empty_task
-          empty_timeset, _ = __invoke(@empty_task, nil, nil, quiet)
+          empty_timeset, _ = __invoke(@empty_task, "(Empty)", nil, quiet)
           t = empty_timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           #s = "%9.4f %9.4f %9.4f %s" % [t.user, t.sys, t.total, colorize_real('%9.4f' % t.real)]
           puts s unless quiet
           #; [!knjls] records result of empty loop into JSON data.
-          rows << [@empty_task.name] + empty_timeset.to_a.collect {|x| ('%9.4f' % x).to_f }
+          rows << ["(Empty)"] + empty_timeset.to_a.collect {|x| ('%9.4f' % x).to_f }
           Kernel.sleep @sleep if @sleep
         else
           empty_timeset = nil
@@ -233,10 +233,10 @@ module Benchmarker
       nil
     end
     def __invoke(task, task_name, validator, quiet)
-      print "%-#{@width}s " % task.name unless quiet
-      $stdin.flush()                    unless quiet
+      print "%-#{@width}s " % task_name unless quiet
+      $stdout.flush()                   unless quiet
       #; [!hbass] calls 'before' hook with task name and tag.
-      call_hook(:before, task_name, tag: task.tag)
+      call_hook(:before, task.name, tag: task.tag)
       #; [!6g36c] invokes task with validator if validator defined.
       begin
         timeset = task.invoke(@loop, &validator)

@@ -140,9 +140,13 @@ Oktest.scope do
 
   + topic('#define_empty_task()') do
     - spec("[!w66xp] creates empty task.") do |bm|
+        ok {bm.instance_eval{@empty_task}} == nil
         ret = bm.define_empty_task() do nil end
+        ok {bm.instance_eval{@empty_task}} != nil
+        ok {bm.instance_eval{@empty_task}}.is_a?(Benchmarker::Task)
+        ok {bm.instance_eval{@empty_task}.name} == nil
         ok {ret}.is_a?(Benchmarker::Task)
-        ok {ret.name} == "(Empty)"
+        ok {ret.name} == nil
       end
     - spec("[!qzr1s] error when called more than once.") do |bm|
         pr = proc { bm.define_empty_task() do nil end }
@@ -337,7 +341,7 @@ Oktest.scope do
         def invoke(loop=1)
           super
           case @name
-          when "(Empty)"; a = [0.002, 0.001, 0.003, 0.0031]
+          when nil      ; a = [0.002, 0.001, 0.003, 0.0031]
           when "foo"    ; a = [0.005, 0.003, 0.008, 0.0085]
           when "bar"    ; a = [0.007, 0.004, 0.011, 0.0115]
           when "baz"    ; a = [0.009, 0.005, 0.014, 0.0145]
@@ -850,7 +854,7 @@ END
     - spec("[!kh7r9] define empty-loop task if name is nil.") do |scope|
         task = scope.task nil do end
         ok {task}.is_a?(Benchmarker::Task)
-        ok {task.name} == "(Empty)"
+        ok {task.name} == nil
       end
     + case_when("[!843ju] when code argument provided...") do
       - spec("[!bwfak] code argument and block argument are exclusive.") do |scope|
@@ -871,7 +875,7 @@ END
     - spec("[!ycoch] creates new empty-loop task object.") do |scope|
         task = scope.empty_task do end
         ok {task}.is_a?(Benchmarker::Task)
-        ok {task.name} == "(Empty)"
+        ok {task.name} == nil
       end
     end
 
