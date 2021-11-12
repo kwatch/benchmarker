@@ -194,16 +194,29 @@ module Benchmarker
         puts "" unless quiet
         #puts "%-#{@width}s %9s %9s %9s %9s" % [heading, 'user', 'sys', 'total', 'real'] unless quiet
         puts "%s%s %9s %9s %9s %9s" % [heading, space, 'user', 'sys', 'total', 'real'] unless quiet
+        #
+        invoke = proc do |task, task_name, validator|
+          print "%-#{@width}s " % task.name unless quiet
+          $stdin.flush()                    unless quiet
+          #; [!hbass] calls 'before' hook with task name and tag.
+          call_hook(:before, task_name, tag: task.tag)
+          #; [!6g36c] invokes task with validator if validator defined.
+          begin
+            timeset = task.invoke(@loop, &validator)
+            skip_reason = nil
+          #; [!fv4cv] skips task invocation if `skip_when()` called.
+          rescue SkipTask => exc
+            puts "   # Skipped (reason: #{exc.message})" unless quiet
+            skip_reason = exc.message
+          #; [!7960c] calls 'after' hook with task name and tag even if error raised.
+          ensure
+            call_hook(:after, task_name, tag: task.tag)
+          end
+          [timeset, skip_reason]
+        end
         #; [!3hgos] invokes empty task at first if defined.
         if @empty_task
-          print "%-#{@width}s " % @empty_task.name unless quiet
-          $stdout.flush()                          unless quiet
-          call_hook(:before, nil, tag: @empty_task.tag)
-          begin
-            empty_timeset = @empty_task.invoke(@loop)
-          ensure
-            call_hook(:after, nil, tag: @empty_task.tag)
-          end
+          empty_timeset, _ = invoke.call(@empty_task, nil, nil)
           t = empty_timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           #s = "%9.4f %9.4f %9.4f %s" % [t.user, t.sys, t.total, colorize_real('%9.4f' % t.real)]
@@ -216,21 +229,10 @@ module Benchmarker
         end
         #; [!xf84h] invokes all tasks.
         @entries.each do |task, result|
-          print "%-#{@width}s " % task.name unless quiet
-          $stdin.flush()                    unless quiet
-          #; [!hbass] calls 'before' hook with task name and tag.
-          call_hook(:before, task.name, tag: task.tag)
-          #; [!6g36c] invokes task with validator if validator defined.
-          begin
-            timeset = task.invoke(@loop, &@hooks[:validate])
-          #; [!fv4cv] skips task invocation if `skip_when()` called.
-          rescue SkipTask => exc
-            puts "   # Skipped (reason: #{exc.message})" unless quiet
-            result.skipped = exc.message
+          timeset, skip_reason = invoke.call(task, task.name, @hooks[:validate])
+          if skip_reason
+            result.skipped = skip_reason
             next
-          #; [!7960c] calls 'after' hook with task name and tag even if error raised.
-          ensure
-            call_hook(:after, task.name, tag: task.tag)
           end
           #; [!513ok] subtract timeset of empty loop from timeset of each task.
           if empty_timeset
