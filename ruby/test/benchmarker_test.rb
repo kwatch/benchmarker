@@ -1424,7 +1424,9 @@ END
         }
       end
     - spec("[!nexi8] option '-w' specifies task name width.") do
+        ok {Benchmarker::OPTIONS} == {}
         Benchmarker.parse_cmdopts(['-w', '10'])
+        ok {Benchmarker::OPTIONS} == {width: 10}
         sout, serr = capture_sio do
           Benchmarker.scope(width: 20) do
             task "foo" do nil end
@@ -1433,7 +1435,9 @@ END
         ok {sout} =~ /^foo           0.0000/
       end
     - spec("[!raki9] option '-n' specifies count of loop.") do
+        ok {Benchmarker::OPTIONS} == {}
         Benchmarker.parse_cmdopts(['-n', '17'])
+        ok {Benchmarker::OPTIONS} == {loop: 17}
         count = 0
         sout, serr = capture_sio do
           Benchmarker.scope(width: 20) do
@@ -1443,7 +1447,9 @@ END
         ok {count} == 17
       end
     - spec("[!mt7lw] option '-i' specifies number of iteration.") do
+        ok {Benchmarker::OPTIONS} == {}
         Benchmarker.parse_cmdopts(['-i', '5'])
+        ok {Benchmarker::OPTIONS} == {iter: 5}
         count = 0
         sout, serr = capture_sio do
           Benchmarker.scope(width: 20) do
@@ -1459,7 +1465,9 @@ END
         ok {sout} =~ /^## Average of 5 +user/
       end
     - spec("[!7f2k3] option '-x' specifies number of best/worst tasks removed.") do
+        ok {Benchmarker::OPTIONS} == {}
         Benchmarker.parse_cmdopts(['-i', '5', '-x', '1'])
+        ok {Benchmarker::OPTIONS} == {iter: 5, extra: 1}
         count = 0
         sout, serr = capture_sio do
           Benchmarker.scope(width: 20) do
@@ -1475,7 +1483,9 @@ END
         ok {sout} =~ /^## Average of 5 \(=7-2\*1\)/
       end
     - spec("[!r0439] option '-I' specifies inverse switch.") do
+        ok {Benchmarker::OPTIONS} == {}
         Benchmarker.parse_cmdopts(['-I'])
+        ok {Benchmarker::OPTIONS} == {inverse: true}
         sout, serr = capture_sio do
           fib = proc {|n| n <= 1 ? n : fib.call(n-1) + fib.call(n-2) }
           Benchmarker.scope(width: 20) do
@@ -1486,18 +1496,23 @@ END
         ok {sout} =~ /^foo +\d+\.\d+ \(100\.0%\) +\d+\.\d+$/
       end
     - spec("[!4c73x] option '-o' specifies outout JSON file.") do
-        Benchmarker.parse_cmdopts(['-I'])
+        ok {Benchmarker::OPTIONS} == {}
+        outfile = "tmp99.json"
+        Benchmarker.parse_cmdopts(['-o', outfile])
+        ok {Benchmarker::OPTIONS} == {outfile: outfile}
+        at_exit { File.unlink outfile if File.exist?(outfile) }
+        ok {outfile}.not_exist?
         sout, serr = capture_sio do
-          fib = proc {|n| n <= 1 ? n : fib.call(n-1) + fib.call(n-2) }
           Benchmarker.scope(width: 20) do
-            task "foo" do fib.call(15) end
+            task "foo" do nil end
           end
         end
-        ok {sout} =~ /^## Ranking                real                     times\/sec$/
-        ok {sout} =~ /^foo +\d+\.\d+ \(100\.0%\) +\d+\.\d+$/
+        ok {outfile}.file_exist?
       end
     - spec("[!02ml5] option '-q' specifies quiet mode.") do
+        ok {Benchmarker::OPTIONS} == {}
         Benchmarker.parse_cmdopts(['-q', '-i10', '-x1'])
+        ok {Benchmarker::OPTIONS} == {quiet: true, iter: 10, extra: 1}
         count = 0
         sout, serr = capture_sio do
           Benchmarker.scope(width: 20) do
@@ -1532,7 +1547,9 @@ END
         ok {sout} !~ /\e\[0;34m.*?\e\[0m/
       end
     - spec("[!muica] option '-F' specifies filter.") do
+        ok {Benchmarker::OPTIONS} == {}
         Benchmarker.parse_cmdopts(['-F', 'task=ba*'])
+        ok {Benchmarker::OPTIONS} == {filter: 'task=ba*'}
         called = []
         sout, serr = capture_sio do
           Benchmarker.scope(width: 20) do
@@ -1555,8 +1572,10 @@ END
         ok {called} == ["foo", "baz"]
       end
     - spec("[!3khc4] sets global variables if long option specified.") do
+        ok {Benchmarker::OPTIONS} == {}
         ok {$blabla} == nil
         Benchmarker.parse_cmdopts(['--blabla=123'])
+        ok {Benchmarker::OPTIONS} == {}
         ok {$blabla} == "123"
       end
     end
