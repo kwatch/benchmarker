@@ -183,9 +183,17 @@ module Benchmarker
         quiet = @quiet && n != 1
         #; [!yg9i7] prints result unless quiet mode.
         #; [!94916] suppresses result if quiet mode.
-        heading = n == 1 ? "##" : "## (##{i})"
+        #heading = n == 1 ? "##" : "## (##{i})"
+        if n == 1
+          heading = "##"
+          space = " " * (@width - heading.length)
+        else
+          heading = "## " + colorize_iter("(##{i})")
+          space = " " * (@width - "## (##{i})".length)
+        end
         puts "" unless quiet
-        puts "%-#{@width}s %9s %9s %9s %9s" % [heading, 'user', 'sys', 'total', 'real'] unless quiet
+        #puts "%-#{@width}s %9s %9s %9s %9s" % [heading, 'user', 'sys', 'total', 'real'] unless quiet
+        puts "%s%s %9s %9s %9s %9s" % [heading, space, 'user', 'sys', 'total', 'real'] unless quiet
         #; [!3hgos] invokes empty task at first if defined.
         if @empty_task
           print "%-#{@width}s " % @empty_task.name unless quiet
@@ -198,9 +206,10 @@ module Benchmarker
           #end
           t = empty_timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
+          #s = "%9.4f %9.4f %9.4f %s" % [t.user, t.sys, t.total, colorize_real('%9.4f' % t.real)]
           puts s unless quiet
           #; [!knjls] records result of empty loop into JSON data.
-          rows << [@empty_task.name] + s.split().collect(&:to_f)
+          rows << [@empty_task.name] + empty_timeset.to_a.collect {|x| ('%9.4f' % x).to_f }
           Kernel.sleep @sleep if @sleep
         else
           empty_timeset = nil
@@ -229,11 +238,12 @@ module Benchmarker
             timeset -= empty_timeset.div(100) if task.has_code?
           end
           t = timeset
-          s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
+          #s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
+          s = "%9.4f %9.4f %9.4f %s" % [t.user, t.sys, t.total, colorize_real('%9.4f' % t.real)]
           puts s unless quiet
           result.add(timeset)
           #; [!ejxif] records result of each task into JSON data.
-          rows << [task.name] + s.split().collect(&:to_f)
+          rows << [task.name] + timeset.to_a.collect {|x| ('%9.4f' % x).to_f }
           #; [!vbhvz] sleeps N seconds after each task if `sleep` option specified.
           Kernel.sleep @sleep if @sleep
         end
@@ -292,7 +302,11 @@ module Benchmarker
       heading = "## Removed Min & Max"
       buf << "%-#{@width+4}s %5s %9s %9s %9s\n" % [heading, 'min', 'iter', 'max', 'iter']
       rows.each do |row|
-        buf << "%-#{@width}s %9.4f %9s %9.4f %9s\n" % row
+        #buf << "%-#{@width}s %9.4f %9s %9.4f %9s\n" % row
+        task_name, min_t, min_i, max_t, max_i = row
+        arr = [task_name, colorize_real('%9.4f' % min_t), colorize_iter('%9s' % min_i),
+                          colorize_real('%9.4f' % max_t), colorize_iter('%9s' % max_i)]
+        buf << "%-#{@width}s %s %s %s %s\n" % arr
       end
       return buf.join()
     end
@@ -322,7 +336,9 @@ module Benchmarker
       heading += " (=#{@iter + 2 * @extra}-2*#{@extra})" if @extra > 0
       buf << "%-#{@width+4}s %5s %9s %9s %9s\n" % [heading, 'user', 'sys', 'total', 'real']
       rows.each do |row|
-        buf << "%-#{@width}s %9.4f %9.4f %9.4f %9.4f\n" % row
+        #buf << "%-#{@width}s %9.4f %9.4f %9.4f %9.4f\n" % row
+        real = colorize_real('%9.4f' % row.pop())
+        buf << "%-#{@width}s %9.4f %9.4f %9.4f %s\n" % (row + [real])
       end
       return buf.join()
     end
@@ -362,7 +378,8 @@ module Benchmarker
       end
       rows.each do |task_name, sec, percent, inverse, barchart|
         s = @inverse ? "%20s" % inverse.split()[0] : barchart
-        buf << "%-#{@width}s %9.4f (%6s) %s\n" % [task_name, sec, percent, s]
+        #buf << "%-#{@width}s %9.4f (%6s) %s\n" % [task_name, sec, percent, s]
+        buf << "%-#{@width}s %s (%6s) %s\n" % [task_name, colorize_real('%9.4f' % sec), percent, s]
       end
       return buf.join()
     end
@@ -384,7 +401,7 @@ module Benchmarker
       (1..pairs.length).each {|i| s += " %8s" % "[#{i}]" }
       buf << "#{s}\n"
       rows.each do |task_name, real, *percents|
-        s = "%-#{@width}s %9.4f" % [task_name, real]
+        s = "%-#{@width}s %s" % [task_name, colorize_real('%9.4f' % real)]
         percents.each {|p| s += " %8s" % p }
         buf << "#{s}\n"
       end
@@ -404,6 +421,14 @@ module Benchmarker
         end
         jstr
       end
+    end
+
+    def colorize_real(s)
+      Color.colorize?() ? Color.blue(s) : s
+    end
+
+    def colorize_iter(s)
+      Color.colorize?() ? Color.magenta(s) : s
     end
 
   end
@@ -695,6 +720,27 @@ module Benchmarker
       else
         return nil
       end
+    end
+
+  end
+
+
+  module Color
+
+    module_function
+
+    def black(s);   "\e[0;30m#{s}\e[0m"; end
+    def red(s);     "\e[0;31m#{s}\e[0m"; end
+    def green(s);   "\e[0;32m#{s}\e[0m"; end
+    def yellow(s);  "\e[0;33m#{s}\e[0m"; end
+    def blue(s);    "\e[0;34m#{s}\e[0m"; end
+    def magenta(s); "\e[0;35m#{s}\e[0m"; end
+    def cyan(s);    "\e[0;36m#{s}\e[0m"; end
+    def white(s);   "\e[0;37m#{s}\e[0m"; end
+
+    def colorize?
+      #; [!fc741] returns true if stdout is a tty, else returns false.
+      return $stdout.tty?
     end
 
   end
