@@ -40,17 +40,17 @@ module Benchmarker
   class Benchmark
 
     def initialize(title: nil, width: 30, loop: 1, iter: 1, extra: 0, inverse: false, outfile: nil, quiet: false, colorize: nil, sleep: nil, filter: nil)
-      @title   = title
-      @width   = width   || 30
-      @loop    = loop    || 1
-      @iter    = iter    || 1
-      @extra   = extra   || 0
-      @inverse = inverse || false
-      @outfile = outfile
-      @quiet   = quiet   || false
+      @title    = title
+      @width    = width   || 30
+      @loop     = loop    || 1
+      @iter     = iter    || 1
+      @extra    = extra   || 0
+      @inverse  = inverse || false
+      @outfile  = outfile
+      @quiet    = quiet   || false
       @colorize = colorize
-      @sleep   = sleep
-      @filter  = filter
+      @sleep    = sleep
+      @filter   = filter
       if filter
         #; [!0mz0f] error when filter string is invalid format.
         filter =~ /^(task|tag)(!?=+)(.*)/  or
@@ -59,9 +59,9 @@ module Benchmarker
         $2 == '=' || $2 == '!='  or
           raise ArgumentError.new("#{filter}: expected operator is '=' or '!='.")
       end
-      @entries = []    # [[Task, Resutl]]
-      @jdata   = {}
-      @hooks   = {}    # {before: Proc, after: Proc, ...}
+      @entries  = []    # [[Task, Resutl]]
+      @jdata    = {}
+      @hooks    = {}    # {before: Proc, after: Proc, ...}
       @empty_task = nil
     end
 
@@ -894,17 +894,17 @@ END
     #; [!eb5ck] option '-C' specifies colorize disabled.
     #; [!6nxi8] option '-s' specifies sleep time.
     #; [!muica] option '-F' specifies filter.
-    OPTIONS[:width]   = options['w'] if options['w']
-    OPTIONS[:loop]    = options['n'] if options['n']
-    OPTIONS[:iter]    = options['i'] if options['i']
-    OPTIONS[:extra]   = options['x'] if options['x']
-    OPTIONS[:inverse] = options['I'] if options['I']
-    OPTIONS[:outfile] = options['o'] if options['o']
-    OPTIONS[:quiet]   = options['q'] if options['q']
+    OPTIONS[:width]    = options['w'] if options['w']
+    OPTIONS[:loop]     = options['n'] if options['n']
+    OPTIONS[:iter]     = options['i'] if options['i']
+    OPTIONS[:extra]    = options['x'] if options['x']
+    OPTIONS[:inverse]  = options['I'] if options['I']
+    OPTIONS[:outfile]  = options['o'] if options['o']
+    OPTIONS[:quiet]    = options['q'] if options['q']
     OPTIONS[:colorize] = true        if options['c']
     OPTIONS[:colorize] = false       if options['C']
-    OPTIONS[:sleep]   = options['s'] if options['s']
-    OPTIONS[:filter]  = options['F'] if options['F']
+    OPTIONS[:sleep]    = options['s'] if options['s']
+    OPTIONS[:filter]   = options['F'] if options['F']
     #; [!3khc4] sets global variables if long option specified.
     keyvals.each {|k, v| eval "$#{k} = #{v.inspect}" }
     #
