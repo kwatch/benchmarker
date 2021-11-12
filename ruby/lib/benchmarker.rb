@@ -198,12 +198,12 @@ module Benchmarker
         if @empty_task
           print "%-#{@width}s " % @empty_task.name unless quiet
           $stdin.flush()                           unless quiet
-          #call_hook(:before, nil, tag: nil)
-          #begin
+          call_hook(:before, nil, tag: @empty_task.tag)
+          begin
             empty_timeset = @empty_task.invoke(@loop)
-          #ensure
-          #  call_hook(:after, nil, tag: nil)
-          #end
+          ensure
+            call_hook(:after, nil, tag: @empty_task.tag)
+          end
           t = empty_timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           #s = "%9.4f %9.4f %9.4f %s" % [t.user, t.sys, t.total, colorize_real('%9.4f' % t.real)]
