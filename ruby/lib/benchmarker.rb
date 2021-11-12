@@ -80,19 +80,19 @@ module Benchmarker
       self
     end
 
-    def define_empty_task(code=nil, &block)   # :nodoc:
+    def define_empty_task(code=nil, tag: nil, skip: nil, &block)   # :nodoc:
       #; [!qzr1s] error when called more than once.
       @empty_task.nil?  or
         raise "cannot define empty task more than once."
       #; [!w66xp] creates empty task.
-      @empty_task = TASK.new(nil, code, &block)
+      @empty_task = TASK.new(nil, code, tag: tag, skip: skip, &block)
       return @empty_task
     end
 
-    def define_task(name, code=nil, tag: nil, &block)   # :nodoc:
+    def define_task(name, code=nil, tag: nil, skip: nil, &block)   # :nodoc:
       #; [!re6b8] creates new task.
       #; [!r8o0p] can take a tag.
-      task = TASK.new(name, code, tag: tag, &block)
+      task = TASK.new(name, code, tag: tag, skip: skip, &block)
       @entries << [task, Result.new]
       return task
     end
@@ -193,8 +193,8 @@ module Benchmarker
         #puts "%-#{@width}s %9s %9s %9s %9s" % [heading, 'user', 'sys', 'total', 'real'] unless quiet
         puts "%s%s %9s %9s %9s %9s" % [heading, space, 'user', 'sys', 'total', 'real'] unless quiet
         #; [!3hgos] invokes empty task at first if defined.
-        if @empty_task
-          empty_timeset, _ = __invoke(@empty_task, "(Empty)", nil, quiet)
+        if @empty_task && !@empty_task.skip?
+          empty_timeset = __invoke(@empty_task, "(Empty)", nil, quiet)
           t = empty_timeset
           s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
           #s = "%9.4f %9.4f %9.4f %s" % [t.user, t.sys, t.total, colorize_real('%9.4f' % t.real)]
@@ -207,9 +207,11 @@ module Benchmarker
         end
         #; [!xf84h] invokes all tasks.
         @entries.each do |task, result|
-          timeset, skip_reason = __invoke(task, task.name, @hooks[:validate], quiet)
-          if skip_reason
-            result.skipped = skip_reason
+          timeset = __invoke(task, task.name, @hooks[:validate], quiet)
+          if task.skip?
+            reason = task.skip
+            result.skipped = reason
+            puts "   # Skipped (reason: #{reason})" unless quiet
             next
           end
           #; [!513ok] subtract timeset of empty loop from timeset of each task.
@@ -233,16 +235,14 @@ module Benchmarker
     def __invoke(task, task_name, validator, quiet)
       print "%-#{@width}s " % task_name unless quiet
       $stdout.flush()                   unless quiet
+      #; [!fv4cv] skips task invocation if skip reason is specified.
+      return nil if task.skip?
       #; [!hbass] calls 'before' hook with task name and tag.
       call_hook(:before, task.name, task.tag)
       #; [!6g36c] invokes task with validator if validator defined.
       begin
         timeset = task.invoke(@loop, &validator)
-        return timeset, nil
-      #; [!fv4cv] skips task invocation if `skip_if()` called.
-      rescue SkipTask => exc
-        puts "   # Skipped (reason: #{exc.message})" unless quiet
-        return nil, exc.message
+        return timeset
       #; [!7960c] calls 'after' hook with task name and tag even if error raised.
       ensure
         call_hook(:after, task_name, task.tag)
@@ -445,7 +445,7 @@ module Benchmarker
       @__bm = bm
     end
 
-    def task(name, code=nil, binding=nil, tag: nil, &block)
+    def task(name, code=nil, binding=nil, tag: nil, skip: nil, &block)
       #; [!843ju] when code argument provided...
       if code
         #; [!bwfak] code argument and block argument are exclusive.
@@ -458,21 +458,15 @@ module Benchmarker
         block = eval defcode, binding, location.path, location.lineno+1
       end
       #; [!kh7r9] define empty-loop task if name is nil.
-      return @__bm.define_empty_task(code, &block) if name.nil?
+      return @__bm.define_empty_task(code, tag: tag, skip: skip, &block) if name.nil?
       #; [!j6pmr] creates new task object.
-      return @__bm.define_task(name, code, tag: tag, &block)
+      return @__bm.define_task(name, code, tag: tag, skip: skip, &block)
     end
     alias report task          # for compatibility with 'benchamrk.rb'
 
     def empty_task(code=nil, binding=nil, &block)
       #; [!ycoch] creates new empty-loop task object.
       return task(nil, code, binding, &block)
-    end
-
-    def skip_if(cond, reason)
-      #; [!dva3z] raises SkipTask exception if cond is truthy.
-      #; [!srlnu] do nothing if cond is falthy.
-      raise SkipTask, reason if cond
     end
 
     def assert_eq(actual, expected, errmsg=nil)
@@ -524,10 +518,6 @@ module Benchmarker
   end
 
 
-  class SkipTask < StandardError
-  end
-
-
   class ValidationFailed < StandardError
   end
 
@@ -538,17 +528,22 @@ module Benchmarker
 
   class Task
 
-    def initialize(name, code=nil, tag: nil, &block)
+    def initialize(name, code=nil, tag: nil, skip: nil, &block)
       @name  = name
       @code  = code
       @tag   = tag
+      @skip  = skip    # reason to skip
       @block = block
     end
 
-    attr_reader :name, :tag, :block
+    attr_reader :name, :tag, :skip, :block
 
     def has_code?
       return !!@code
+    end
+
+    def skip?
+      return !!@skip
     end
 
     def invoke(loop=1, &validator)
@@ -799,8 +794,7 @@ Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
     total
   end
 
-  #task "name", tag: "curr" do
-  #  skip_if condition, "reason"
+  #task "name", tag: "curr", skip: (!condition ? nil : "...reason...") do
   #  ... run benchmark code ...
   #end
 
