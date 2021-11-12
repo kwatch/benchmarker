@@ -17,7 +17,7 @@ spec = Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.license     = 'CC-PDDC'  # public domain
   #s.homepage    = "https://github.com/kwatch/benchmarker/"
-  s.homepage    = "https://kwatch.github.io/benchmarker/"
+  s.homepage    = "https://kwatch.github.io/benchmarker/ruby.html"
   s.summary     = "pretty good benchmarking library"
   s.description = <<-'END'
 Benchmarker s a pretty good tool benchmark tool for Ruby.

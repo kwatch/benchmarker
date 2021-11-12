@@ -755,7 +755,7 @@ module Benchmarker
       return <<'END'
 # -*- coding: utf-8 -*-
 
-require 'benchmarker'  # https://kwatch.github.io/benchmarker/
+require 'benchmarker'  # https://kwatch.github.io/benchmarker/ruby.html
 
 nums = (1..10000).to_a
 
