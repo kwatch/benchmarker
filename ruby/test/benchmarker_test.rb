@@ -434,12 +434,12 @@ Oktest.scope do
         ok {called} == 2
         ok {argslist} == [["foo", {:tag=>nil}], ["bar", {:tag=>'yy'}]]
       end
-    - spec("[!fv4cv] skips task invocation if `skip_when()` called.") do
+    - spec("[!fv4cv] skips task invocation if `skip_if()` called.") do
         called = []
         bm = Benchmarker::Benchmark.new().scope do
           empty_task do called << :empty end
           task "foo" do called << :foo end
-          task "bar" do skip_when true, "not installed"; called << :bar end
+          task "bar" do skip_if true, "not installed"; called << :bar end
           task "baz" do called << :baz end
         end
         sout, serr = capture_sio { bm.__send__(:invoke_tasks) }
@@ -553,8 +553,8 @@ Oktest.scope do
     - spec("[!5gpo7] removes skipped tasks and leaves other tasks.") do
         bm = Benchmarker::Benchmark.new().scope do
           empty_task do nil end
-          task "foo" do skip_when true, "not installed"; nil end
-          task "bar" do skip_when true, "not installed"; nil end
+          task "foo" do skip_if true, "not installed"; nil end
+          task "bar" do skip_if true, "not installed"; nil end
           task "baz" do nil end
         end
         capture_sio { bm.__send__(:invoke_tasks) }
@@ -879,13 +879,13 @@ END
       end
     end
 
-  + topic('#skip_when()') do
+  + topic('#skip_if()') do
     - spec("[!dva3z] raises SkipTask exception if cond is truthy.") do |scope|
-        pr = proc { scope.skip_when(true, "not installed") }
+        pr = proc { scope.skip_if(true, "not installed") }
         ok {pr}.raise?(Benchmarker::SkipTask, "not installed")
       end
     - spec("[!srlnu] do nothing if cond is falthy.") do |scope|
-        pr = proc { scope.skip_when(false, "not installed") }
+        pr = proc { scope.skip_if(false, "not installed") }
         ok {pr}.NOT.raise?
       end
     end

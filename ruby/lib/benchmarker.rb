@@ -239,7 +239,7 @@ module Benchmarker
       begin
         timeset = task.invoke(@loop, &validator)
         return timeset, nil
-      #; [!fv4cv] skips task invocation if `skip_when()` called.
+      #; [!fv4cv] skips task invocation if `skip_if()` called.
       rescue SkipTask => exc
         puts "   # Skipped (reason: #{exc.message})" unless quiet
         return nil, exc.message
@@ -469,7 +469,7 @@ module Benchmarker
       return task(nil, code, binding, &block)
     end
 
-    def skip_when(cond, reason)
+    def skip_if(cond, reason)
       #; [!dva3z] raises SkipTask exception if cond is truthy.
       #; [!srlnu] do nothing if cond is falthy.
       raise SkipTask, reason if cond
@@ -802,7 +802,7 @@ Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
   end
 
   #task "name", tag: "curr" do
-  #  skip_when condition, "reason"
+  #  skip_if condition, "reason"
   #  ... run benchmark code ...
   #end
 
