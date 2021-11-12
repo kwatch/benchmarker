@@ -1067,11 +1067,11 @@ END
         ret = task.invoke()
         ok {ret}.is_a?(Benchmarker::TimeSet)
       end
-    - spec("[!zw4kt] yields validator with returned value of block.") do
-        task = Benchmarker::Task.new("name1") do 234 end
+    - spec("[!zw4kt] yields validator with result value of block.") do
+        task = Benchmarker::Task.new("name1", tag: "curr") do 234 end
         args = nil
         task.invoke() do |*a| args = a end
-        ok {args} == [234, "name1"]
+        ok {args} == [234, "name1", {tag: "curr"}]
       end
     end
 

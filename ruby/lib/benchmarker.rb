@@ -551,7 +551,7 @@ module Benchmarker
       return !!@code
     end
 
-    def invoke(loop=1)
+    def invoke(loop=1, &validator)
       #; [!s2f6v] when task block is build from repeated code...
       if @code
         n_repeat = N_REPEAT    # == 100
@@ -575,8 +575,8 @@ module Benchmarker
       end
       end_t = Time.now
       t2 = Process.times
-      #; [!zw4kt] yields validator with returned value of block.
-      yield ret, @name if block_given?()
+      #; [!zw4kt] yields validator with result value of block.
+      yield ret, @name, tag: @tag if block_given?()
       #; [!9e5pr] returns TimeSet object.
       user  = t2.utime - t1.utime
       sys   = t2.stime - t1.stime
