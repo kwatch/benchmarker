@@ -803,6 +803,30 @@ END
       end
     end
 
+  + topic('#colorize?') do
+    - spec("[!cy10n] returns true if '-c' option specified.") do
+        bm = Benchmarker.new(colorize: true)
+        ok {bm.__send__(:colorize?)} == true
+        capture_sio do
+          ok {bm.__send__(:colorize?)} == true
+        end
+      end
+    - spec("[!e0gcz] returns false if '-C' option specified.") do
+        bm = Benchmarker.new(colorize: false)
+        ok {bm.__send__(:colorize?)} == false
+        capture_sio do
+          ok {bm.__send__(:colorize?)} == false
+        end
+      end
+    - spec("[!6v90d] returns result of `Color.colorize?` if neither '-c' nor '-C' specified.") do
+        bm = Benchmarker.new()
+        ok {bm.__send__(:colorize?)} == true
+        capture_sio do
+          ok {bm.__send__(:colorize?)} == false
+        end
+      end
+    end
+
   end
 
 
@@ -1484,6 +1508,28 @@ END
         ok {sout} !~ /^## \(#\d\)/
         ok {sout} =~ /^## Removed Min & Max/
         ok {sout} =~ /^## Average of 10 \(=12-2\*1\)/
+      end
+    - spec("[!e5hv0] option '-c' specifies colorize enabled.") do
+        ok {Benchmarker::OPTIONS} == {}
+        Benchmarker.parse_cmdopts(['-c'])
+        ok {Benchmarker::OPTIONS} == {colorize: true}
+        sout, serr = capture_sio(tty: false) do
+          Benchmarker.scope() do
+            task "foo" do nil end
+          end
+        end
+        ok {sout} =~ /\e\[0;34m.*?\e\[0m/
+      end
+    - spec("[!e5hv0] option '-c' specifies colorize enabled.") do
+        ok {Benchmarker::OPTIONS} == {}
+        Benchmarker.parse_cmdopts(['-C'])
+        ok {Benchmarker::OPTIONS} == {colorize: false}
+        sout, serr = capture_sio(tty: true) do
+          Benchmarker.scope() do
+            task "foo" do nil end
+          end
+        end
+        ok {sout} !~ /\e\[0;34m.*?\e\[0m/
       end
     - spec("[!muica] option '-F' specifies filter.") do
         Benchmarker.parse_cmdopts(['-F', 'task=ba*'])

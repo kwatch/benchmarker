@@ -39,7 +39,7 @@ module Benchmarker
 
   class Benchmark
 
-    def initialize(title: nil, width: 30, loop: 1, iter: 1, extra: 0, inverse: false, outfile: nil, quiet: false, sleep: nil, filter: nil)
+    def initialize(title: nil, width: 30, loop: 1, iter: 1, extra: 0, inverse: false, outfile: nil, quiet: false, colorize: nil, sleep: nil, filter: nil)
       @title   = title
       @width   = width   || 30
       @loop    = loop    || 1
@@ -48,6 +48,7 @@ module Benchmarker
       @inverse = inverse || false
       @outfile = outfile
       @quiet   = quiet   || false
+      @colorize = colorize
       @sleep   = sleep
       @filter  = filter
       if filter
@@ -64,7 +65,7 @@ module Benchmarker
       @empty_task = nil
     end
 
-    attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :sleep, :filter
+    attr_reader :title, :width, :loop, :iter, :extra, :inverse, :outfile, :quiet, :colorize, :sleep, :filter
 
     def clear()
       #; [!phqdn] clears benchmark result and JSON data.
@@ -423,12 +424,19 @@ module Benchmarker
       end
     end
 
+    def colorize?
+      #; [!cy10n] returns true if '-c' option specified.
+      #; [!e0gcz] returns false if '-C' option specified.
+      #; [!6v90d] returns result of `Color.colorize?` if neither '-c' nor '-C' specified.
+      return @colorize.nil? ? Color.colorize?() : @colorize
+    end
+
     def colorize_real(s)
-      Color.colorize?() ? Color.blue(s) : s
+      colorize?() ? Color.blue(s) : s
     end
 
     def colorize_iter(s)
-      Color.colorize?() ? Color.magenta(s) : s
+      colorize?() ? Color.magenta(s) : s
     end
 
   end
@@ -799,7 +807,7 @@ module Benchmarker
     end
 
     def self.parse_options(argv=ARGV, &b)
-      parser = self.new("hvq", "wnixosF", "I")
+      parser = self.new("hvqcC", "wnixosF", "I")
       options, keyvals = parser.parse(argv, &b)
       #; [!v19y5] converts option argument into integer if necessary.
       "wnixI".each_char do |c|
@@ -882,6 +890,8 @@ END
     #; [!r0439] option '-I' specifies inverse switch.
     #; [!4c73x] option '-o' specifies outout JSON file.
     #; [!02ml5] option '-q' specifies quiet mode.
+    #; [!e5hv0] option '-c' specifies colorize enabled.
+    #; [!eb5ck] option '-C' specifies colorize disabled.
     #; [!6nxi8] option '-s' specifies sleep time.
     #; [!muica] option '-F' specifies filter.
     OPTIONS[:width]   = options['w'] if options['w']
@@ -891,6 +901,8 @@ END
     OPTIONS[:inverse] = options['I'] if options['I']
     OPTIONS[:outfile] = options['o'] if options['o']
     OPTIONS[:quiet]   = options['q'] if options['q']
+    OPTIONS[:colorize] = true        if options['c']
+    OPTIONS[:colorize] = false       if options['C']
     OPTIONS[:sleep]   = options['s'] if options['s']
     OPTIONS[:filter]  = options['F'] if options['F']
     #; [!3khc4] sets global variables if long option specified.
