@@ -1366,6 +1366,7 @@ Usage: bench.rb [<options>]
   -c             : enable colorized output
   -C             : disable colorized output
   -s <N>         : sleep N seconds after each benchmark task
+  -S             : print sample code
   -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
   -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
   --<key>[=<val>]: define global variable `$var = "val"`
@@ -1424,6 +1425,17 @@ END
         end
         ok {serr} == ""
         ok {sout} == Benchmarker::VERSION + "\n"
+      end
+    - spec("[!nrxsb] prints sample code if '-S' option specified.") do
+        argv = ["-S"]
+        sout, serr = capture_sio do
+          pr = proc { Benchmarker.parse_cmdopts(argv) }
+          ok {pr}.raise?(SystemExit) do |exc|
+            ok {exc.status} == 0
+          end
+        end
+        ok {serr} == ""
+        ok {sout} == Benchmarker::Misc.sample_code()
       end
     - spec("[!s7y6x] keeps command-line options in order to overwirte existing options.") do
         ok {Benchmarker::OPTIONS} == {}

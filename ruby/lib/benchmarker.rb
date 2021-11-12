@@ -756,6 +756,68 @@ module Benchmarker
       end
     end
 
+    def sample_code()
+      return <<'END'
+# -*- coding: utf-8 -*-
+
+## see <https://kwatch.github.io/benchmarker/> for details
+
+require 'benchmarker'
+
+title = "calculate sum of integers"
+Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
+  ## other options -- inverse: true, outfile: "result.json", quiet: true,
+  ##                  sleep: 1, colorize: true, filter: "task=*foo*"
+
+  ## hooks
+  #before_all do end
+  #after_all  do end
+  #before do end
+  #after  do end
+
+  ## tasks
+  nums = (1..10000).to_a
+
+  task nil do    # empty-loop task
+    # do nothing
+  end
+
+  task "each() & '+='" do
+    total = 0
+    nums.each {|n| total += n }
+    total
+  end
+
+  task "inject()" do
+    total = nums.inject(0) {|t, n| t += n }
+    total
+  end
+
+  task "while statement" do
+    total = 0; i = -1; len = nums.length
+    while (i += 1) < len
+      total += nums[i]
+    end
+    total
+  end
+
+  #task "name", tag: "curr" do
+  #  skip_when condition, "reason"
+  #  ... run benchmark code ...
+  #end
+
+  ## validator
+  validate do |val|   # or: validator do |val, tag_name|
+    n = nums.last
+    expected = n * (n+1) / 2
+    assert_eq val, expected
+      # or: assert val == expected, "expected #{expected} but got #{val}"
+  end
+
+end
+END
+    end
+
   end
 
 
@@ -833,7 +895,7 @@ module Benchmarker
     end
 
     def self.parse_options(argv=ARGV, &b)
-      parser = self.new("hvqcC", "wnixosF", "I")
+      parser = self.new("hvqcCS", "wnixosF", "I")
       options, keyvals = parser.parse(argv, &b)
       #; [!v19y5] converts option argument into integer if necessary.
       "wnixI".each_char do |c|
@@ -884,6 +946,7 @@ Usage: #{command} [<options>]
   -c             : enable colorized output
   -C             : disable colorized output
   -s <N>         : sleep N seconds after each benchmark task
+  -S             : print sample code
   -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
   -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
   --<key>[=<val>]: define global variable `$var = "val"`
@@ -908,6 +971,11 @@ END
     #; [!iaryj] prints version number if '-v' option specified.
     if options['v']
       puts VERSION
+      exit 0
+    end
+    #; [!nrxsb] prints sample code if '-S' option specified.
+    if options['S']
+      puts Misc.sample_code()
       exit 0
     end
     #; [!s7y6x] keeps command-line options in order to overwirte existing options.
