@@ -702,8 +702,36 @@ module Benchmarker
         ["ruby platform" , RUBY_PLATFORM],
         ["ruby path"     , RbConfig.ruby],
         ["compiler"      , cc_version_msg ? cc_version_msg.split(/\r?\n/)[0] : nil],
+        ["os name"       , os_name()],
         ["cpu model"     , cpu_model()],
       ]
+    end
+
+    def os_name()
+      #; [!83vww] returns string representing os name.
+      if File.file?("/usr/bin/sw_vers")   # macOS
+        s = `/usr/bin/sw_vers`
+        s =~ /^ProductName:\s+(.*)/;    product = $1
+        s =~ /^ProductVersion:\s+(.*)/; version = $1
+        return "#{product} #{version}"
+      end
+      if File.file?("/etc/lsb-release")   # Linux
+        s = File.read("/etc/lsb-release", encoding: 'utf-8')
+        if s =~ /^DISTRIB_DESCRIPTION="(.*)"/
+          return $1
+        end
+      end
+      if File.file?("/usr/bin/uname")     # UNIX
+        s = `/usr/bin/uname -srm`
+        return s.strip
+      end
+      if RUBY_PLATFORM =~ /win/           # Windows
+        s = `systeminfo`     # TODO: not tested yet
+        s =~ /^OS Name:\s+(?:Microsft )?(.*)/; product = $1
+        s =~ /^OS Version:\s+(.*)/; version = $1 ? $1.split()[0] : nil
+        return "#{product} #{version}"
+      end
+      return nil
     end
 
     def cpu_model()

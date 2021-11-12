@@ -1231,7 +1231,16 @@ END
         ok {arr[3][0]} == "ruby platform"
         ok {arr[4][0]} == "ruby path"
         ok {arr[5][0]} == "compiler"
-        ok {arr[6][0]} == "cpu model"
+        ok {arr[6][0]} == "os name"
+        ok {arr[7][0]} == "cpu model"
+        ok {arr[8]} == nil
+      end
+    end
+
+  + topic('.os_name()') do
+    - spec("[!83vww] returns string representing os name.") do
+        str = Benchmarker::Misc.os_name()
+        ok {str}.is_a?(String)
       end
     end
 
@@ -1239,10 +1248,6 @@ END
     - spec("[!6ncgq] returns string representing cpu model.") do
         str = Benchmarker::Misc.cpu_model()
         ok {str}.is_a?(String)
-      end
-    - spec("") do
-      end
-    - spec("") do
       end
     end
 
