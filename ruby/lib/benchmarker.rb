@@ -429,11 +429,11 @@ module Benchmarker
     end
 
     def colorize_real(s)
-      colorize?() ? Color.cyan(s) : s
+      colorize?() ? Color.real(s) : s
     end
 
     def colorize_iter(s)
-      colorize?() ? Color.magenta(s) : s
+      colorize?() ? Color.iter(s) : s
     end
 
   end
@@ -833,6 +833,11 @@ END
     def magenta(s); "\e[0;35m#{s}\e[0m"; end
     def cyan(s);    "\e[0;36m#{s}\e[0m"; end
     def white(s);   "\e[0;37m#{s}\e[0m"; end
+
+    class << self
+      alias real cyan
+      alias iter magenta
+    end
 
     def colorize?
       #; [!fc741] returns true if stdout is a tty, else returns false.
