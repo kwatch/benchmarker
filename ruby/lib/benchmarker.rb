@@ -760,9 +760,9 @@ module Benchmarker
       return <<'END'
 # -*- coding: utf-8 -*-
 
-## see <https://kwatch.github.io/benchmarker/> for details
+require 'benchmarker'  # https://kwatch.github.io/benchmarker/
 
-require 'benchmarker'
+nums = (1..10000).to_a
 
 title = "calculate sum of integers"
 Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
@@ -776,8 +776,6 @@ Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
   #after  do end
 
   ## tasks
-  nums = (1..10000).to_a
-
   task nil do    # empty-loop task
     # do nothing
   end
