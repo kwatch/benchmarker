@@ -234,7 +234,7 @@ module Benchmarker
       print "%-#{@width}s " % task_name unless quiet
       $stdout.flush()                   unless quiet
       #; [!hbass] calls 'before' hook with task name and tag.
-      call_hook(:before, task.name, tag: task.tag)
+      call_hook(:before, task.name, task.tag)
       #; [!6g36c] invokes task with validator if validator defined.
       begin
         timeset = task.invoke(@loop, &validator)
@@ -245,7 +245,7 @@ module Benchmarker
         return nil, exc.message
       #; [!7960c] calls 'after' hook with task name and tag even if error raised.
       ensure
-        call_hook(:after, task_name, tag: task.tag)
+        call_hook(:after, task_name, task.tag)
       end
     end
 
@@ -576,7 +576,7 @@ module Benchmarker
       end_t = Time.now
       t2 = Process.times
       #; [!zw4kt] yields validator with result value of block.
-      yield ret, @name, tag: @tag if block_given?()
+      yield ret, @name, @tag if block_given?()
       #; [!9e5pr] returns TimeSet object.
       user  = t2.utime - t1.utime
       sys   = t2.stime - t1.stime
@@ -804,8 +804,8 @@ Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
   #  ... run benchmark code ...
   #end
 
-  ## validator
-  validate do |val|   # or: validator do |val, tag_name|
+  ## validation
+  validate do |val|   # or: validate do |val, tag_name|
     n = nums.last
     expected = n * (n+1) / 2
     assert_eq val, expected

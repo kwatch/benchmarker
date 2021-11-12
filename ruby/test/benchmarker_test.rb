@@ -414,7 +414,7 @@ Oktest.scope do
         ok {argslist} == []
         capture_sio { bm.__send__(:invoke_tasks) }
         ok {called} == 2
-        ok {argslist} == [["foo", {:tag=>nil}], ["bar", {:tag=>'yy'}]]
+        ok {argslist} == [["foo", nil], ["bar", 'yy']]
       end
     - spec("[!7960c] calls 'after' hook with task name and tag even if error raised.") do
         called = 0
@@ -432,7 +432,7 @@ Oktest.scope do
           ok {pr}.raise?(ZeroDivisionError)
         end
         ok {called} == 2
-        ok {argslist} == [["foo", {:tag=>nil}], ["bar", {:tag=>'yy'}]]
+        ok {argslist} == [["foo", nil], ["bar", 'yy']]
       end
     - spec("[!fv4cv] skips task invocation if `skip_if()` called.") do
         called = []
@@ -1071,7 +1071,7 @@ END
         task = Benchmarker::Task.new("name1", tag: "curr") do 234 end
         args = nil
         task.invoke() do |*a| args = a end
-        ok {args} == [234, "name1", {tag: "curr"}]
+        ok {args} == [234, "name1", "curr"]
       end
     end
 
