@@ -21,7 +21,6 @@ module Benchmarker
       return self.scope(title, **kwargs, &b)
     end
     #; [!s7y6x] overwrites existing options by command-line options.
-    d = OPTIONS
     kwargs.update(OPTIONS)
     #; [!2zh7w] creates new Benchmark object wit options.
     bm = Benchmark.new(title: title, **kwargs)
