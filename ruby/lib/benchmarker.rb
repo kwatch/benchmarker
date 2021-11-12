@@ -929,8 +929,8 @@ END
     OPTIONS[:inverse]  = options['I'] if options['I']
     OPTIONS[:outfile]  = options['o'] if options['o']
     OPTIONS[:quiet]    = options['q'] if options['q']
-    OPTIONS[:colorize] = true        if options['c']
-    OPTIONS[:colorize] = false       if options['C']
+    OPTIONS[:colorize] = true         if options['c']
+    OPTIONS[:colorize] = false        if options['C']
     OPTIONS[:sleep]    = options['s'] if options['s']
     OPTIONS[:filter]   = options['F'] if options['F']
     #; [!3khc4] sets global variables if long option specified.
