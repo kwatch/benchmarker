@@ -197,7 +197,7 @@ module Benchmarker
         #; [!3hgos] invokes empty task at first if defined.
         if @empty_task
           print "%-#{@width}s " % @empty_task.name unless quiet
-          $stdin.flush()                           unless quiet
+          $stdout.flush()                          unless quiet
           call_hook(:before, nil, tag: @empty_task.tag)
           begin
             empty_timeset = @empty_task.invoke(@loop)
