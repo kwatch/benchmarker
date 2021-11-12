@@ -13,6 +13,7 @@ module Benchmarker
 
   VERSION = "$Release: 0.0.0 $".split()[1]
 
+  N_REPEAT = 100  # number of repeat (100 times)
 
   OPTIONS = {}    # ex: {loop: 1000, iter: 10, extra: 2, inverse: true}
 
@@ -213,8 +214,8 @@ module Benchmarker
           end
           #; [!513ok] subtract timeset of empty loop from timeset of each task.
           if empty_timeset
-            timeset -= empty_timeset      unless task.has_code?
-            timeset -= empty_timeset.div(100) if task.has_code?
+            timeset -= empty_timeset           unless task.has_code?
+            timeset -= empty_timeset.div(N_REPEAT) if task.has_code?
           end
           t = timeset
           #s = "%9.4f %9.4f %9.4f %9.4f" % [t.user, t.sys, t.total, t.real]
@@ -452,7 +453,7 @@ module Benchmarker
           raise TaskError, "task(#{name.inspect}): cannot accept #{code.class} argument when block argument given."
         #; [!4dm9q] generates block argument if code argument passed.
         location = caller_locations(1, 1).first
-        defcode  = "proc do #{(code+';') * 100} end"   # repeat code 100 times
+        defcode  = "proc do #{(code+';') * N_REPEAT} end"   # repeat code 100 times
         binding ||= ::TOPLEVEL_BINDING
         block = eval defcode, binding, location.path, location.lineno+1
       end
@@ -553,14 +554,15 @@ module Benchmarker
     def invoke(loop=1)
       #; [!s2f6v] when task block is build from repeated code...
       if @code
+        n_repeat = N_REPEAT    # == 100
         #; [!i2r8o] error when number of loop is less than 100.
-        loop >= 100  or
-          raise TaskError, "task(#{@name.inspect}): number of loop (=#{loop}) should be >= 100, but not."
+        loop >= n_repeat  or
+          raise TaskError, "task(#{@name.inspect}): number of loop (=#{loop}) should be >= #{n_repeat}, but not."
         #; [!kzno6] error when number of loop is not a multiple of 100.
-        loop % 100 == 0  or
-          raise TaskError, "task(#{@name.inspect}): number of loop (=#{loop}) should be a multiple of 100, but not."
+        loop % n_repeat == 0  or
+          raise TaskError, "task(#{@name.inspect}): number of loop (=#{loop}) should be a multiple of #{n_repeat}, but not."
         #; [!gbukv] changes number of loop to 1/100.
-        loop = loop / 100
+        loop = loop / n_repeat
       end
       #; [!frq25] kicks GC before calling task block.
       GC.start()
