@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 ###
-### $Release: $
+### $Release: 0.0.0 $
 ### $Copyright: copyright(c) 2010-2021 kuwata-lab.com all rights reserved $
 ### $License: Public Domain $
 ###

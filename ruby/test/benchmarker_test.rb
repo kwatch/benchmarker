@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ###
-### $Release: $
-### $Copyright: copyright(c) 2011 kuwata-lab.com all rights reserved $
-### $License: MIT License $
+### $Release: 0.0.0 $
+### $Copyright: copyright(c) 2010-2021 kuwata-lab.com all rights reserved $
+### $License: Public Domain $
 ###
 
 $LOAD_PATH.unshift File.class_eval { expand_path(dirname(__FILE__)) }
