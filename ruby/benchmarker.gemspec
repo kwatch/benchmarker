@@ -20,7 +20,7 @@ spec = Gem::Specification.new do |s|
   s.homepage    = "https://kwatch.github.io/benchmarker/"
   s.summary     = "pretty good benchmarking library"
   s.description = <<-'END'
-Benchmarker s a pretty good tool to benchmark Ruby program.
+Benchmarker s a pretty good tool benchmark tool for Ruby.
 Compared to `benchmark.rb` (standard library), Benchmarker has
 a lot of useful features.  See:
 https://kwatch.github.io/benchmarker/
@@ -31,7 +31,7 @@ END
     'lib/benchmarker.rb',
     'test/**/*',
     #'examples/**/*',
-    'REAMDE.md', 'CHANGES.md',
+    'README.md', 'CHANGES.md', 'Rakefile',
     'setup.rb', 'benchmarker.gemspec',
   ]
   s.files       = files.collect {|pat| Dir.glob(pat) }.flatten

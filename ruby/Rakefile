@@ -57,25 +57,27 @@ end
 
 desc "create 'build/#{project}-#{release}/' and copy files to it"
 task :build do
+  release = ENV['rel']  or
+    raise "rake: requires 'rel=X.X.X'"
   dir = "build/#{project}-#{release}"
   #rm_rf dir if File.exist?(dir)
   fnames = Dir.glob("#{dir}*")
   rm_rf fnames unless fnames.empty?
   mkdir_p dir
   ## store
-  cp_r %W[README.txt CHANGES.txt Rakefile #{project}.gemspec setup.rb], dir
+  cp_r %W[README.md CHANGES.md Rakefile #{project}.gemspec setup.rb], dir
   copy_into Dir.glob("lib/*.rb"),      "#{dir}/lib"
   copy_into Dir.glob("test/*test.rb"), "#{dir}/test"
-  copy_into Dir.glob("examples/*.rb"), "#{dir}/examples"
+  #copy_into Dir.glob("examples/*.rb"), "#{dir}/examples"
   ## edit
   edit_files("#{dir}/**/*") do |content, filename|
-    if ! %w[Rakefile setup.rb oktest.rb].include?(File.basename(filename))
-      content.gsub! /\$Release:.*?\$/,   "$Release: #{release} $"
-      content.gsub! /\$Copyright:.*?\$/, "$Copyright: #{copyright} $"
-      content.gsub! /\$License:.*?\$/,   "$License: #{license} $"
-      content.gsub! /\$Release\$/,   release
-      content.gsub! /\$Copyright\$/, copyright
-      content.gsub! /\$License\$/,   license
+    if ! %w[setup.rb].include?(File.basename(filename))
+      content.gsub! /[\$]Release:.*?\$/,   "$""Release: #{release} $"
+      content.gsub! /[\$]Copyright:.*?\$/, "$""Copyright: #{copyright} $"
+      content.gsub! /[\$]License:.*?\$/,   "$""License: #{license} $"
+      content.gsub! /[\$]Release\$/,   release
+      content.gsub! /[\$]Copyright\$/, copyright
+      content.gsub! /[\$]License\$/,   license
     end
     content
   end
@@ -83,11 +85,13 @@ end
 
 
 desc "create *.tar.gz and *.gem packages"
-task :packages => :build do
+task :package => :build do
+  release = ENV['rel']  or
+    raise "rake package: requires 'rel=X.X.X'"
   base = "#{project}-#{release}"
-  chdir "build" do
-    sh "tar cf #{base}.tar.gz #{base}"
-  end
+  #chdir "build" do
+  #  sh "tar cf #{base}.tar.gz #{base}"
+  #end
   chdir "build/#{base}" do
     sh "gem build #{project}.gemspec"
     mv Dir.glob("#{project}-*.gem"), ".."
