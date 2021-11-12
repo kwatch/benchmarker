@@ -7,8 +7,7 @@
 ### $License: Public Domain $
 ###
 
-$LOAD_PATH.unshift File.class_eval { expand_path(dirname(__FILE__)) }
-$LOAD_PATH.unshift File.class_eval { expand_path(join(dirname(__FILE__), '../lib')) }
+$LOAD_PATH.unshift File.class_eval { join(dirname(dirname(__FILE__)), 'lib') }
 
 require 'oktest'
 
