@@ -1354,6 +1354,8 @@ Usage: bench.rb [<options>]
   -I[<N>]        : print inverse number (= N/sec) (default: same as '-n')
   -o <file>      : output file in JSON format
   -q             : quiet a little (suppress output of each iteration)
+  -c             : enable colorized output
+  -C             : disable colorized output
   -s <N>         : sleep N seconds after each benchmark task
   -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
   -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
