@@ -18,12 +18,11 @@ spec = Gem::Specification.new do |s|
   s.license     = 'CC-PDDC'  # public domain
   #s.homepage    = "https://github.com/kwatch/benchmarker/"
   s.homepage    = "https://kwatch.github.io/benchmarker/ruby.html"
-  s.summary     = "pretty good benchmarking library"
+  s.summary     = "pretty good benchmark library"
   s.description = <<-'END'
-Benchmarker s a pretty good tool benchmark tool for Ruby.
-Compared to `benchmark.rb` (standard library), Benchmarker has
-a lot of useful features.  See:
-https://kwatch.github.io/benchmarker/
+Benchmarker is a pretty good benchmark tool for Ruby.
+Compared to `benchmark.rb` (standard library), Benchmarker has a lot of useful features.
+See: https://kwatch.github.io/benchmarker/ruby.html
 END
 
   ## files
