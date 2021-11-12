@@ -429,7 +429,7 @@ module Benchmarker
     end
 
     def colorize_real(s)
-      colorize?() ? Color.blue(s) : s
+      colorize?() ? Color.cyan(s) : s
     end
 
     def colorize_iter(s)

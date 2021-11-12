@@ -654,10 +654,10 @@ Oktest.scope do
         ok {str} == <<"END"
 
 ## Removed Min & Max                 min      iter       max      iter
-foo                            \e[0;34m   4.1000\e[0m \e[0;35m     (#2)\e[0m \e[0;34m   4.9000\e[0m \e[0;35m     (#5)\e[0m
-                               \e[0;34m   4.2000\e[0m \e[0;35m     (#6)\e[0m \e[0;34m   4.8000\e[0m \e[0;35m     (#8)\e[0m
-bar                            \e[0;34m   4.1000\e[0m \e[0;35m     (#2)\e[0m \e[0;34m   4.9000\e[0m \e[0;35m     (#5)\e[0m
-                               \e[0;34m   4.2000\e[0m \e[0;35m     (#6)\e[0m \e[0;34m   4.8000\e[0m \e[0;35m     (#8)\e[0m
+foo                            \e[0;36m   4.1000\e[0m \e[0;35m     (#2)\e[0m \e[0;36m   4.9000\e[0m \e[0;35m     (#5)\e[0m
+                               \e[0;36m   4.2000\e[0m \e[0;35m     (#6)\e[0m \e[0;36m   4.8000\e[0m \e[0;35m     (#8)\e[0m
+bar                            \e[0;36m   4.1000\e[0m \e[0;35m     (#2)\e[0m \e[0;36m   4.9000\e[0m \e[0;35m     (#5)\e[0m
+                               \e[0;36m   4.2000\e[0m \e[0;35m     (#6)\e[0m \e[0;36m   4.8000\e[0m \e[0;35m     (#8)\e[0m
 END
       end
     end
@@ -688,8 +688,8 @@ END
         ok {str} == <<"END"
 
 ## Average of 5 (=9-2*2)            user       sys     total      real
-foo                               1.5000    2.5000    3.5000 \e[0;34m   4.5000\e[0m
-bar                               1.5000    2.5000    3.5000 \e[0;34m   4.5000\e[0m
+foo                               1.5000    2.5000    3.5000 \e[0;36m   4.5000\e[0m
+bar                               1.5000    2.5000    3.5000 \e[0;36m   4.5000\e[0m
 END
       end
     end
@@ -746,9 +746,9 @@ END
         ok {str} == <<"END"
 
 ## Ranking                          real
-foo                            \e[0;34m   1.1100\e[0m (100.0%) ********************
-bar                            \e[0;34m   2.2200\e[0m ( 50.0%) **********
-baz                            \e[0;34m   3.3300\e[0m ( 33.3%) *******
+foo                            \e[0;36m   1.1100\e[0m (100.0%) ********************
+bar                            \e[0;36m   2.2200\e[0m ( 50.0%) **********
+baz                            \e[0;36m   3.3300\e[0m ( 33.3%) *******
 END
       end
     end
@@ -769,9 +769,9 @@ END
         ok {str} == <<"END"
 
 ## Matrix                           real      [1]      [2]      [3]
-[1] foo                        \e[0;34m   1.1100\e[0m   100.0%   200.0%   300.0%
-[2] bar                        \e[0;34m   2.2200\e[0m    50.0%   100.0%   150.0%
-[3] baz                        \e[0;34m   3.3300\e[0m    33.3%    66.7%   100.0%
+[1] foo                        \e[0;36m   1.1100\e[0m   100.0%   200.0%   300.0%
+[2] bar                        \e[0;36m   2.2200\e[0m    50.0%   100.0%   150.0%
+[3] baz                        \e[0;36m   3.3300\e[0m    33.3%    66.7%   100.0%
 END
       end
     end
@@ -1556,7 +1556,7 @@ END
             task "foo" do nil end
           end
         end
-        ok {sout} =~ /\e\[0;34m.*?\e\[0m/
+        ok {sout} =~ /\e\[0;36m.*?\e\[0m/
       end
     - spec("[!e5hv0] option '-c' specifies colorize enabled.") do
         ok {Benchmarker::OPTIONS} == {}
@@ -1567,7 +1567,7 @@ END
             task "foo" do nil end
           end
         end
-        ok {sout} !~ /\e\[0;34m.*?\e\[0m/
+        ok {sout} !~ /\e\[0;36m.*?\e\[0m/
       end
     - spec("[!muica] option '-F' specifies filter.") do
         ok {Benchmarker::OPTIONS} == {}
