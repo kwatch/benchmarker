@@ -737,20 +737,20 @@ module Benchmarker
     def cpu_model()
       #; [!6ncgq] returns string representing cpu model.
       if File.exist?("/usr/sbin/sysctl")        # macOS
-        output = `/usr/sbin/sysctl machdep.cpu.brand_string`
-        output =~ /^machdep\.cpu\.brand_string: (.*)/
+        s = `/usr/sbin/sysctl machdep.cpu.brand_string`
+        s =~ /^machdep\.cpu\.brand_string: (.*)/
         return $1
       elsif File.exist?("/proc/cpuinfo")        # Linux
-        output = `cat /proc/cpuinfo`
-        output =~ /^model name\s*: (.*)/
+        s = `cat /proc/cpuinfo`
+        s =~ /^model name\s*: (.*)/
         return $1
       elsif File.exist?("/var/run/dmesg.boot")  # FreeBSD
-        output = `grep ^CPU: /var/run/dmesg.boot`
-        output =~ /^CPU: (.*)/
+        s = `grep ^CPU: /var/run/dmesg.boot`
+        s =~ /^CPU: (.*)/
         return $1
       elsif RUBY_PLATFORM =~ /win/              # Windows
-        output = `systeminfo`
-        output =~ /^\s+\[01\]: (.*)/    # TODO: not tested yet
+        s = `systeminfo`
+        s =~ /^\s+\[01\]: (.*)/    # TODO: not tested yet
         return $1
       else
         return nil
