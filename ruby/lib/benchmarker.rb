@@ -1002,7 +1002,7 @@ END
     OPTIONS[:sleep]    = options['s'] if options['s']
     OPTIONS[:filter]   = options['F'] if options['F']
     #; [!3khc4] sets global variables if long option specified.
-    keyvals.each {|k, v| eval "$#{k} = #{v.inspect}" }
+    keyvals.each {|k, v| eval "$opt_#{k} = #{v.inspect}" }
     #
     return options, keyvals  # for testing
   end

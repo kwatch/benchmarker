@@ -1612,10 +1612,13 @@ END
       end
     - spec("[!3khc4] sets global variables if long option specified.") do
         ok {Benchmarker::OPTIONS} == {}
-        ok {$blabla} == nil
+        ok {$opt_blabla} == nil
         Benchmarker.parse_cmdopts(['--blabla=123'])
         ok {Benchmarker::OPTIONS} == {}
-        ok {$blabla} == "123"
+        ok {$opt_blabla} == "123"
+        Benchmarker.parse_cmdopts(['--blabla'])
+        ok {Benchmarker::OPTIONS} == {}
+        ok {$opt_blabla} == true
       end
     end
   end
