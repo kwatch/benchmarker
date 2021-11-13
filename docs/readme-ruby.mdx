@@ -1,0 +1,1130 @@
+# Benchmarker.rb
+
+$Release: 1.0.0 $
+
+
+
+## Overview
+
+Benchmarker.rb is an awesome benchmarking tool for Ruby.
+
+* Easy to use
+* Pretty good output (including JSON format)
+* Rich features compared to ``benchmark.rb`` (standard library)
+  * Iterate benchmarks and calculate average of resutls (optional)
+  * Remove min and max results to exclude abnormal values (optional)
+  * Remove loop times from each benchmark results (optional)
+  * Save benchmark results into JSON file (optional)
+  * Change loop times, number of iteration, etc by command-line option
+  * Print platform information automatically
+  * Print ranking graph and ratio matrix automatically
+
+
+
+###* Table of contents
+
+<!-- TOC -->
+
+
+
+## Install
+
+<https://rubygems.org/gems/benchmarker>
+
+```terminal
+$ gem install benchmarker
+```
+
+
+
+## Quick example
+
+Create sample script:
+
+```terminal
+$ ruby -r benchmarker -e '' -- -S > bench.rb
+```
+
+File: bench.rb
+
+```ruby
+# -*- coding: utf-8 -*-
+
+require 'benchmarker'  # https://kwatch.github.io/benchmarker/ruby.html
+
+nums = (1..10000).to_a
+
+title = "calculate sum of integers"
+Benchmarker.scope(title, width: 24, loop: 1000, iter: 5, extra: 1) do
+  ## other options -- inverse: true, outfile: "result.json", quiet: true,
+  ##                  sleep: 1, colorize: true, filter: "task=*foo*"
+
+  ## hooks
+  #before_all do end
+  #after_all  do end
+  #before do end     # or: before do |task_name, tag| end
+  #after  do end     # or: after  do |task_name, tag| end
+
+  ## tasks
+  task nil do    # empty-loop task
+    # do nothing
+  end
+
+  task "each() & '+='" do
+    total = 0
+    nums.each {|n| total += n }
+    total
+  end
+
+  task "inject()" do
+    total = nums.inject(0) {|t, n| t += n }
+    total
+  end
+
+  task "while statement" do
+    total = 0; i = -1; len = nums.length
+    while (i += 1) < len
+      total += nums[i]
+    end
+    total
+  end
+
+  #task "name", tag: "curr", skip: (!condition ? nil : "...reason...") do
+  #  ... run benchmark code ...
+  #end
+
+  ## validation
+  validate do |val|   # or: validate do |val, task_name, tag|
+    n = nums.last
+    expected = n * (n+1) / 2
+    assert_eq val, expected
+      # or: assert val == expected, "expected #{expected} but got #{val}"
+  end
+
+end
+```
+
+Output example:
+
+```terminal
+$ ruby bench.rb --help | less
+$ ruby bench.rb -q   # or: ruby bench.rb -w 24 -n 1000 -i 5 -x 1 -q
+## title:           sum of integers
+## options:         loop=1000, iter=5, extra=1
+## benchmarker:     release 1.0.0
+## ruby engine:     ruby (engine version 2.4.5)
+## ruby version:    2.4.5 (patch level 335)
+## ruby platform:   x86_64-darwin18
+## ruby path:       /opt/vs/ruby/2.4.5/bin/ruby
+## compiler:        Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+## os name:         Mac OS X 10.14.6
+## cpu model:       Intel(R) Core(TM) m7-6Y75 CPU @ 1.20GHz
+
+## Removed Min & Max           min      iter       max      iter
+each() & '+='               0.4715      (#6)    0.5257      (#1)
+inject()                    0.6087      (#3)    0.6262      (#6)
+while statement             0.3271      (#5)    0.3352      (#1)
+
+## Average of 5 (=7-2*1)      user       sys     total      real
+each() & '+='               0.4760    0.0020    0.4780    0.4789
+inject()                    0.6080    0.0000    0.6080    0.6122
+while statement             0.3280    0.0000    0.3280    0.3303
+
+## Ranking                    real
+while statement             0.3303 (100.0%) ********************
+each() & '+='               0.4789 ( 69.0%) **************
+inject()                    0.6122 ( 54.0%) ***********
+
+## Matrix                     real      [1]      [2]      [3]
+[1] while statement         0.3303   100.0%   145.0%   185.3%
+[2] each() & '+='           0.4789    69.0%   100.0%   127.8%
+[3] inject()                0.6122    54.0%    78.2%   100.0%
+```
+
+
+
+## Step by step tutorial
+
+
+### Basic usage
+
+File: ex1.rb
+
+```ruby
+{{*require 'benchmarker'*}}
+
+title = "string concat"    # optional
+{{*Benchmarker.scope(title, width: 22) do*}}
+  loop = 1000 * 1000
+  s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+  {{*task "String#+" do*}}
+    loop.times do
+      sos = s1 + s2 + s3 + s4 + s5
+    end
+  end
+
+  {{*task "String#<<" do*}}
+    loop.times do
+      (sos = "") << s1 << s2 << s3 << s4 << s5
+    end
+  end
+
+  {{*task "Array#join" do*}}
+    loop.times do
+      sos = [s1, s2, s3, s4, s5].join()
+    end
+  end
+
+  {{*task "Interpolation" do*}}
+    loop.times do
+      sos = "#{s1}#{s2}#{s3}#{s4}#{s5}"
+    end
+  end
+
+end
+```
+
+You can omit ``title`` argument, for example ``Benchamrker.scope(width: 22)``.
+
+Output example:
+
+```terminal
+$ ruby ex1.rb
+## title:           string concat
+## options:         loop=1, iter=1, extra=0
+## benchmarker:     release 1.0.0
+## ruby engine:     ruby (engine version 2.4.5)
+## ruby version:    2.4.5 (patch level 335)
+## ruby platform:   x86_64-darwin18
+## ruby path:       /opt/vs/ruby/2.4.5/bin/ruby
+## compiler:        Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+## os name:         Mac OS X 10.14.6
+## cpu model:       Intel(R) Core(TM) m7-6Y75 CPU @ 1.20GHz
+
+##                          user       sys     total      {{*real*}}
+String#+                  0.5500    0.0000    0.5500    {{*0.5557*}}
+String#<<                 0.5700    0.0000    0.5700    {{*0.5839*}}
+Array#join                0.9100    0.0100    0.9200    {{*0.9235*}}
+Interpolation             0.4900    0.0000    0.4900    {{*0.4938*}}
+
+## Ranking                  {{*real*}}
+Interpolation             {{*0.4938*}} (100.0%) ********************
+String#+                  {{*0.5557*}} ( 88.9%) ******************
+String#<<                 {{*0.5839*}} ( 84.6%) *****************
+Array#join                {{*0.9235*}} ( 53.5%) ***********
+
+## Matrix                   {{*real*}}      [1]      [2]      [3]      [4]
+[1] Interpolation         {{*0.4938*}}   100.0%   112.5%   118.2%   187.0%
+[2] String#+              {{*0.5557*}}    88.9%   100.0%   105.1%   166.2%
+[3] String#<<             {{*0.5839*}}    84.6%    95.2%   100.0%   158.1%
+[4] Array#join            {{*0.9235*}}    53.5%    60.2%    63.2%   100.0%
+```
+
+
+### Number of loop
+
+You can specify number of loop in script and/or command-line option.
+
+File: ex2.rb
+
+```ruby
+require 'benchmarker'
+
+title = "string concat"
+Benchmarker.scope(title, width: 22{{*, loop: 1000*1000*}}) do
+  {{=loop = 1000 * 1000=}}
+  s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+  task "String#+" do
+    {{=loop.times do=}}
+      sos = s1 + s2 + s3 + s4 + s5
+    {{=end=}}
+  end
+
+  task "String#<<" do
+    {{=loop.times do=}}
+      (sos = "") << s1 << s2 << s3 << s4 << s5
+    {{=end=}}
+  end
+
+  task "Array#join" do
+    {{=loop.times do=}}
+      sos = [s1, s2, s3, s4, s5].join()
+    {{=end=}}
+  end
+
+  task "Interpolation" do
+    {{=loop.times do=}}
+      sos = "#{s1}#{s2}#{s3}#{s4}#{s5}"
+    {{=end=}}
+  end
+
+end
+```
+
+Output example:
+
+```terminal
+$ ruby ex2.rb   # or: ruby ex2.rb {{*-n 1000000*}}
+## title:           string concat
+## options:         {{*loop=1000000*}}, iter=1, extra=0
+## benchmarker:     release 1.0.0
+## ruby engine:     ruby (engine version 2.4.5)
+## ruby version:    2.4.5 (patch level 335)
+## ruby platform:   x86_64-darwin18
+## ruby path:       /opt/vs/ruby/2.4.5/bin/ruby
+## compiler:        Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+## os name:         Mac OS X 10.14.6
+## cpu model:       Intel(R) Core(TM) m7-6Y75 CPU @ 1.20GHz
+
+##                          user       sys     total      real
+String#+                  0.5700    0.0000    0.5700    0.5760
+String#<<                 0.6100    0.0000    0.6100    0.6153
+Array#join                0.9200    0.0200    0.9400    0.9401
+Interpolation             0.5200    0.0000    0.5200    0.5276
+
+## Ranking                  real
+Interpolation             0.5276 (100.0%) ********************
+String#+                  0.5760 ( 91.6%) ******************
+String#<<                 0.6153 ( 85.7%) *****************
+Array#join                0.9401 ( 56.1%) ***********
+
+## Matrix                   real      [1]      [2]      [3]      [4]
+[1] Interpolation         0.5276   100.0%   109.2%   116.6%   178.2%
+[2] String#+              0.5760    91.6%   100.0%   106.8%   163.2%
+[3] String#<<             0.6153    85.7%    93.6%   100.0%   152.8%
+[4] Array#join            0.9401    56.1%    61.3%    65.4%   100.0%
+```
+
+Notice that command-line option ``-n <N>`` overwrites ``Benchmarker.scope(loop: <N>)``.
+
+
+### Empty loop task
+
+Empty loop task is used to subtract overhead time of loop from entire time.
+
+File: ex3.rb
+
+```ruby
+require 'benchmarker'
+
+title = "string concat"
+Benchmarker.scope(title, width: 22, loop: 1000*1000) do
+  s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+  {{*task nil do*}}
+    {{*nil*}}
+  {{*end*}}
+
+  task "String#+" do
+    sos = s1 + s2 + s3 + s4 + s5
+  end
+
+  task "String#<<" do
+    (sos = "") << s1 << s2 << s3 << s4 << s5
+  end
+
+  task "Array#join" do
+    sos = [s1, s2, s3, s4, s5].join()
+  end
+
+  task "Interpolation" do
+    sos = "#{s1}#{s2}#{s3}#{s4}#{s5}"
+  end
+
+end
+```
+
+Output example:
+
+```terminal
+$ ruby ex3.rb
+## title:           string concat
+## options:         loop=1000000, iter=1, extra=0
+## benchmarker:     release 1.0.0
+## ruby engine:     ruby (engine version 2.4.5)
+## ruby version:    2.4.5 (patch level 335)
+## ruby platform:   x86_64-darwin18
+## ruby path:       /opt/vs/ruby/2.4.5/bin/ruby
+## compiler:        Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+## os name:         Mac OS X 10.14.6
+## cpu model:       Intel(R) Core(TM) m7-6Y75 CPU @ 1.20GHz
+
+##                          user       sys     total      real
+{{*(Empty)*}}                   {{*0.0900    0.0000    0.0900    0.0896*}}
+String#+                  0.5000    0.0000    0.5000    0.4957
+String#<<                 0.5300    0.0000    0.5300    0.5373
+Array#join                0.8400    0.0100    0.8500    0.8525
+Interpolation             0.4500    0.0000    0.4500    0.4559
+
+## Ranking                  real
+Interpolation             0.4559 (100.0%) ********************
+String#+                  0.4957 ( 92.0%) ******************
+String#<<                 0.5373 ( 84.9%) *****************
+Array#join                0.8525 ( 53.5%) ***********
+
+## Matrix                   real      [1]      [2]      [3]      [4]
+[1] Interpolation         0.4559   100.0%   108.7%   117.9%   187.0%
+[2] String#+              0.4957    92.0%   100.0%   108.4%   172.0%
+[3] String#<<             0.5373    84.9%    92.3%   100.0%   158.7%
+[4] Array#join            0.8525    53.5%    58.1%    63.0%   100.0%
+```
+
+For example, actual time of 'String#+' entry is 0.5853 sec (= 0.4957 + 0.0896). In other words, real time (0.4957 sec) is already subtracted empty loop time (0.0896 sec).
+
+Actual time of each benchmark task:
+
+: - String#+
+    0.5853 sec (= 0.4957 + 0.0896)
+: - String#<<
+    0.6269 sec (= 0.5373 + 0.0896)
+: - Array#join
+    0.9421 sec (= 0.8525 + 0.0896)
+: - Interpolation
+    0.5455 sec (= 0.4559 + 0.0896)
+
+
+### Iteration
+
+It is possible to iterate all benchmark tasks. Average of results are calculated automatically.
+
+* ``Benchmarker.scope(iter: 5)`` or command-line option ``-i 5`` iterates all benchmark tasks 5 times and reports average of result.
+* ``Benchmarker.scope(extra: 1)`` or command-line option ``-x 1`` increases number of iterations by ``2*1`` times, and excludes min and max results before calculating average.
+* ``Benchmarker.scope(iter: 5, extra: 1)`` or command-line option ``-i 5 -x 1`` iterates benchmarks 7 times (= 5+2*1) , excludes min and max results, and calculates average of 5 results.
+
+File: ex4.rb
+
+```ruby
+require 'benchmarker'
+
+title = "string concat"
+Benchmarker.scope(title, width: 22, loop: 1000*1000{{*, iter: 5, extra: 1*}}) do
+  s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+  task nil do
+    nil
+  end
+
+  task "String#+" do
+    sos = s1 + s2 + s3 + s4 + s5
+  end
+
+  task "String#<<" do
+    (sos = "") << s1 << s2 << s3 << s4 << s5
+  end
+
+  task "Array#join" do
+    sos = [s1, s2, s3, s4, s5].join()
+  end
+
+  task "Interpolation" do
+    sos = "#{s1}#{s2}#{s3}#{s4}#{s5}"
+  end
+
+end
+```
+
+Output example:
+
+```terminal
+$ ruby ex4.rb    # or: ruby ext4.rb {{*-i 5 -x 1*}}
+## title:           string concat
+## options:         loop=1000000, {{*iter=5, extra=1*}}
+## benchmarker:     release 1.0.0
+## ruby engine:     ruby (engine version 2.4.5)
+## ruby version:    2.4.5 (patch level 335)
+## ruby platform:   x86_64-darwin18
+## ruby path:       /opt/vs/ruby/2.4.5/bin/ruby
+## compiler:        Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+## os name:         Mac OS X 10.14.6
+## cpu model:       Intel(R) Core(TM) m7-6Y75 CPU @ 1.20GHz
+
+## {{*(#1)*}}                   user       sys     total      real
+(Empty)                 0.0900    0.0000    0.0900    0.0889
+String#+                0.4900    0.0000    0.4900    0.4906
+String#<<               0.5100    0.0100    0.5200    0.5216
+Array#join              0.8200    0.0100    0.8300    0.8346
+Interpolation           0.4400    0.0000    0.4400    0.4404
+
+## {{*(#2)*}}                   user       sys     total      real
+(Empty)                 0.0800    0.0000    0.0800    0.0824
+String#+                0.4600    0.0000    0.4600    0.4642
+String#<<               0.5200    0.0100    0.5300    0.5202
+Array#join              0.8100    0.0100    0.8200    0.8175
+Interpolation           0.4400    0.0000    0.4400    0.4461
+
+## {{*(#3)*}}                   user       sys     total      real
+(Empty)                 0.0900    0.0000    0.0900    0.0824
+String#+                0.4500    0.0000    0.4500    0.4661
+String#<<               0.5100    0.0000    0.5100    0.5149
+Array#join              0.8100    0.0100    0.8200    0.8340
+Interpolation           0.4300    0.0100    0.4400    0.4454
+
+## {{*(#4)*}}                   user       sys     total      real
+(Empty)                 0.0900    0.0000    0.0900    0.0826
+String#+                0.4600    0.0000    0.4600    0.4738
+String#<<               0.5100    0.0000    0.5100    0.5219
+Array#join              0.8200    0.0100    0.8300    0.8475
+Interpolation           0.4400    0.0000    0.4400    0.4459
+
+## {{*(#5)*}}                   user       sys     total      real
+(Empty)                 0.0800    0.0000    0.0800    0.0824
+String#+                0.4700    0.0000    0.4700    0.4652
+String#<<               0.5200    0.0100    0.5300    0.5275
+Array#join              0.8400    0.0100    0.8500    0.8527
+Interpolation           0.4800    0.0000    0.4800    0.4815
+
+## {{*(#6)*}}                   user       sys     total      real
+(Empty)                 0.0900    0.0000    0.0900    0.0865
+String#+                0.4800    0.0000    0.4800    0.4889
+String#<<               0.5400    0.0100    0.5500    0.5526
+Array#join              0.8400    0.0100    0.8500    0.8532
+Interpolation           0.4600    0.0000    0.4600    0.4653
+
+## {{*(#7)*}}                   user       sys     total      real
+(Empty)                 0.0800    0.0000    0.0800    0.0882
+String#+                0.5000    0.0000    0.5000    0.4909
+String#<<               0.5500    0.0000    0.5500    0.5489
+Array#join              0.8500    0.0100    0.8600    0.8491
+Interpolation           0.4700    0.0100    0.4800    0.4649
+
+{{*## Removed Min & Max       min      iter       max      iter*}}
+{{*String#+                0.4642      (#2)    0.4909      (#7)*}}
+{{*String#<<               0.5149      (#3)    0.5526      (#6)*}}
+{{*Array#join              0.8175      (#2)    0.8532      (#6)*}}
+{{*Interpolation           0.4404      (#1)    0.4815      (#5)*}}
+
+{{*## Average of 5 (=7-2*1)  user       sys     total      real*}}
+{{*String#+                0.4700    0.0000    0.4700    0.4769*}}
+{{*String#<<               0.5220    0.0060    0.5280    0.5280*}}
+{{*Array#join              0.8280    0.0100    0.8380    0.8436*}}
+{{*Interpolation           0.4480    0.0040    0.4520    0.4535*}}
+
+## Ranking                real
+Interpolation           0.4535 (100.0%) ********************
+String#+                0.4769 ( 95.1%) *******************
+String#<<               0.5280 ( 85.9%) *****************
+Array#join              0.8436 ( 53.8%) ***********
+
+## Matrix                 real      [1]      [2]      [3]      [4]
+[1] Interpolation       0.4535   100.0%   105.2%   116.4%   186.0%
+[2] String#+            0.4769    95.1%   100.0%   110.7%   176.9%
+[3] String#<<           0.5280    85.9%    90.3%   100.0%   159.8%
+[4] Array#join          0.8436    53.8%    56.5%    62.6%   100.0%
+```
+
+If you want to print only total result (= ignore results of each iteration),
+add command-line option ``-q``, or add ``quiet: true`` to ``Benchmarker.scope()``.
+
+```terminal
+$ ruby ex4.rb {{*-q*}}     # ignore results of each iteration
+## title:           string concat
+## options:         loop=1000000, iter=5, extra=1
+## benchmarker:     release 1.0.0
+## ruby engine:     ruby (engine version 2.4.5)
+## ruby version:    2.4.5 (patch level 335)
+## ruby platform:   x86_64-darwin18
+## ruby path:       /opt/vs/ruby/2.4.5/bin/ruby
+## compiler:        Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+## os name:         Mac OS X 10.14.6
+## cpu model:       Intel(R) Core(TM) m7-6Y75 CPU @ 1.20GHz
+
+## Removed Min & Max       min      iter       max      iter
+String#+                0.4642      (#2)    0.4909      (#7)
+String#<<               0.5149      (#3)    0.5526      (#6)
+Array#join              0.8175      (#2)    0.8532      (#6)
+Interpolation           0.4404      (#1)    0.4815      (#5)
+
+## Average of 5 (=7-2*1)  user       sys     total      real
+String#+                0.4700    0.0000    0.4700    0.4769
+String#<<               0.5220    0.0060    0.5280    0.5280
+Array#join              0.8280    0.0100    0.8380    0.8436
+Interpolation           0.4480    0.0040    0.4520    0.4535
+
+## Ranking                real
+Interpolation           0.4535 (100.0%) ********************
+String#+                0.4769 ( 95.1%) *******************
+String#<<               0.5280 ( 85.9%) *****************
+Array#join              0.8436 ( 53.8%) ***********
+
+## Matrix                 real      [1]      [2]      [3]      [4]
+[1] Interpolation       0.4535   100.0%   105.2%   116.4%   186.0%
+[2] String#+            0.4769    95.1%   100.0%   110.7%   176.9%
+[3] String#<<           0.5280    85.9%    90.3%   100.0%   159.8%
+[4] Array#join          0.8436    53.8%    56.5%    62.6%   100.0%
+```
+
+
+### Tags
+
+``task()`` can take user-defined tags. They can be string or array of strings.
+
+Example:
+
+```ruby
+Benchmarker.scope(loop: 1000*1000) do
+
+  task "Interpolation", {{*tag: 'curr'*}} do   # or: tag: ['curr']
+    ....
+  end
+
+  ## or
+  task "Interpolation", <<-'END', binding(), {{*tag: 'curr'*}}
+    ....
+  END
+
+  ...
+
+end
+```
+
+Tags are useful to filter or categorize tasks.
+See the following sections for details.
+
+
+### Filters
+
+Using command-line option ``-F``, you can filter benchmarks by name or tag.
+
+Example:
+
+```terminal
+## filter by task name
+$ ruby ex4.rb {{*-F task='*String*'*}}   # select tasks matched to pattern
+$ ruby ex4.rb {{*-F task!='*String*'*}}  # reject tasks matched to pattern
+
+## filter by tag
+$ ruby ex4.rb {{*-F tag='curr'*}}   # select only tasks tagged as 'curr'
+$ ruby ex4.rb {{*-F tag!='curr'*}}  # reject all tasks tagged as 'curr'
+```
+
+Meta characters ``*``, ``?``, ``[]``, and ``[]`` are avaible in filter string.
+
+``Benchmarker.scope(filter: ...)`` is equivarent to ``-F ...`` option.
+For example, if you want to skip heavy benchmark tasks by default:
+
+```ruby
+## skip benchmarks tagged as 'heavy'
+Benchmarker.scope(title, {{*filter: "tag!=heavy"*}}) do |bm|
+
+    task "Too heavy benchmark", {{*tag: 'heavy'*}} do
+      # do heavy benchamark
+    end
+
+    ....
+```
+
+Command-line example:
+
+```python
+$ ruby ex4.rb               # skip heavy benchmark tasks
+$ ruby ex4.rb {{*-F 'tag!=x'*}}   # run all benchmark tasks
+```
+
+
+### Hooks
+
+Benchmarker provides several hook methods.
+
+* ``before do ... end`` : do something before each task.
+* ``after do ... end`` : do something after each task.
+* ``before_all do ... end`` : do something once before all tasks.
+* ``after_all do ... end`` : do something once after all tasks.
+
+For example:
+
+```ruby
+require 'benchmarker'
+
+Benchmarker.scope() do
+  {{*before*}} do |task_name|
+    ...
+  end
+  {{*after*}} do |task_name|
+    ...
+  end
+  {{*before_all*}} do
+    ...
+  end
+  {{*after_all*}} do
+    ...
+  end
+
+  task "AAA" do
+    ...
+  end
+
+  task "BBB" do
+    ...
+  end
+
+end
+```
+
+In above example, following blocks are called in this order.
+
+1. hook ``before_all``
+2. hook ``before``
+3. task ``"AAA"``
+4. hook ``after``
+5. hook ``before``
+6. task ``"BBB"``
+7. hook ``after``
+8. hook ``after_all``
+
+``before`` and ``after`` hooks can accept task name and tag value.
+You can switch hook operation according to task name or tag value.
+
+```ruby
+  before do {{*|task_name, tag|*}}
+    ....
+  end
+  after do {{*|task_name, tag|*}}
+    ....
+  end
+```
+
+
+### Validation
+
+It is very important to write benchmark task program correctly.
+You should validate result of benchmark task.
+
+Benchmarker supports to validate result value of benchmark tasks.
+
+File: ex5.rb
+
+```ruby
+require 'benchmarker'
+
+title = "string concat"
+Benchmarker.scope(title, width: 22, loop: 1000*1000, iter: 5, extra: 1) do
+  s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
+
+  task nil do
+    nil
+  end
+
+  task "String#+" do
+    sos = s1 + s2 + s3 + s4 + s5
+    {{*sos*}}
+  end
+
+  task "String#<<" do
+    (sos = "") << s1 << s2 << s3 << s4 << s5
+    {{*sos*}}
+  end
+
+  task "Array#join" do
+    sos = [s1, s2, s3, s4, s5].join()
+    {{*sos*}}
+  end
+
+  task "Interpolation" do
+    sos = "#{s1}#{s2}#{s3}#{s4}#{s5}"
+    {{*sos*}}
+  end
+
+  {{*validate do |sos|*}}
+    {{*expected = "HaruhiMikuruYukiItsukiKyon"*}}
+    {{*assert_eq sos, expected*}}
+    {{*## or*}}
+    {{*assert sos == expected,*}}
+           {{*"expected #{expected.inspect} but got #{sos.inspect}"*}}
+  {{*end*}}
+
+end
+```
+
+<!--
+Output example:
+
+```terminal
+$ ruby ex5.rb
+```
+-->
+
+* Validation is invoked after each task invocation, so it doesn't affect to benchmark result.
+* If validation failed, error will be raised and benchmark script will be stopped.
+* Validator can accept task name and tag value.
+  You can switch validation code according to benchmark task name or tag value.
+
+```ruby
+  ....
+
+  validate do |sos{{*, task_name, tag*}}|
+    expected = "HaruhiMikuruYukiItsukiKyon"
+    {{*if task_name == "Interporation"*}}
+      assert_eq sos, expected
+    {{*end*}}
+  end
+
+  ....
+```
+
+
+### More accurate benchmarks
+
+To measure benchmark accurately, it is important to remove (or reduce) overhead of loop. As described before, Benchmaker provides empty-loop task feature for this purpose.
+
+Benchmarker provides another way to reduce overhead of loop: If you specify benchmark task code by string instead of block argument, Benchmarker repeats the code string 100 times and generates block argument from it.
+
+```ruby
+  ## this code...
+  task "foo", "x = 1+2+3"
+
+  ## ...is converted into:
+  task "foo" do
+    x = 1+2+3
+    x = 1+2+3
+    x = 1+2+3
+    x = 1+2+3
+    .... # (repeat 100 times)
+  end
+```
+
+As a result, overhead of loop is reduced into 1/100 and you can measure benchmarks more accurately.
+
+To generate block argument from code string, Benchmarker calls ``eval()`` with ``TOPLEVEL_BINDING``. Therefore you must set local variables in top-level, not inner of ``Benchmarker.scopde()``.
+
+File: ex6.rb
+
+```ruby
+require 'benchmarker'
+
+{{*s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"*}}
+
+title = "string concat"
+Benchmarker.scope(title, width: 22, loop: 1000*1000, iter: 5, extra: 1) do
+  {{=s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"=}}
+
+  ## empty-loop task is not necessary because overhead of loop is reduced
+  {{=task nil do=}}
+    {{=nil=}}
+  {{=end=}}
+
+  task "String#+"{{*, <<-'END'*}} {{=do=}}
+    sos = s1 + s2 + s3 + s4 + s5
+    sos
+  {{*END*}}
+  {{=end=}}
+
+  task "String#<<"{{*, <<-'END'*}} {{=do=}}
+    (sos = "") << s1 << s2 << s3 << s4 << s5
+    sos
+  {{*END*}}
+  {{=end=}}
+
+  task "Array#join"{{*, <<-'END'*}} {{=do=}}
+    sos = [s1, s2, s3, s4, s5].join()
+    sos
+  {{*END*}}
+  {{=end=}}
+
+  task "Interpolation"{{*, <<-'END'*}} {{=do=}}
+    sos = "#{s1}#{s2}#{s3}#{s4}#{s5}"
+    sos
+  {{*END*}}
+  {{=end=}}
+
+  validate do |sos|
+    expected = "HaruhiMikuruYukiItsukiKyon"
+    assert_eq sos, expected
+    ## or
+    assert sos == expected,
+           "expected #{expected.inspect} but got #{sos.inspect}"
+  end
+
+end
+```
+
+If you want to refer non-top-level local variables, specify ``binding()`` as 3rd argument of ``task()``.
+
+```ruby
+require 'benchmarker'
+
+{{=s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"=}}
+
+title = "string concat"
+Benchmarker.scope(title, width: 22, loop: 1000*1000, iter: 5, extra: 1) do
+  {{*s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"*}}
+
+  task "String#+", <<-'END'{{*, binding()*}}
+    sos = s1 + s2 + s3 + s4 + s5
+    sos
+  END
+
+  ....
+```
+
+
+
+## Advanced topics
+
+
+### Generate sample code
+
+Command-line option ``-S`` prints sample code of benchmark script.
+
+```terminal
+$ ruby -r benchmarker -e '' -- -S > mybench.rb
+$ less mybench.rb
+$ ruby mybench.rb
+```
+
+
+### Output in JSON format
+
+Command-line ``-o file.json`` option will output benchmark data into ``file.json`` in JSON format.
+
+```terminal
+$ ruby ex4.py {{*-o result.json*}}
+....(snip)...
+$ less result.json
+```
+
+
+### User-defined global variables
+
+Long options in command-line are regarded as global variables.
+For example, command-line option ``--foo=123`` defines ``$opt_foo = "123"``
+and ``--bar`` defines ``$opt_bar = true``.
+
+```ruby
+require 'benchmarker'
+
+puts "$opt_foo=#{{{*$opt_foo*}}.inspect}"
+puts "$opt_bar=#{{{*$opt_bar*}}.inspect}"
+
+Benchmarker.scope() do
+  ....
+end
+```
+
+Command-line example:
+
+```terminal
+$ ruby mybench.rb -n 1000 {{*--foo=123 --bar*}}
+$opt_foo="123"
+$opt_bar=true
+...
+
+## or, use '-s' option of ruby
+$ ruby {{*-s*}} mybench.rb {{*-opt_foo=123 -opt_bar*}} -- -n 1000
+$opt_foo="123"
+$opt_bar=true
+...
+```
+
+Notice that command-line parsing is done when requiring ``benchmarker.rb``.
+If you don't parse command-options, define ``BENCHMARKER_IGNORE_CMDOPTS = true``
+before requiring ``benchmarker.rb``.
+
+```ruby
+{{*BENCHMARKER_IGNORE_CMDOPTS = true*}}
+require 'benchmarker'
+```
+
+
+### Skip benchmark tasks
+
+You can skip certain benchmarks by calling ``skip_if condition, "reason"`` in benchmark task.
+
+Example:
+
+```ruby
+require 'benchmarker'
+
+{{*begin*}}
+  {{*require 'active_record'*}}
+{{*rescue LoadError*}}
+{{*end*}}
+
+Benchmarker.scope("O/R Mapper bench") do |bm|
+
+  task "ActiveRecord" do
+    {{*skip_if !defined?(ActiveRecord), "not installed"*}}
+    ....
+  end
+
+end
+```
+
+If you want to control skip or not skip slow benchmark tasks:
+
+```ruby
+require 'benchmarker'
+
+{{*skip_slow = ! $opt_all*}}    # default value of `! $opt_all` is true
+
+Benchmarker.scope("framework bench") do |bm|
+
+  task "Slow benchamrk" do
+    skip_if skip_slow, "too slow"
+    ....
+  end
+
+end
+```
+
+```terminal
+$ ruby mybench.rb         # skip heavy benchmark tasks
+$ ruby mybench.rb {{*--all*}}   # run all benchmark tasks
+```
+
+
+### Number of times per seconds
+
+If you want to know not only seconds but also number of times per sec (``loop / sec``), add command-line option ``-I``, or add ``inverse: true`` option into ``Benchmarker.scope()``.
+
+```terminal
+$ ruby ex2.rb -n 1000000 {{*-I*}}
+## title:           string concat
+## options:         loop=1000000, iter=1, extra=0, inverse=true
+## benchmarker:     release 1.0.0
+## ruby engine:     ruby (engine version 2.4.5)
+## ruby version:    2.4.5 (patch level 335)
+## ruby platform:   x86_64-darwin18
+## ruby path:       /opt/vs/ruby/2.4.5/bin/ruby
+## compiler:        Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+## os name:         Mac OS X 10.14.6
+## cpu model:       Intel(R) Core(TM) m7-6Y75 CPU @ 1.20GHz
+
+##                          user       sys     total      real
+String#+                  0.5900    0.0100    0.6000    0.5916
+String#<<                 0.6400    0.0000    0.6400    0.6421
+Array#join                0.9300    0.0100    0.9400    0.9497
+Interpolation             0.5600    0.0000    0.5600    0.5559
+
+## Ranking                  real                     {{*times/sec*}}
+Interpolation             0.5559 (100.0%)           {{*1798797.32*}}
+String#+                  0.5916 ( 94.0%)           {{*1690457.03*}}
+String#<<                 0.6421 ( 86.6%)           {{*1557440.75*}}
+Array#join                0.9497 ( 58.5%)           {{*1052935.27*}}
+
+## Matrix                   real      [1]      [2]      [3]      [4]
+[1] Interpolation         0.5559   100.0%   106.4%   115.5%   170.8%
+[2] String#+              0.5916    94.0%   100.0%   108.5%   160.5%
+[3] String#<<             0.6421    86.6%    92.1%   100.0%   147.9%
+[4] Array#join            0.9497    58.5%    62.3%    67.6%   100.0%
+```
+
+You may notice that ``1798797.32 times/sec`` is different from 1798884.69 (= 1000000 / 0.5559).
+This is because that 0.5559 sec (real time) is rounded value, while ``1798797.32 times/sec`` is calculated from non-rounded value.
+In other words, ``1798797.32 times/sec`` is more accurate value than 1798884.69 (= 1000000 / 0.5559).
+
+Command-line option ``-I`` can take an optional value, like ``-I1000``.
+
+* ``ruby ex4.rb -n 1000000 -I`` calculates ``1000000 / sec`` for each result.
+* ``ruby ex4.rb -n 1000000 -I1000`` calculates ``1000 / sec`` for each result.
+
+Notice that ``-I 1000`` is regarded as ``-I``. Specify argument without space, like ``-I1000``.
+
+
+### Sleep a while after each benchmark task
+
+``Benchmarker.scope(sleep: <N>)`` or command-line option ``-s <N>`` makes benchmark to sleep N seconds after each task.
+This is intended to avoid thermal runaway of CPU.
+
+```terminal
+### sleep 2 seconds after each benchmark tasks
+$ ruby mybench.rb {{*-s 2*}}
+```
+
+
+### Refer benchmark options
+
+How to refer benchmark options:
+
+```ruby
+Benchamrker.scope(width: 22, loop: 1000, iter: 10, extra: 1) do {{*|bm|*}}
+  p {{*bm.loop*}}    #=> 1000
+  p {{*bm.iter*}}    #=> 10
+  p {{*bm.extra*}}   #=> 1
+
+  ....
+```
+
+
+### Compatibility with `benchmark.rb`
+
+Benchmarker provides the followings for compatibility with ``benchmark.rb`` (standard library).
+
+* ``Benchmark`` module
+* ``Benchmark.bm()`` method
+* ``Benchmark.bmbm()`` method
+
+File: ex8.rb
+
+```ruby
+{{=require 'benchmark'=}}
+require 'benchmarker'
+
+nums = (1..10_000_000).to_a
+
+{{*Benchmark.bm(20) do |x|*}}    # not `Benchmarker` !
+
+  {{*x.report*}} "each() & '+='" do
+    total = 0
+    nums.each {|n| total += n }
+  end
+
+  {{*x.report*}} "inject()" do
+    total = nums.inject(0) {|t, n| t += n }
+  end
+
+  {{*x.report*}} "while statement" do
+    total = 0; i = -1; len = nums.length
+    while (i += 1) < len
+      total += nums[i]
+    end
+  end
+
+end
+```
+
+See <https://ruby-doc.org/stdlib-2.7.0/libdoc/benchmark/rdoc/Benchmark.html>
+for details of ``benchamrk.rb``.
+
+
+
+## Command-line options
+
+```terminal
+$ ruby mybench.rb --help    # or: ruby -r benchmarker -e '' -- --help
+Usage: mybench.rb [<options>]
+  -h, --help     : help message
+  -v             : print Benchmarker version
+  -w <N>         : width of task name (default: 30)
+  -n <N>         : loop N times in each benchmark (default: 1)
+  -i <N>         : iterates all benchmark tasks N times (default: 1)
+  -x <N>         : ignore worst N results and best N results (default: 0)
+  -I[<N>]        : print inverse number (= N/sec) (default: same as '-n')
+  -o <file>      : output file in JSON format
+  -q             : quiet a little (suppress output of each iteration)
+  -c             : enable colorized output
+  -C             : disable colorized output
+  -s <N>         : sleep N seconds after each benchmark task
+  -S             : print sample code
+  -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
+  -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
+  --<key>[=<val>]: define global variable `$opt_<key> = "<val>"`
+```
+
+
+
+## License and copyright
+
+$License: MIT License $
+
+$Copyright: copyright(c) 2010-2021 kuwata-lab.com all rights reserved. $
+
+
+
+## Change log
+
+
+###* Release 1.0.0
+
+* Public release
