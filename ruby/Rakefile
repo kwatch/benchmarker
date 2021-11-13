@@ -65,7 +65,7 @@ task :build do
   rm_rf fnames unless fnames.empty?
   mkdir_p dir
   ## store
-  cp_r %W[README.md CHANGES.md Rakefile #{project}.gemspec setup.rb], dir
+  cp_r %W[README.md CHANGES.md Rakefile MIT-LICENSE #{project}.gemspec setup.rb], dir
   copy_into Dir.glob("lib/*.rb"),      "#{dir}/lib"
   copy_into Dir.glob("test/*test.rb"), "#{dir}/test"
   #copy_into Dir.glob("examples/*.rb"), "#{dir}/examples"

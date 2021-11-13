@@ -31,7 +31,7 @@ END
     'lib/benchmarker.rb',
     'test/**/*',
     #'examples/**/*',
-    'README.md', 'CHANGES.md', 'Rakefile',
+    'README.md', 'CHANGES.md', 'Rakefile', 'MIT-LICENSE',
     'setup.rb', 'benchmarker.gemspec',
   ]
   s.files       = files.collect {|pat| Dir.glob(pat) }.flatten
