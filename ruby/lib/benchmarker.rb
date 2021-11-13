@@ -949,7 +949,7 @@ Usage: #{command} [<options>]
   -S             : print sample code
   -F task=<...>  : filter benchmark task by name (operator: '=' or '!=')
   -F tag=<...>   : filter benchmark task by tag (operator: '=' or '!=')
-  --<key>[=<val>]: define global variable `$var = "val"`
+  --<key>[=<val>]: define global variable `$opt_<key> = "<val>"`
 END
     end
 
