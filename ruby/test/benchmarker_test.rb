@@ -444,7 +444,34 @@ Oktest.scope do
         end
         sout, serr = capture_sio { bm.__send__(:invoke_tasks) }
         ok {called} == [:empty, :foo, :baz]    # :bar is not included
+      end
+    - spec("[!dyofw] prints reason if 'skip:' option specified.") do
+        bm = Benchmarker::Benchmark.new().scope do
+          task "foo" do nil end
+          task "bar", skip: "not installed" do nil end
+          task "baz" do nil end
+        end
+        sout, serr = capture_sio { bm.__send__(:invoke_tasks) }
         ok {sout} =~ /^bar +\# Skipped \(reason: not installed\)$/
+      end
+    - spec("[!ygpx0] records reason of skip into JSON data.") do
+        with_dummy_task_class do
+          bm = Benchmarker::Benchmark.new().scope do
+            task "foo" do nil end
+            task "bar", skip: "not installed" do nil end
+            task "baz" do nil end
+          end
+          sout, serr = capture_sio { bm.__send__(:invoke_tasks) }
+          ok {bm.instance_eval{@jdata}} == {
+            :Results => [
+              [
+                ["foo", 0.005, 0.003, 0.008, 0.0085],
+                ["bar", nil, nil, nil, nil, "not installed"],
+                ["baz", 0.009, 0.005, 0.014, 0.0145],
+              ]
+            ]
+          }
+        end
       end
     - spec("[!513ok] subtract timeset of empty loop from timeset of each task.") do
         with_dummy_task_class do

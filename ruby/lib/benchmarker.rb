@@ -208,10 +208,13 @@ module Benchmarker
         #; [!xf84h] invokes all tasks.
         @entries.each do |task, result|
           timeset = __invoke(task, task.name, @hooks[:validate], quiet)
+          #; [!dyofw] prints reason if 'skip:' option specified.
           if task.skip?
             reason = task.skip
             result.skipped = reason
             puts "   # Skipped (reason: #{reason})" unless quiet
+            #; [!ygpx0] records reason of skip into JSON data.
+            rows << [task.name, nil, nil, nil, nil, reason]
             next
           end
           #; [!513ok] subtract timeset of empty loop from timeset of each task.
