@@ -1,6 +1,0 @@
-= Benchmarker CHANGES
-
-
-== Release 0.1.0 (2011-03-02)
-
-* first release.
