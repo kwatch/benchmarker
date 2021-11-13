@@ -72,9 +72,9 @@ task :build do
   ## edit
   edit_files("#{dir}/**/*") do |content, filename|
     if ! %w[setup.rb].include?(File.basename(filename))
-      content.gsub! /[\$]Release:.*?\$/,   "$""Release: #{release} $"
-      content.gsub! /[\$]Copyright:.*?\$/, "$""Copyright: #{copyright} $"
-      content.gsub! /[\$]License:.*?\$/,   "$""License: #{license} $"
+      content.gsub! /[\$]Release:.*?\$/,   "$""Release: #{release} $"      #"
+      content.gsub! /[\$]Copyright:.*?\$/, "$""Copyright: #{copyright} $"  #"
+      content.gsub! /[\$]License:.*?\$/,   "$""License: #{license} $"      #"
       content.gsub! /[\$]Release\$/,   release
       content.gsub! /[\$]Copyright\$/, copyright
       content.gsub! /[\$]License\$/,   license
@@ -84,7 +84,7 @@ task :build do
 end
 
 
-desc "create *.tar.gz and *.gem packages"
+desc "create gem package"
 task :package => :build do
   release = ENV['rel']  or
     raise "rake package: requires 'rel=X.X.X'"
@@ -97,16 +97,3 @@ task :package => :build do
     mv Dir.glob("#{project}-*.gem"), ".."
   end
 end
-
-
-desc "copy 'oktest.rb' into 'test/'"
-task :oktest => "test/oktest.rb"
-
-file "test/oktest.rb" => File.expand_path("~/src/oktest/ruby/lib/oktest.rb") do |t|
-  cp t.prerequisites, "test"
-end
-
-#task "availables" do |t|
-#  methods = t.methods.sort - Object.new.methods
-#  $stderr.puts "\033[0;31m*** debug: methods=#{methods.inspect}\033[0m"
-#end
