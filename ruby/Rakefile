@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 project   = "benchmarker"
 release   = "$Release: 0.0.0 $".split()[1]
-copyright = "copyright(c) 2010-2011 kuwata-lab.com all rights reserved"
-license   = "Public Domain"
+copyright = "copyright(c) 2010-2021 kuwata-lab.com all rights reserved"
+license   = "MIT License"
 
 require 'fileutils'
 include FileUtils

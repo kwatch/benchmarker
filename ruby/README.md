@@ -21,6 +21,6 @@ See <https://kwatch.github.io/benchmarker/> for details.
 License and Copyright
 ---------------------
 
-$License: Public Domain $
+$License: MIT License $
 
 $Copyright: copyright(c) 2010-2021 kuwata-lab.com all rights reserved. $

@@ -4,7 +4,7 @@
 ###
 ### $Release: 0.0.0 $
 ### $Copyright: copyright(c) 2010-2021 kuwata-lab.com all rights reserved $
-### $License: Public Domain $
+### $License: MIT License $
 ###
 
 $LOAD_PATH.unshift File.class_eval { join(dirname(dirname(__FILE__)), 'lib') }
