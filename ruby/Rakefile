@@ -97,3 +97,11 @@ task :package => :build do
     mv Dir.glob("#{project}-*.gem"), ".."
   end
 end
+
+desc "upload gem package"
+task :publish do
+  release = ENV['rel']  or
+    raise "rake publish: requires 'rel=X.X.X'"
+  gem = "build/#{project}-#{release}.gem"
+  sh "gem push #{gem}"
+end
