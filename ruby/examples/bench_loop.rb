@@ -4,33 +4,38 @@
 
 require 'benchmarker'
 
-nums = (1..10000).to_a #.shuffle
+nums = (1..1000_000).to_a #.shuffle
 
-Benchmarker.new(:width=>24, :loop=>1000, :cycle=>5, :extra=>1) do |bm|
+title = "calculate sum of integers"
+Benchmarker.scope title, width: 24, loop: 100, iter: 5, extra: 1 do
 
-  bm.empty_task do
+  task nil do
     nil
   end
 
-  bm.task("each() & '+='") do
+  task "each() & '+='" do
     total = 0
     nums.each {|n| total += n }
     total
   end
 
-  bm.task("inject()") do
+  task "inject()" do
     total = nums.inject(0) {|t, n| t += n }
     total
   end
 
-  msg = "    # skip because Symbol#to_proc() is not defined."
-  msg = nil if :+.respond_to?(:to_proc)
-  bm.task("inject(&:+)", :skip=>msg) do
-    total = nums.inject(0, &:+)
+  task "inject(:+)" do
+    total = nums.inject(0, :+)
     total
   end
 
-  bm.task("for statement") do
+  reason = nums.respond_to?(:sum) ? nil : "Array#sum() not defined"
+  task "sum()", skip: reason do
+    total = nums.sum()
+    total
+  end
+
+  task "for statement" do
     total = 0
     for n in nums
       total += n
@@ -38,14 +43,18 @@ Benchmarker.new(:width=>24, :loop=>1000, :cycle=>5, :extra=>1) do |bm|
     total
   end
 
-  bm.task("while statement") do
-    i, len = 0, nums.length
-    total = 0
-    while i < len
+  task "while statement" do
+    total = 0; i = -1; len = nums.length
+    while (i += 1) < len
       total += nums[i]
-      i += 1
     end
     total
+  end
+
+  validate do |total|
+    n = nums.length
+    expected = n * (n+1) / 2
+    assert_eq total, expected
   end
 
 end

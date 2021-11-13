@@ -5,29 +5,29 @@
 
 require 'benchmarker'
 
-targets = %w[cgi cgi/session erb tempfile tmpdir openssl
-             logger pathname pstore time date2 uri drb fileutils
-             rss rexml/document yaml psych json rubygems]
+targets = %w[
+  cgi cgi/session erb tempfile tmpdir openssl uri net/http
+  optparse logger pathname pstore time date fileutils
+  rss rexml/document yaml json rubygems
+]
 
-if RUBY_VERSION >= '1.9'
-  targets.delete('date2')
-elsif RUBY_VERSION < '1.9'
-  targets.delete('psych')
+if RUBY_VERSION < '1.9'
   targets.delete('json')
+elsif RUBY_VERSION >= '2.0'
+  targets.delete('rubygems')
 end
 
-loop = 10
-cycle = 1   # or 5
-Benchmarker.new(:loop=>loop, :cycle=>cycle, :extra=>1) do |bm|
+title = "library loading time"
+Benchmarker.scope title, width: 22, loop: 10, iter: 5, extra: 1 do
 
-  #bm.empty_task "(Empty) ruby" do
-  bm.task "ruby" do
+  task nil do
     system "ruby -e nil"
   end
 
   targets.each do |lib|
-    bm.task "ruby -r #{lib}" do
-      system "ruby -r #{lib} -e nil"
+    task "ruby -r #{lib}" do
+      #system "ruby -r #{lib} -e nil"
+      system "ruby -e \"require '#{lib}'\""
     end
   end
 
