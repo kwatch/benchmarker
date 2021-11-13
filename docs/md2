@@ -485,9 +485,9 @@ END
       nav = <<"END"
 <nav class="nav">
   <ul class="nav">
-    <li class="nav"><a href="index.html">HOME</a></li>
-    <li class="nav"><a href="python.html">Python</a></li>
-    <li class="nav"><a href="ruby.html">Ruby</a></li>
+    <li class="nav"><a href="./">HOME</a></li>
+    <li class="nav"><a href="./python.html">Python</a></li>
+    <li class="nav"><a href="./ruby.html">Ruby</a></li>
   </ul>
 </nav>
 END
