@@ -14,7 +14,7 @@ Benchmarker.rb is an awesome benchmarking tool for Ruby.
   * Print platform information automatically
   * Print ranking graph and ratio matrix automatically
 
-See <https://kwatch.github.io/benchmarker/> for details.
+See <https://kwatch.github.io/benchmarker/ruby.html> for details.
 
 
 
