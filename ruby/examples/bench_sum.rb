@@ -1,5 +1,5 @@
 ###
-### benchmark to compare loop methods
+### benchmark to calculate sum of integers
 ###
 
 require 'benchmarker'
